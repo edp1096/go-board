@@ -1,0 +1,59 @@
+/dynamic-board
+  /cmd
+    main.go                  # 애플리케이션 진입점
+  /config
+    config.go                # 설정 관리
+    database.go              # 데이터베이스 연결 설정
+  /internal
+    /constants
+      constants.go           # 상수 정의
+    /models
+      user.go                # 사용자 모델
+      board.go               # 게시판 모델
+      post.go                # 게시물 모델
+    /handlers
+      auth_handler.go        # 인증 핸들러
+      board_handler.go       # 게시판 핸들러
+      admin_handler.go       # 관리자 핸들러
+    /middleware
+      auth_middleware.go     # 인증 미들웨어
+      admin_middleware.go    # 관리자 권한 미들웨어
+    /repository
+      user_repository.go     # 사용자 데이터 액세스
+      board_repository.go    # 게시판 데이터 액세스
+    /service
+      auth_service.go        # 인증 서비스
+      board_service.go       # 게시판 서비스
+      dynamic_board_service.go # 동적 게시판 생성 서비스
+  /web
+    /templates
+      /layouts
+        base.html            # 기본 레이아웃
+      /partials
+        header.html          # 헤더 부분 템플릿
+        footer.html          # 푸터 부분 템플릿
+      /auth
+        login.html           # 로그인 페이지
+        register.html        # 회원가입 페이지
+      /board
+        list.html            # 게시판 목록 페이지
+        view.html            # 게시물 보기 페이지
+        create.html          # 게시물 작성 페이지
+      /admin
+        dashboard.html       # 관리자 대시보드
+        board_manage.html    # 게시판 관리 페이지
+    /static
+      /css
+        style.css            # 스타일시트
+      /js
+        alpine-init.js       # Alpine.js 초기화 스크립트
+  /migrations
+    001_create_users.up.sql  # 사용자 테이블 생성 마이그레이션
+    001_create_users.down.sql # 사용자 테이블 삭제 마이그레이션
+    002_create_boards.up.sql # 게시판 테이블 생성 마이그레이션
+    002_create_boards.down.sql # 게시판 테이블 삭제 마이그레이션
+  go.mod                     # Go 모듈 정의
+  go.sum                     # Go 모듈 의존성 체크섬
+  Makefile                   # 빌드 및 실행 명령어
+  README.md                  # 프로젝트 설명
+  .env.example               # 환경 변수 예제

@@ -1,0 +1,64 @@
+<!-- web/templates/auth/profile.html -->
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">내 프로필</h1>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="p-6">
+            <form action="/user/profile" method="POST" x-data="{ submitting: false, changePassword: false }">
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">사용자 이름</label>
+                        <input type="text" name="username" id="username" value="{{.user.Username}}" disabled readonly class="mt-1 block w-full bg-gray-100 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">사용자 이름은 변경할 수 없습니다.</p>
+                    </div>
+
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">이메일</label>
+                        <input type="email" name="email" id="email" value="{{.user.Email}}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="full_name" class="block text-sm font-medium text-gray-700">이름</label>
+                        <input type="text" name="full_name" id="full_name" value="{{.user.FullName}}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    </div>
+
+                    <!-- 비밀번호 변경 토글 -->
+                    <div>
+                        <div class="flex items-center">
+                            <input id="change_password" name="change_password" type="checkbox" x-model="changePassword" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="change_password" class="ml-2 block text-sm text-gray-700">비밀번호 변경</label>
+                        </div>
+                    </div>
+
+                    <!-- 비밀번호 변경 영역 -->
+                    <div x-show="changePassword" x-transition>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="current_password" class="block text-sm font-medium text-gray-700">현재 비밀번호</label>
+                                <input type="password" name="current_password" id="current_password" x-bind:required="changePassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            </div>
+
+                            <div>
+                                <label for="new_password" class="block text-sm font-medium text-gray-700">새 비밀번호</label>
+                                <input type="password" name="new_password" id="new_password" x-bind:required="changePassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                        <span x-show="!submitting">저장</span>
+                        <span x-show="submitting" class="flex items-center">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            저장 중...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

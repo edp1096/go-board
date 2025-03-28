@@ -1,0 +1,119 @@
+<!-- web/templates/board/view.html -->
+<div>
+    <div class="mb-4">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <div>
+                        <a href="/boards" class="text-gray-400 hover:text-gray-500">게시판 목록</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <svg class="flex-shrink-0 h-5 w-5 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                        </svg>
+                        <a href="/boards/{{.board.ID}}/posts" class="ml-4 text-gray-400 hover:text-gray-500">{{.board.Name}}</a>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <!-- 게시물 헤더 -->
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h1 class="text-2xl font-bold text-gray-900">{{.post.Title}}</h1>
+            <div class="mt-2 flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="text-sm text-gray-500">
+                        <span>{{.post.Username}}</span>
+                        <span class="mx-1">·</span>
+                        <span>{{.post.CreatedAt.Format "2006-01-02 15:04"}}</span>
+                        {{if ne .post.UpdatedAt .post.CreatedAt}}
+                        <span class="mx-1">·</span>
+                        <span>수정됨: {{.post.UpdatedAt.Format "2006-01-02 15:04"}}</span>
+                        {{end}}
+                    </div>
+                </div>
+                <div class="text-sm text-gray-500">
+                    <span>조회수 {{.post.ViewCount}}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 게시물 내용 -->
+        <div class="px-6 py-4">
+            <!-- 동적 필드 정보 -->
+            {{if .board.Fields}}
+            <div class="mb-4 grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                {{range .board.Fields}}
+                {{$field := index $.post.Fields .Name}}
+                {{if $field}}
+                <div>
+                    <div class="text-sm font-medium text-gray-500">{{.DisplayName}}</div>
+                    <div class="mt-1 text-sm text-gray-900">
+                        {{if eq .FieldType "checkbox"}}
+                        {{if $field.Value}}
+                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        {{else}}
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                        {{end}}
+                        {{else}}
+                        {{$field.Value}}
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+                {{end}}
+            </div>
+            {{end}}
+
+            <!-- 본문 -->
+            <div class="prose max-w-none">
+                {{.post.Content}}
+            </div>
+        </div>
+
+        <!-- 게시물 푸터 -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div class="flex justify-between">
+                <div>
+                    <a href="/boards/{{.board.ID}}/posts" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        목록
+                    </a>
+                </div>
+
+                {{if .user}}
+                {{if or (eq .user.ID .post.UserID) (eq .user.Role "admin")}}
+                <div class="flex space-x-2">
+                    <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        수정
+                    </a>
+                    <button x-data @click="if (confirm('정말 삭제하시겠습니까?')) { 
+                            fetch('/boards/{{.board.ID}}/posts/{{.post.ID}}', { 
+                                method: 'DELETE',
+                                headers: { 'Accept': 'application/json' }
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    window.location.href = '/boards/{{.board.ID}}/posts';
+                                } else {
+                                    alert(data.message);
+                                }
+                            });
+                        }" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                        삭제
+                    </button>
+                </div>
+                {{end}}
+                {{end}}
+            </div>
+        </div>
+    </div>
+</div>

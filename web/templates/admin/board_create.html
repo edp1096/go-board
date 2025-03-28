@@ -1,0 +1,173 @@
+<!-- web/templates/admin/board_create.html -->
+<div class="max-w-7xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">새 게시판 만들기</h1>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <form action="/admin/boards" method="POST" x-data="{ submitting: false, fieldCount: 0, fields: [] }" x-init="$watch('fields', value => { fieldCount = value.length; })" @submit.prevent="
+                submitting = true;
+                const formData = new FormData($el);
+                formData.append('field_count', fieldCount);
+                
+                fetch('/admin/boards', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/admin/boards';
+                    } else {
+                        alert(data.message);
+                        submitting = false;
+                    }
+                })
+                .catch(err => {
+                    alert('오류가 발생했습니다: ' + err);
+                    submitting = false;
+                });
+            ">
+
+            <div class="p-6">
+                <div class="mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">기본 정보</h2>
+
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">게시판 이름 <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" id="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        </div>
+
+                        <div>
+                            <label for="slug" class="block text-sm font-medium text-gray-700">URL 슬러그</label>
+                            <input type="text" name="slug" id="slug" placeholder="자동 생성됩니다" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">영문, 숫자, 하이픈(-)만 사용 가능합니다. 비워두면 자동 생성됩니다.</p>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label for="description" class="block text-sm font-medium text-gray-700">게시판 설명</label>
+                            <textarea name="description" id="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
+                        </div>
+
+                        <div>
+                            <label for="board_type" class="block text-sm font-medium text-gray-700">게시판 유형 <span class="text-red-500">*</span></label>
+                            <select name="board_type" id="board_type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                {{range .boardTypes}}
+                                <option value="{{.}}">
+                                    {{if eq . "normal"}}일반 게시판
+                                    {{else if eq . "gallery"}}갤러리 게시판
+                                    {{else if eq . "qna"}}질문/답변 게시판
+                                    {{else}}{{.}}{{end}}
+                                </option>
+                                {{end}}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-medium text-gray-900">필드 정보</h2>
+                        <button type="button" @click="fields.push({ name: '', displayName: '', fieldType: 'text', required: false, sortable: false, searchable: false, options: '' })" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            + 필드 추가
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <template x-for="(field, index) in fields" :key="index">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <div class="flex justify-between mb-4">
+                                    <h3 class="text-md font-medium" x-text="field.displayName || '새 필드'"></h3>
+                                    <button type="button" @click="fields.splice(index, 1)" class="text-red-600 hover:text-red-900">
+                                        삭제
+                                    </button>
+                                </div>
+
+                                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div>
+                                        <label :for="'field_name_' + index" class="block text-sm font-medium text-gray-700">필드 이름 <span class="text-red-500">*</span></label>
+                                        <input type="text" :name="'field_name_' + index" :id="'field_name_' + index" x-model="field.name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                        <p class="mt-1 text-xs text-gray-500">영문, 숫자, 언더스코어(_)만 사용 가능합니다.</p>
+                                    </div>
+
+                                    <div>
+                                        <label :for="'display_name_' + index" class="block text-sm font-medium text-gray-700">표시 이름 <span class="text-red-500">*</span></label>
+                                        <input type="text" :name="'display_name_' + index" :id="'display_name_' + index" x-model="field.displayName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    </div>
+
+                                    <div>
+                                        <label :for="'field_type_' + index" class="block text-sm font-medium text-gray-700">필드 유형 <span class="text-red-500">*</span></label>
+                                        <select :name="'field_type_' + index" :id="'field_type_' + index" x-model="field.fieldType" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            {{range .fieldTypes}}
+                                            <option value="{{.}}">
+                                                {{if eq . "text"}}텍스트
+                                                {{else if eq . "textarea"}}텍스트 영역
+                                                {{else if eq . "number"}}숫자
+                                                {{else if eq . "date"}}날짜
+                                                {{else if eq . "select"}}선택 옵션
+                                                {{else if eq . "checkbox"}}체크박스
+                                                {{else if eq . "file"}}파일 업로드
+                                                {{else}}{{.}}{{end}}
+                                            </option>
+                                            {{end}}
+                                        </select>
+                                    </div>
+
+                                    <div x-show="field.fieldType === 'select'">
+                                        <label :for="'options_' + index" class="block text-sm font-medium text-gray-700">옵션 <span class="text-red-500">*</span></label>
+                                        <textarea :name="'options_' + index" :id="'options_' + index" x-model="field.options" :required="field.fieldType === 'select'" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder='[{"value":"option1","label":"옵션 1"},{"value":"option2","label":"옵션 2"}]'></textarea>
+                                        <p class="mt-1 text-xs text-gray-500">JSON 형식으로 입력해주세요.</p>
+                                    </div>
+
+                                    <div class="sm:col-span-2">
+                                        <div class="flex space-x-4">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" :name="'required_' + index" :id="'required_' + index" x-model="field.required" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                <label :for="'required_' + index" class="ml-2 block text-sm text-gray-700">
+                                                    필수 입력
+                                                </label>
+                                            </div>
+
+                                            <div class="flex items-center">
+                                                <input type="checkbox" :name="'sortable_' + index" :id="'sortable_' + index" x-model="field.sortable" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                <label :for="'sortable_' + index" class="ml-2 block text-sm text-gray-700">
+                                                    정렬 가능
+                                                </label>
+                                            </div>
+
+                                            <div class="flex items-center">
+                                                <input type="checkbox" :name="'searchable_' + index" :id="'searchable_' + index" x-model="field.searchable" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                                <label :for="'searchable_' + index" class="ml-2 block text-sm text-gray-700">
+                                                    검색 가능
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div x-show="fields.length === 0" class="text-center py-4 text-gray-500">
+                            추가 필드가 없습니다. "필드 추가" 버튼을 클릭하여 필드를 추가해보세요.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
+                <a href="/admin/boards" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    취소
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                    <span x-show="!submitting">등록</span>
+                    <span x-show="submitting" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        등록 중...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
