@@ -12,7 +12,7 @@
 ## 빠른 시작
 
 ### 요구사항
-- Go 1.18+
+- Go 1.24+
 - PostgreSQL 또는 MySQL/MariaDB
 
 ### 설치 및 실행
@@ -71,7 +71,3 @@ internal/     - 메인 코드
 migrations/   - DB 마이그레이션
 web/          - 프론트엔드
 ```
-
-## 라이선스
-
-MIT
