@@ -1,20 +1,4 @@
 <!-- web/templates/partials/header.html - 수정된 버전 -->
-<!-- 디버깅용 코드 - 개발 완료 후 제거 -->
-<div style="background-color: #f0f0f0; padding: 5px; font-size: 12px; text-align: center;">
-    템플릿 데이터 확인: {{if .user}}사용자 '{{.user.Username}}' ({{.user.Role}}) 로그인됨{{else}}로그인되지 않음{{end}}
-</div>
-
-{{/* 디버깅 정보 */}}
-{{if .user}}
-<div style="background-color: #f0f8ff; padding: 5px; text-align: center; font-size: 12px;">
-    로그인 상태: {{.user.Username}} ({{.user.Role}})
-</div>
-{{else}}
-<div style="background-color: #fff0f0; padding: 5px; text-align: center; font-size: 12px;">
-    로그인되지 않음
-</div>
-{{end}}
-
 <header class="bg-white shadow">
     <div class="container mx-auto px-4">
         <div class="flex justify-between h-16">

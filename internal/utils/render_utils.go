@@ -3,8 +3,6 @@
 package utils
 
 import (
-	"log"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -17,11 +15,16 @@ func RenderWithUser(c *fiber.Ctx, template string, data fiber.Map) error {
 	// c.Locals에 저장된 "user" 값을 데이터에 추가합니다.
 	user := c.Locals("user")
 	if user != nil {
-		log.Printf("템플릿 '%s'에 사용자 정보 추가", template)
 		data["user"] = user
-	} else {
-		log.Printf("템플릿 '%s'에 사용자 정보 없음", template)
 	}
+	
+	// CSRF 토큰 추가
+	if csrf := c.Locals("csrf"); csrf != nil {
+		data["csrf"] = csrf
+	}
+
+	// UTF-8 인코딩 명시적 설정
+	c.Set("Content-Type", "text/html; charset=utf-8")
 
 	return c.Render(template, data)
 }

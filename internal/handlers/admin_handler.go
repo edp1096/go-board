@@ -8,6 +8,7 @@ import (
 	"dynamic-board/internal/utils" // utils 패키지 임포트 추가
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
@@ -16,12 +17,14 @@ import (
 type AdminHandler struct {
 	dynamicBoardService service.DynamicBoardService
 	boardService        service.BoardService
+	authService         service.AuthService
 }
 
-func NewAdminHandler(dynamicBoardService service.DynamicBoardService, boardService service.BoardService) *AdminHandler {
+func NewAdminHandler(dynamicBoardService service.DynamicBoardService, boardService service.BoardService, authService service.AuthService) *AdminHandler {
 	return &AdminHandler{
 		dynamicBoardService: dynamicBoardService,
 		boardService:        boardService,
+		authService:         authService,
 	}
 }
 
@@ -178,17 +181,13 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 		}
 	}
 
-	// JSON 요청인 경우
-	if c.Get("Accept") == "application/json" {
-		return c.JSON(fiber.Map{
-			"success": true,
-			"message": "게시판이 생성되었습니다",
-			"id":      board.ID,
-		})
-	}
-
-	// 웹 요청인 경우 게시판 관리 페이지로 리다이렉트
-	return c.Redirect("/admin/boards")
+	// 폼이 fetch를 통해 제출되었으므로 항상 JSON 응답을 반환
+	c.Set("Content-Type", "application/json")
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "게시판이 생성되었습니다",
+		"id":      board.ID,
+	})
 }
 
 // EditBoardPage 게시판 수정 페이지
@@ -414,16 +413,12 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 		}
 	}
 
-	// JSON 요청인 경우
-	if c.Get("Accept") == "application/json" {
-		return c.JSON(fiber.Map{
-			"success": true,
-			"message": "게시판이 수정되었습니다",
-		})
-	}
-
-	// 웹 요청인 경우 게시판 관리 페이지로 리다이렉트
-	return c.Redirect("/admin/boards")
+	// 폼이 fetch를 통해 제출되었으므로 항상 JSON 응답을 반환
+	c.Set("Content-Type", "application/json")
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "게시판이 수정되었습니다",
+	})
 }
 
 // DeleteBoard 게시판 삭제 처리
@@ -465,14 +460,415 @@ func (h *AdminHandler) DeleteBoard(c *fiber.Ctx) error {
 		})
 	}
 
-	// JSON 요청인 경우
-	if c.Get("Accept") == "application/json" {
-		return c.JSON(fiber.Map{
-			"success": true,
-			"message": "게시판이 삭제되었습니다",
+	// 폼이 fetch를 통해 제출되었으므로 항상 JSON 응답을 반환
+	c.Set("Content-Type", "application/json")
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "게시판이 삭제되었습니다",
+	})
+}
+
+// ListUsers 사용자 관리 목록 페이지
+func (h *AdminHandler) ListUsers(c *fiber.Ctx) error {
+	// 페이지네이션 파라미터
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize := 10
+
+	// 검색어 파라미터
+	search := c.Query("search", "")
+
+	// 오프셋 계산
+	offset := (page - 1) * pageSize
+
+	// 사용자 목록 조회
+	users, count, err := h.authService.ListUsers(c.Context(), offset, pageSize, search)
+	if err != nil {
+		return utils.RenderWithUser(c, "error", fiber.Map{
+			"title":   "오류",
+			"message": "사용자 목록을 불러오는데 실패했습니다",
+			"error":   err.Error(),
 		})
 	}
 
-	// 웹 요청인 경우 게시판 관리 페이지로 리다이렉트
-	return c.Redirect("/admin/boards")
+	// 총 페이지 수 계산
+	totalPages := (count + pageSize - 1) / pageSize
+
+	return utils.RenderWithUser(c, "admin/users", fiber.Map{
+		"title":       "사용자 관리",
+		"users":       users,
+		"currentPage": page,
+		"totalPages":  totalPages,
+		"totalUsers":  count,
+		"search":      search,
+	})
+}
+
+// UpdateUserRole 사용자 역할 변경
+func (h *AdminHandler) UpdateUserRole(c *fiber.Ctx) error {
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	// 현재 로그인한 사용자가 자신의 역할을 변경하려고 시도하는 경우 방지
+	currentUser := c.Locals("user").(*models.User)
+	if currentUser.ID == userID {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "자신의 역할은 변경할 수 없습니다",
+		})
+	}
+
+	// 요청 본문 파싱
+	var body struct {
+		Role models.Role `json:"role"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 데이터 파싱에 실패했습니다",
+		})
+	}
+
+	// 역할 검증
+	if body.Role != models.RoleAdmin && body.Role != models.RoleUser {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "유효하지 않은 역할입니다",
+		})
+	}
+
+	// 사용자 정보 조회
+	user, err := h.authService.GetUserByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자를 찾을 수 없습니다",
+		})
+	}
+
+	// 역할 업데이트
+	user.Role = body.Role
+	err = h.authService.UpdateUser(c.Context(), user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 역할 업데이트에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "사용자 역할이 업데이트되었습니다",
+	})
+}
+
+// UpdateUserStatus 사용자 상태 변경
+func (h *AdminHandler) UpdateUserStatus(c *fiber.Ctx) error {
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	// 현재 로그인한 사용자가 자신의 상태를 변경하려고 시도하는 경우 방지
+	currentUser := c.Locals("user").(*models.User)
+	if currentUser.ID == userID {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "자신의 계정 상태는 변경할 수 없습니다",
+		})
+	}
+
+	// 요청 본문 파싱
+	var body struct {
+		Active bool `json:"active"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 데이터 파싱에 실패했습니다",
+		})
+	}
+
+	// 사용자 정보 조회
+	user, err := h.authService.GetUserByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자를 찾을 수 없습니다",
+		})
+	}
+
+	// 상태 업데이트
+	user.Active = body.Active
+	err = h.authService.UpdateUser(c.Context(), user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 상태 업데이트에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "사용자 상태가 업데이트되었습니다",
+	})
+}
+
+// CreateUserPage 사용자 추가 페이지 렌더링
+func (h *AdminHandler) CreateUserPage(c *fiber.Ctx) error {
+	return utils.RenderWithUser(c, "admin/user_create", fiber.Map{
+		"title": "새 사용자 추가",
+	})
+}
+
+// CreateUser 사용자 추가 처리
+func (h *AdminHandler) CreateUser(c *fiber.Ctx) error {
+	// 요청 본문 파싱
+	var body struct {
+		Username string      `json:"username"`
+		Email    string      `json:"email"`
+		Password string      `json:"password"`
+		FullName string      `json:"full_name"`
+		Role     models.Role `json:"role"`
+		Active   bool        `json:"active"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 데이터 파싱에 실패했습니다",
+		})
+	}
+
+	// 필수 필드 검증
+	if body.Username == "" || body.Email == "" || body.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자명, 이메일, 비밀번호는 필수 항목입니다",
+		})
+	}
+
+	// 역할 검증
+	if body.Role != models.RoleAdmin && body.Role != models.RoleUser {
+		body.Role = models.RoleUser // 기본값으로 설정
+	}
+
+	// 사용자 등록
+	_, err := h.authService.Register(c.Context(), body.Username, body.Email, body.Password, body.FullName)
+	if err != nil {
+		errorMessage := "사용자 등록에 실패했습니다"
+		if err == service.ErrUsernameTaken {
+			errorMessage = "이미 사용 중인 사용자명입니다"
+		} else if err == service.ErrEmailTaken {
+			errorMessage = "이미 사용 중인 이메일입니다"
+		}
+
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": errorMessage,
+		})
+	}
+
+	// 생성된 사용자 조회
+	user, err := h.authService.GetUserByUsername(c.Context(), body.Username)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 정보 조회에 실패했습니다",
+		})
+	}
+
+	// 역할과 활성 상태 업데이트 (RegisterService에서는 기본값이 설정되기 때문)
+	user.Role = body.Role
+	user.Active = body.Active
+	err = h.authService.UpdateUser(c.Context(), user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 정보 업데이트에 실패했습니다",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "사용자가 성공적으로 추가되었습니다",
+		"id":      user.ID,
+	})
+}
+
+// EditUserPage 사용자 수정 페이지 렌더링
+func (h *AdminHandler) EditUserPage(c *fiber.Ctx) error {
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return utils.RenderWithUser(c, "error", fiber.Map{
+			"title":   "오류",
+			"message": "잘못된 사용자 ID입니다",
+			"error":   err.Error(),
+		})
+	}
+
+	// 사용자 정보 조회
+	user, err := h.authService.GetUserByID(c.Context(), userID)
+	if err != nil {
+		return utils.RenderWithUser(c, "error", fiber.Map{
+			"title":   "오류",
+			"message": "사용자를 찾을 수 없습니다",
+			"error":   err.Error(),
+		})
+	}
+
+	return utils.RenderWithUser(c, "admin/user_edit", fiber.Map{
+		"title": "사용자 정보 수정",
+		"user":  user,
+	})
+}
+
+// UpdateUser 사용자 정보 수정 처리
+func (h *AdminHandler) UpdateUser(c *fiber.Ctx) error {
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	// 요청 본문 파싱
+	var body struct {
+		Username string      `json:"username"`
+		Email    string      `json:"email"`
+		Password string      `json:"password"`
+		FullName string      `json:"full_name"`
+		Role     models.Role `json:"role"`
+		Active   bool        `json:"active"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 데이터 파싱에 실패했습니다",
+		})
+	}
+
+	// 필수 필드 검증
+	if body.Username == "" || body.Email == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자명과 이메일은 필수 항목입니다",
+		})
+	}
+
+	// 역할 검증
+	if body.Role != models.RoleAdmin && body.Role != models.RoleUser {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "유효하지 않은 역할입니다",
+		})
+	}
+
+	// 현재 로그인한 사용자가 관리자 -> 일반 사용자로 자신의 역할을 변경하려는 경우 방지
+	currentUser := c.Locals("user").(*models.User)
+	if currentUser.ID == userID && currentUser.Role == models.RoleAdmin && body.Role == models.RoleUser {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "자신의 관리자 권한을 해제할 수 없습니다",
+		})
+	}
+
+	// 사용자 정보 조회
+	user, err := h.authService.GetUserByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자를 찾을 수 없습니다",
+		})
+	}
+
+	// 다른 사용자와 사용자명/이메일 중복 확인
+	if user.Username != body.Username {
+		existingUser, _ := h.authService.GetUserByUsername(c.Context(), body.Username)
+		if existingUser != nil && existingUser.ID != userID {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": "이미 사용 중인 사용자명입니다",
+			})
+		}
+	}
+
+	// 사용자 정보 업데이트
+	user.Username = body.Username
+	user.Email = body.Email
+	user.FullName = body.FullName
+	user.Role = body.Role
+	user.Active = body.Active
+	user.UpdatedAt = time.Now()
+
+	err = h.authService.UpdateUser(c.Context(), user)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 정보 업데이트에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	// 비밀번호 변경 요청이 있는 경우
+	if body.Password != "" {
+		// 관리자에 의한 비밀번호 변경이므로 현재 비밀번호 검증 없이 변경
+		err = h.authService.AdminChangePassword(c.Context(), userID, body.Password)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"success": false,
+				"message": "비밀번호 변경에 실패했습니다: " + err.Error(),
+			})
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "사용자 정보가 업데이트되었습니다",
+	})
+}
+
+// DeleteUser 사용자 삭제 처리
+func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	// 현재 로그인한 사용자가 자신을 삭제하려는 경우 방지
+	currentUser := c.Locals("user").(*models.User)
+	if currentUser.ID == userID {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "자신의 계정은 삭제할 수 없습니다",
+		})
+	}
+
+	// 사용자 삭제
+	err = h.authService.DeleteUser(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 삭제에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "사용자가 성공적으로 삭제되었습니다",
+	})
 }

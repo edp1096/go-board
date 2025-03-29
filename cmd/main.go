@@ -2,10 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
+	"time"
 
 	"dynamic-board/config"
 	"dynamic-board/internal/handlers"
@@ -15,29 +18,42 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	flogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/html/v2"
 )
 
 func main() {
+	// 시작 시간 기록
+	startTime := time.Now()
+
+	// 명령행 인자 처리 (내보내기, 도움말 등)
+	shouldExit, err := handleCommandLineArgs()
+	if err != nil {
+		os.Exit(1)
+	}
+	if shouldExit {
+		os.Exit(0)
+	}
+
 	// 환경 설정 로드
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("설정을 로드할 수 없습니다: %v", err)
 	}
-
+	
 	// 데이터베이스 연결
-	db, err := config.ConnectDatabase(cfg)
+	database, err := config.NewDatabase(cfg)
 	if err != nil {
 		log.Fatalf("데이터베이스에 연결할 수 없습니다: %v", err)
 	}
-	defer db.Close()
+	defer database.Close()
+	db := database.DB
 
 	// HTML 템플릿 엔진 설정
-	templateDir := "./web/templates"
-	engine := html.New(templateDir, ".html")
-	engine.Reload(cfg.Debug) // 디버그 모드에서 템플릿 자동 리로드 활성화
+	engine := html.New(cfg.TemplateDir, ".html")
+	// 디버그 모드에서 템플릿 자동 리로드 활성화
+	engine.Reload(cfg.Debug)
 
 	// 템플릿 함수 등록
 	engine.AddFunc("json", func(v interface{}) string {
@@ -47,8 +63,19 @@ func main() {
 		}
 		return string(jsonBytes)
 	})
+	
+	// 바이트 배열을 문자열로 변환하는 도우미 함수 추가
+	engine.AddFunc("toUTF8", func(v interface{}) string {
+		switch value := v.(type) {
+		case []byte:
+			return string(value)
+		case string:
+			return value
+		default:
+			return fmt.Sprintf("%v", value)
+		}
+	})
 
-	// 다른 템플릿 함수 등록
 	engine.AddFunc("add", func(a, b int) int {
 		return a + b
 	})
@@ -70,12 +97,31 @@ func main() {
 		return result
 	})
 
-	// Fiber 앱 생성
-	app := fiber.New(fiber.Config{
-		Views:       engine,
-		ViewsLayout: "layouts/base",
+	// 경로 관련 함수
+	engine.AddFunc("jsPath", func(fileName string) string {
+		return filepath.Join("/static/js", fileName)
 	})
 
+	engine.AddFunc("cssPath", func(fileName string) string {
+		return filepath.Join("/static/css", fileName)
+	})
+
+	// Fiber 앱 생성
+	app := fiber.New(fiber.Config{
+		Views:                 engine,
+		ViewsLayout:           "layouts/base",
+		DisableStartupMessage: true,
+		// 파일 업로드 설정
+		BodyLimit: 10 * 1024 * 1024, // 10MB 제한
+		// UTF-8 인코딩 설정
+		Immutable:     true,
+		ReadBufferSize: 8192,
+		// 문자셋 설정 (한글 호환성 개선)
+		JSONEncoder: json.Marshal,
+		JSONDecoder: json.Unmarshal,
+	})
+
+	// 계층 구성 (의존성 주입)
 	// 저장소 초기화
 	userRepo := repository.NewUserRepository(db)
 	boardRepo := repository.NewBoardRepository(db)
@@ -88,28 +134,61 @@ func main() {
 	// 핸들러 초기화
 	authHandler := handlers.NewAuthHandler(authService)
 	boardHandler := handlers.NewBoardHandler(boardService)
-	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService)
+	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 
 	// 인증 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 	adminMiddleware := middleware.NewAdminMiddleware(authService)
 
 	// 미들웨어 설정
-	app.Use(logger.New())
-	app.Use(recover.New())
-	app.Use(cors.New())
+	setupMiddleware(app, cfg, authService)
 
-	// 디버깅 미들웨어 추가 (가장 먼저 실행되도록)
-	app.Use(middleware.RequestDebugger())
+	// 정적 파일 제공
+	app.Static("/static", cfg.StaticDir)
+
+	// 라우트 설정
+	setupRoutes(app, authHandler, boardHandler, adminHandler, authMiddleware, adminMiddleware)
+
+	// 서버 시작
+	go startServer(app, cfg.ServerAddress)
+
+	// 준비 시간 계산 및 출력
+	readyTime := time.Since(startTime)
+	log.Printf("서버가 %.2f초 만에 준비되었습니다", readyTime.Seconds())
+
+	// 종료 시그널 처리
+	handleShutdown(app)
+}
+
+// setupMiddleware는 앱에 필요한 미들웨어를 설정합니다
+func setupMiddleware(app *fiber.App, cfg *config.Config, authService service.AuthService) {
+	// 기본 미들웨어
+	app.Use(recover.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE",
+	}))
+
+	// 로거 설정
+	app.Use(flogger.New(flogger.Config{
+		Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
+	}))
+
+	// UTF-8 인코딩 강제 적용 미들웨어
+	app.Use(func(c *fiber.Ctx) error {
+		c.Set("Content-Type", "text/html; charset=utf-8")
+		return c.Next()
+	})
+
+	// CSRF 보호 미들웨어 추가
+	app.Use(middleware.CSRF())
 
 	// 전역 인증 미들웨어 (모든 요청에서 인증 정보 확인)
 	app.Use(middleware.GlobalAuth(authService))
+}
 
-	// 정적 파일 제공
-	app.Static("/static", "./web/static")
-
-	// 라우트 설정
-
+// setupRoutes는 앱의 라우트를 설정합니다
+func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler *handlers.BoardHandler, adminHandler *handlers.AdminHandler, authMiddleware middleware.AuthMiddleware, adminMiddleware middleware.AdminMiddleware) {
 	// 인증 관련 라우트
 	auth := app.Group("/auth")
 	auth.Get("/login", authHandler.LoginPage)
@@ -123,63 +202,83 @@ func main() {
 	user.Get("/profile", authHandler.ProfilePage)
 	user.Post("/profile", authHandler.UpdateProfile)
 
-	// 게시판 라우트
-	// boards := app.Group("/boards")
-	// boards.Get("/", boardHandler.ListBoards)
-	// boards.Get("/:boardID", boardHandler.GetBoard)
-	// boards.Get("/:boardID/posts", boardHandler.ListPosts)
-	// boards.Get("/:boardID/posts/:postID", boardHandler.GetPost)
-
-	// 수정된 버전: 모든 게시판 관련 경로에 인증 요구 (테스트용)
-	boards := app.Group("/boards", authMiddleware.RequireAuth) // 모든 게시판 경로에 인증 필요
+	// 게시판 라우트 (열람은 인증 없이 가능)
+	boards := app.Group("/boards")
 	boards.Get("/", boardHandler.ListBoards)
-	boards.Get("/:boardID", boardHandler.GetBoard)
-	boards.Get("/:boardID/posts", boardHandler.ListPosts)
-	boards.Get("/:boardID/posts/:postID", boardHandler.GetPost)
+
+	// /boards/:boardID 라우트
+	boardsWithID := boards.Group("/:boardID")
+	boardsWithID.Get("", boardHandler.GetBoard)
+	boardsWithID.Get("/posts", boardHandler.ListPosts)
 
 	// 게시물 작성/수정/삭제 (인증 필요)
-	boardsAuth := boards.Group("", authMiddleware.RequireAuth)
-	boardsAuth.Get("/:boardID/posts/create", boardHandler.CreatePostPage)
-	boardsAuth.Post("/:boardID/posts", boardHandler.CreatePost)
-	boardsAuth.Get("/:boardID/posts/:postID/edit", boardHandler.EditPostPage)
-	boardsAuth.Put("/:boardID/posts/:postID", boardHandler.UpdatePost)
-	boardsAuth.Delete("/:boardID/posts/:postID", boardHandler.DeletePost)
+	boardsAuthWithID := boards.Group("/:boardID", authMiddleware.RequireAuth)
+
+	// 중요: 정적 경로를 먼저 정의해야 함 (파라미터로 해석되는 것 방지)
+	boardsAuthWithID.Get("/posts/create", boardHandler.CreatePostPage)
+	boardsAuthWithID.Post("/posts", boardHandler.CreatePost)
+
+	// 그 다음에 파라미터 경로 정의
+	boardsWithID.Get("/posts/:postID", boardHandler.GetPost)
+	boardsAuthWithID.Get("/posts/:postID/edit", boardHandler.EditPostPage)
+	boardsAuthWithID.Put("/posts/:postID", boardHandler.UpdatePost)
+	boardsAuthWithID.Delete("/posts/:postID", boardHandler.DeletePost)
 
 	// 관리자 라우트 (관리자 권한 필요)
 	admin := app.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
 	admin.Get("/", adminHandler.Dashboard)
+	
+	// 게시판 관리 라우트
 	admin.Get("/boards", adminHandler.ListBoards)
 	admin.Get("/boards/create", adminHandler.CreateBoardPage)
 	admin.Post("/boards", adminHandler.CreateBoard)
 	admin.Get("/boards/:boardID/edit", adminHandler.EditBoardPage)
 	admin.Put("/boards/:boardID", adminHandler.UpdateBoard)
 	admin.Delete("/boards/:boardID", adminHandler.DeleteBoard)
+	
+	// 사용자 관리 라우트
+	admin.Get("/users", adminHandler.ListUsers)
+	admin.Get("/users/create", adminHandler.CreateUserPage)
+	admin.Post("/users", adminHandler.CreateUser)
+	admin.Get("/users/:userID/edit", adminHandler.EditUserPage)
+	admin.Put("/users/:userID", adminHandler.UpdateUser)
+	admin.Delete("/users/:userID", adminHandler.DeleteUser)
+	admin.Put("/users/:userID/role", adminHandler.UpdateUserRole)
+	admin.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
 
 	// 루트 라우트
 	app.Get("/", func(c *fiber.Ctx) error {
-		// 사용자 정보가 있는지 디버깅 로그
-		if user := c.Locals("user"); user != nil {
-			log.Printf("루트 경로 - 사용자 정보 있음")
-		} else {
-			log.Printf("루트 경로 - 사용자 정보 없음")
-		}
-
 		return c.Redirect("/boards")
 	})
 
-	// 서버 시작
-	go func() {
-		if err := app.Listen(cfg.ServerAddress); err != nil {
-			log.Fatalf("서버 시작 실패: %v", err)
-		}
-	}()
+	// 404 페이지
+	app.Use(func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusNotFound).Render("error", fiber.Map{
+			"title":   "페이지를 찾을 수 없습니다",
+			"message": "요청하신 페이지를 찾을 수 없습니다.",
+		})
+	})
+}
 
+// startServer는 서버를 시작합니다
+func startServer(app *fiber.App, address string) {
+	log.Printf("서버를 시작합니다: %s", address)
+	if err := app.Listen(address); err != nil {
+		log.Fatalf("서버 시작 실패: %v", err)
+	}
+}
+
+// handleShutdown은 서버 종료 시그널을 처리합니다
+func handleShutdown(app *fiber.App) {
 	// 종료 시그널 처리
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
+
 	log.Println("서버를 종료합니다...")
-	if err := app.Shutdown(); err != nil {
+	shutdownTimeout := 3 * time.Second
+	if err := app.ShutdownWithTimeout(shutdownTimeout); err != nil {
 		log.Fatalf("서버 종료 실패: %v", err)
 	}
+	log.Println("서버가 안전하게 종료되었습니다.")
 }

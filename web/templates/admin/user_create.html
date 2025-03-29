@@ -1,0 +1,153 @@
+<!-- web/templates/admin/user_create.html -->
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">사용자 추가</h1>
+        <a href="/admin/users" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 focus:outline-none">
+            사용자 목록으로 돌아가기
+        </a>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6">
+        <form id="createUserForm" class="space-y-6">
+            <input type="hidden" name="csrf" value="{{.csrf}}">
+            
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">사용자명 *</label>
+                    <input type="text" id="username" name="username" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <p class="mt-1 text-xs text-gray-500">로그인에 사용될 고유한 사용자명을 입력하세요.</p>
+                </div>
+
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">이메일 *</label>
+                    <input type="email" id="email" name="email" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">비밀번호 *</label>
+                    <input type="password" id="password" name="password" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <p class="mt-1 text-xs text-gray-500">최소 8자 이상의 비밀번호를 입력하세요.</p>
+                </div>
+
+                <div>
+                    <label for="password_confirm" class="block text-sm font-medium text-gray-700">비밀번호 확인 *</label>
+                    <input type="password" id="password_confirm" name="password_confirm" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label for="full_name" class="block text-sm font-medium text-gray-700">이름</label>
+                    <input type="text" id="full_name" name="full_name"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <div>
+                    <label for="role" class="block text-sm font-medium text-gray-700">역할</label>
+                    <select id="role" name="role"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="user">일반 사용자</option>
+                        <option value="admin">관리자</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center">
+                <input id="active" name="active" type="checkbox" checked
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="active" class="ml-2 block text-sm text-gray-900">
+                    계정 활성화
+                </label>
+            </div>
+
+            <div id="error-message" class="text-red-500 text-sm hidden"></div>
+            <div id="success-message" class="text-green-500 text-sm hidden"></div>
+
+            <div class="flex justify-end">
+                <button type="submit"
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    사용자 추가
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 폼 제출 처리
+    const form = document.getElementById('createUserForm');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // 오류 메시지 초기화
+        errorMessage.classList.add('hidden');
+        successMessage.classList.add('hidden');
+        
+        // 비밀번호 일치 확인
+        const password = document.getElementById('password').value;
+        const passwordConfirm = document.getElementById('password_confirm').value;
+        
+        if (password !== passwordConfirm) {
+            errorMessage.textContent = '비밀번호가 일치하지 않습니다.';
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+        
+        // 폼 데이터 생성
+        const formData = new FormData(form);
+        const active = document.getElementById('active').checked;
+        
+        // JSON 객체로 변환
+        const data = {
+            username: formData.get('username'),
+            email: formData.get('email'),
+            password: formData.get('password'),
+            full_name: formData.get('full_name'),
+            role: formData.get('role'),
+            active: active
+        };
+        
+        try {
+            // 서버에 데이터 전송
+            const response = await fetch('/admin/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': formData.get('csrf'),
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // 성공 메시지 표시
+                successMessage.textContent = '사용자가 성공적으로 추가되었습니다.';
+                successMessage.classList.remove('hidden');
+                
+                // 폼 초기화
+                form.reset();
+                
+                // 3초 후 사용자 목록 페이지로 리다이렉트
+                setTimeout(() => {
+                    window.location.href = '/admin/users';
+                }, 2000);
+            } else {
+                // 오류 메시지 표시
+                errorMessage.textContent = result.message || '사용자 추가 중 오류가 발생했습니다.';
+                errorMessage.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            errorMessage.textContent = '서버 통신 중 오류가 발생했습니다.';
+            errorMessage.classList.remove('hidden');
+        }
+    });
+});
+</script>

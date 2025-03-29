@@ -1,68 +1,94 @@
-.PHONY: build run dev clean migrate-up migrate-down help setup-dirs setup
+.PHONY: build run dev clean migrate-up migrate-down setup test
 
 # 설정 변수
 APP_NAME=dynamic-board
 DB_DRIVER=mysql
 DB_CONN=root:@tcp(localhost:13306)/dynamic_board?parseTime=true
 
-# 기본 목표
-.DEFAULT_GOAL := help
+# 운영체제 확인
+ifeq ($(OS),Windows_NT)
+    APP_NAME=dynamic-board.exe
+    RM_CMD=del /q /f
+    APP_RUN=.\bin\$(APP_NAME)
+else
+    APP_NAME=dynamic-board
+    RM_CMD=rm -rf
+    APP_RUN=./bin/$(APP_NAME)
+endif
 
 # 빌드
-build: ## 애플리케이션 빌드
-	@echo "Building $(APP_NAME)..."
-	@go build -o ./bin/$(APP_NAME).exe ./cmd
+build:
+	@echo "Building application..."
+	@go build -o ./bin/$(APP_NAME) ./cmd
 
 # 실행
-run: build ## 애플리케이션 실행
-	@echo "Running $(APP_NAME)..."
-	@.\bin\$(APP_NAME).exe
+run: build
+	@echo "Running application..."
+	@$(APP_RUN)
 
-# 개발 모드로 실행 (Air 활용)
-dev: ## 개발 모드로 실행 (Air 필요)
+# 개발 모드 (go run 사용)
+dev:
 	@echo "Running in development mode..."
-	@air
+	@go run ./cmd/main.go
 
 # 마이그레이션 적용
 migrate-up: ## 데이터베이스 마이그레이션 적용 (Goose 필요)
 	@echo "Applying migrations..."
+ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
+ifeq ($(OS),Windows_NT)
+	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=dynamic_board sslmode=disable" up
+else
+	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=dynamic_board sslmode=disable" goose -dir migrations/postgres up
+endif
+else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
+ifeq ($(OS),Windows_NT)
+	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/dynamic_board?parseTime=true" up
+else
+	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/dynamic_board?parseTime=true" goose -dir migrations/mysql up
+endif
+else
 	@goose -dir migrations $(DB_DRIVER) "$(DB_CONN)" up
+endif
 
 # 마이그레이션 롤백
 migrate-down: ## 데이터베이스 마이그레이션 롤백 (Goose 필요)
 	@echo "Rolling back migrations..."
+ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
+ifeq ($(OS),Windows_NT)
+	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=dynamic_board sslmode=disable" down
+else
+	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=dynamic_board sslmode=disable" goose -dir migrations/postgres down
+endif
+else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
+ifeq ($(OS),Windows_NT)
+	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/dynamic_board?parseTime=true" down
+else
+	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/dynamic_board?parseTime=true" goose -dir migrations/mysql down
+endif
+else
 	@goose -dir migrations $(DB_DRIVER) "$(DB_CONN)" down
+endif
 
-# 초기 관리자 계정 생성
-create-admin: ## 관리자 계정 생성
-	@echo "Creating admin user..."
-	@go run cmd/admin/create_admin.go
+# 더미 타겟
+postgres mysql:
+	@:
 
-# 정리 (Windows 호환)
-clean: ## 빌드 파일 정리
-	@echo "Cleaning..."
-	@if exist .\bin rmdir /s /q .\bin
+# 테스트
+test:
+	@echo "Running tests..."
+	@go test ./...
 
-# 디렉토리 생성 (Windows 호환)
-setup-dirs: ## 필요한 디렉토리 구조 생성
-	@echo "Creating directory structure..."
-	@if not exist .\bin mkdir .\bin
-	@if not exist .\web\static\css mkdir .\web\static\css
-	@if not exist .\web\static\js\pages mkdir .\web\static\js\pages
-	@if not exist .\web\templates\layouts mkdir .\web\templates\layouts
-	@if not exist .\web\templates\partials mkdir .\web\templates\partials
-	@if not exist .\web\templates\auth mkdir .\web\templates\auth
-	@if not exist .\web\templates\board mkdir .\web\templates\board
-	@if not exist .\web\templates\admin mkdir .\web\templates\admin
-
-# 초기 설정 (모든 준비 단계 실행)
-setup: setup-dirs ## 전체 프로젝트 초기 설정
-	@echo "Setting up the project..."
+# 의존성 설치
+setup:
+	@echo "Setting up project..."
 	@go mod download
-	@echo "Creating database..."
-	@echo "CREATE DATABASE IF NOT EXISTS dynamic_board;" | mysql -u root -h localhost -P 13306
-	@echo "Done! Don't forget to configure your .env file."
+	@echo "Setup complete!"
 
-# 도움말
-help: ## 도움말 표시
-	@powershell -Command "Get-Content Makefile | ForEach-Object { if ($$_ -match '^[a-zA-Z_-]+:.*?## (.*)') { Write-Host $$_[0].Split(':')[0] -ForegroundColor Cyan -NoNewline; Write-Host (' - ' + $$Matches[1]) } }"
+# 정리
+clean:
+	@echo "Cleaning up..."
+ifeq ($(OS),Windows_NT)
+	@if exist .\bin $(RM_CMD) .\bin\*
+else
+	@$(RM_CMD) ./bin 2>/dev/null || true
+endif

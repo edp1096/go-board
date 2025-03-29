@@ -7,21 +7,43 @@
                 submitting = true;
                 const formData = new FormData($el);
                 formData.append('field_count', fieldCount);
+                // CSRF 토큰 추가
+                formData.append('_csrf', '{{.csrf}}');
                 
                 fetch('/admin/boards', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': '{{.csrf}}',
+                        'Accept': 'application/json'
+                    },
                     body: formData
                 })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = '/admin/boards';
-                    } else {
-                        alert(data.message);
-                        submitting = false;
+                .then(res => {
+                    // Content-Type 확인
+                    const contentType = res.headers.get('Content-Type');
+                    
+                    // JSON 응답인 경우
+                    if (contentType && contentType.includes('application/json')) {
+                        return res.json().then(data => {
+                            if (data.success) {
+                                window.location.href = '/admin/boards';
+                            } else {
+                                alert(data.message);
+                                submitting = false;
+                            }
+                        });
+                    } 
+                    // HTML 응답 (오류 페이지)인 경우
+                    else {
+                        return res.text().then(html => {
+                            console.error('서버에서 HTML 응답이 반환되었습니다', html);
+                            alert('처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                            submitting = false;
+                        });
                     }
                 })
                 .catch(err => {
+                    console.error('요청 처리 중 오류:', err);
                     alert('오류가 발생했습니다: ' + err);
                     submitting = false;
                 });
@@ -87,6 +109,7 @@
                                         <label :for="'field_name_' + index" class="block text-sm font-medium text-gray-700">필드 이름 <span class="text-red-500">*</span></label>
                                         <input type="text" :name="'field_name_' + index" :id="'field_name_' + index" x-model="field.name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                                         <p class="mt-1 text-xs text-gray-500">영문, 숫자, 언더스코어(_)만 사용 가능합니다.</p>
+                                        <p class="mt-1 text-xs text-red-500">주의: id, title, content, user_id, view_count, created_at, updated_at은 시스템 예약어로 사용할 수 없습니다.</p>
                                     </div>
 
                                     <div>

@@ -1,12 +1,12 @@
 DEBUG=true
 SERVER_ADDRESS=127.0.0.1:3000
 
-# 데이터베이스 설정 (MariaDB)
-DB_DRIVER=mysql
+# 데이터베이스 설정 (PostgreSQL)
+DB_DRIVER=postgres
 DB_HOST=localhost
-DB_PORT=13306
+DB_PORT=5432
 DB_USER=root
-DB_PASSWORD=
+DB_PASSWORD=pgsql
 DB_NAME=dynamic_board
 
 # 보안 설정

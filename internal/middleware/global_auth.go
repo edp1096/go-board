@@ -3,7 +3,6 @@
 package middleware
 
 import (
-	"log"
 	"strings"
 
 	"dynamic-board/internal/service"
@@ -35,9 +34,6 @@ func GlobalAuth(authService service.AuthService) fiber.Handler {
 			if err == nil && user != nil {
 				// 성공하면 컨텍스트에 사용자 정보 저장
 				c.Locals("user", user)
-				log.Printf("전역 인증 성공: 사용자 %s (ID: %d)", user.Username, user.ID)
-			} else if err != nil {
-				log.Printf("전역 인증 실패: %v", err)
 			}
 		}
 

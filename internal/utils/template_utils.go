@@ -4,7 +4,6 @@ package utils
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -59,10 +58,12 @@ func MergeUserData(c *fiber.Ctx, data fiber.Map) fiber.Map {
 
 	// 사용자 정보가 있으면 데이터에 추가
 	if user != nil {
-		log.Printf("템플릿 데이터에 사용자 정보 추가")
 		data["user"] = user
-	} else {
-		log.Printf("템플릿 데이터에 사용자 정보 없음")
+	}
+	
+	// CSRF 토큰 추가
+	if csrf := c.Locals("csrf"); csrf != nil {
+		data["csrf"] = csrf
 	}
 
 	return data

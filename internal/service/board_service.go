@@ -3,11 +3,12 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"dynamic-board/internal/models"
 	"dynamic-board/internal/repository"
+	"dynamic-board/internal/utils"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -53,6 +54,12 @@ func NewBoardService(boardRepo repository.BoardRepository, db *bun.DB) BoardServ
 		boardRepo: boardRepo,
 		db:        db,
 	}
+}
+
+// 데이터베이스가 PostgreSQL인지 확인
+func (s *boardService) isPostgres() bool {
+	dialectName := s.db.Dialect().Name()
+	return dialectName.String() == "pg" || dialectName.String() == "postgres"
 }
 
 func (s *boardService) CreateBoard(ctx context.Context, board *models.Board) error {
@@ -143,20 +150,42 @@ func (s *boardService) CreatePost(ctx context.Context, boardID int64, post *mode
 		values[field.ColumnName] = field.Value
 	}
 
-	// 방법 1: Model 메서드 사용하기 (권장)
-	res, err := s.db.NewInsert().
-		Model(&values).
-		Table(board.TableName).
-		Exec(ctx)
+	var insertErr error
 
-	if err != nil {
-		return fmt.Errorf("게시물 생성 실패: %w", err)
+	if s.isPostgres() {
+		// PostgreSQL에서는 RETURNING 구문 사용
+		var id int64
+		tableName := board.TableName
+
+		insertErr = s.db.NewInsert().
+			Model(&values).
+			Table(tableName).
+			Returning("id").
+			Scan(ctx, &id)
+
+		if insertErr == nil {
+			post.ID = id
+		}
+	} else {
+		// MySQL/MariaDB에서는 LastInsertId 사용
+		var res sql.Result
+		res, insertErr = s.db.NewInsert().
+			Model(&values).
+			Table(board.TableName).
+			Exec(ctx)
+
+		if insertErr == nil {
+			// 생성된 ID 반환
+			var id int64
+			id, insertErr = res.LastInsertId()
+			if insertErr == nil {
+				post.ID = id
+			}
+		}
 	}
 
-	// 생성된 ID 반환 (데이터베이스에 따라 다를 수 있음)
-	id, err := res.LastInsertId()
-	if err == nil {
-		post.ID = id
+	if insertErr != nil {
+		return fmt.Errorf("게시물 생성 실패: %w", insertErr)
 	}
 
 	return nil
@@ -176,12 +205,23 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 	}
 
 	// 쿼리 빌더 초기화
-	query := s.db.NewSelect().
-		Table(board.TableName).
-		Column("p.*").
-		ColumnExpr("u.username").
-		Join("LEFT JOIN users AS u ON u.id = p.user_id").
-		Where("p.id = ?", postID)
+	// 테이블명을 적절한 구분자로 감싸고 별칭은 AS 키워드로 구분
+	var query *bun.SelectQuery
+	if s.isPostgres() {
+		query = s.db.NewSelect().
+			TableExpr(fmt.Sprintf("%s AS p", board.TableName)).
+			Column("p.*").
+			ColumnExpr("u.username").
+			Join("LEFT JOIN users AS u ON u.id = p.user_id").
+			Where("p.id = ?", postID)
+	} else {
+		query = s.db.NewSelect().
+			TableExpr(fmt.Sprintf("`%s` AS p", board.TableName)).
+			Column("p.*").
+			ColumnExpr("u.username").
+			Join("LEFT JOIN users AS u ON u.id = p.user_id").
+			Where("p.id = ?", postID)
+	}
 
 	// 쿼리 실행
 	var row map[string]interface{}
@@ -191,23 +231,38 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 	}
 
 	// 조회수 증가
-	// _, err = s.db.NewUpdate().
-	s.db.NewUpdate().
-		Table(board.TableName).
-		Set("view_count = view_count + 1").
-		Where("id = ?", postID).
-		Exec(ctx)
+	if s.isPostgres() {
+		s.db.NewUpdate().
+			Table(board.TableName).
+			Set("view_count = view_count + 1").
+			Where("id = ?", postID).
+			Exec(ctx)
+	} else {
+		s.db.NewUpdate().
+			Table(board.TableName).
+			Set("view_count = view_count + 1").
+			Where("id = ?", postID).
+			Exec(ctx)
+	}
+
+	// ID 값 확인
+	if row["id"] == nil {
+		return nil, ErrPostNotFound
+	}
+
+	// 유틸리티 함수를 사용한 타입 변환
+	viewCount := utils.InterfaceToInt(row["view_count"])
 
 	// DynamicPost 객체 생성
 	post := &models.DynamicPost{
 		ID:        postID,
-		Title:     row["title"].(string),
-		Content:   row["content"].(string),
-		UserID:    row["user_id"].(int64),
-		Username:  row["username"].(string),
-		ViewCount: row["view_count"].(int) + 1, // 방금 증가한 조회수 반영
-		CreatedAt: row["created_at"].(time.Time),
-		UpdatedAt: row["updated_at"].(time.Time),
+		Title:     utils.InterfaceToString(row["title"]),
+		Content:   utils.InterfaceToString(row["content"]),
+		UserID:    utils.InterfaceToInt64(row["user_id"]),
+		Username:  utils.InterfaceToString(row["username"]),
+		ViewCount: viewCount + 1, // 방금 증가한 조회수 반영
+		CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
+		UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
 		Fields:    make(map[string]models.DynamicField),
 		RawData:   row,
 	}
@@ -248,9 +303,11 @@ func (s *boardService) UpdatePost(ctx context.Context, boardID int64, post *mode
 	}
 
 	// Model 메서드를 사용하여 업데이트
+	tableName := board.TableName
+
 	_, err = s.db.NewUpdate().
 		Model(&values).
-		Table(board.TableName).
+		Table(tableName).
 		Where("id = ?", post.ID).
 		Exec(ctx)
 
@@ -269,8 +326,10 @@ func (s *boardService) DeletePost(ctx context.Context, boardID int64, postID int
 	}
 
 	// 쿼리 실행
+	tableName := board.TableName
+
 	_, err = s.db.NewDelete().
-		Table(board.TableName).
+		Table(tableName).
 		Where("id = ?", postID).
 		Exec(ctx)
 
@@ -306,8 +365,11 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 	offset := (page - 1) * pageSize
 
 	// 총 게시물 수 조회
-	countQuery := s.db.NewSelect().
-		Table(board.TableName).
+	var countQuery *bun.SelectQuery
+	tableName := board.TableName
+
+	countQuery = s.db.NewSelect().
+		Table(tableName).
 		ColumnExpr("COUNT(*) AS count")
 
 	var count int
@@ -317,8 +379,18 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 	}
 
 	// 게시물 목록 조회
-	query := s.db.NewSelect().
-		Table(board.TableName + " AS p").
+	// 테이블명을 적절한 구분자로 감싸고 별칭은 AS 키워드로 구분
+	var query *bun.SelectQuery
+	var tableExpr string
+
+	if s.isPostgres() {
+		tableExpr = fmt.Sprintf("%s AS p", board.TableName)
+	} else {
+		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
+	}
+
+	query = s.db.NewSelect().
+		TableExpr(tableExpr).
 		Column("p.*").
 		ColumnExpr("u.username").
 		Join("LEFT JOIN users AS u ON u.id = p.user_id").
@@ -334,52 +406,28 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 	}
 
 	// 결과 변환
-	posts := make([]*models.DynamicPost, len(rows))
-	for i, row := range rows {
-		// ID 가져오기 (데이터베이스와 드라이버에 따라 타입이 다를 수 있음)
-		var postID int64
-		switch id := row["id"].(type) {
-		case int64:
-			postID = id
-		case int:
-			postID = int64(id)
-		case float64:
-			postID = int64(id)
-		case string:
-			postID, _ = strconv.ParseInt(id, 10, 64)
+	validPosts := make([]*models.DynamicPost, 0, len(rows))
+	for _, row := range rows {
+		// ID 값 확인
+		if row["id"] == nil {
+			continue
 		}
 
-		// 사용자 ID 가져오기
-		var userID int64
-		switch uid := row["user_id"].(type) {
-		case int64:
-			userID = uid
-		case int:
-			userID = int64(uid)
-		case float64:
-			userID = int64(uid)
-		}
-
-		// 조회수 가져오기
-		var viewCount int
-		switch vc := row["view_count"].(type) {
-		case int:
-			viewCount = vc
-		case int64:
-			viewCount = int(vc)
-		case float64:
-			viewCount = int(vc)
+		// 유틸리티 함수를 사용한 타입 변환
+		postID := utils.InterfaceToInt64(row["id"])
+		if postID == 0 {
+			continue
 		}
 
 		post := &models.DynamicPost{
 			ID:        postID,
-			Title:     row["title"].(string),
-			Content:   row["content"].(string),
-			UserID:    userID,
-			Username:  row["username"].(string),
-			ViewCount: viewCount,
-			CreatedAt: row["created_at"].(time.Time),
-			UpdatedAt: row["updated_at"].(time.Time),
+			Title:     utils.InterfaceToString(row["title"]),
+			Content:   utils.InterfaceToString(row["content"]),
+			UserID:    utils.InterfaceToInt64(row["user_id"]),
+			Username:  utils.InterfaceToString(row["username"]),
+			ViewCount: utils.InterfaceToInt(row["view_count"]),
+			CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
+			UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
 			Fields:    make(map[string]models.DynamicField),
 			RawData:   row,
 		}
@@ -397,10 +445,10 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 			}
 		}
 
-		posts[i] = post
+		validPosts = append(validPosts, post)
 	}
 
-	return posts, count, nil
+	return validPosts, count, nil
 }
 
 func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query string, page, pageSize int) ([]*models.DynamicPost, int, error) {
@@ -410,7 +458,9 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 		return nil, 0, ErrBoardNotFound
 	}
 
-	// 검색 가능한 필드 조회 - 수정된 부분
+	// 검색어 처리
+
+	// 검색 가능한 필드 조회
 	var searchableFields []*models.BoardField
 	err = s.db.NewSelect().
 		Model(&searchableFields).
@@ -422,26 +472,58 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 		return nil, 0, err
 	}
 
-	// 검색 조건 생성
-	conditions := []string{
-		fmt.Sprintf("title LIKE '%%%s%%'", query),
-		fmt.Sprintf("content LIKE '%%%s%%'", query),
+	// 카운트 쿼리용 조건 (별칭 없음)
+	countConditions := []string{
+		"title LIKE ?",
+		"content LIKE ?",
 	}
 
+	// 선택 쿼리용 조건 (p. 별칭 포함)
+	selectConditions := []string{
+		"p.title LIKE ?",
+		"p.content LIKE ?",
+	}
+
+	// 검색 패턴 생성
+	searchPattern := "%" + query + "%"
+
+	// 파라미터 준비 (각 쿼리에 대해 복제)
+	countParams := []interface{}{
+		searchPattern,
+		searchPattern,
+	}
+
+	selectParams := []interface{}{
+		searchPattern,
+		searchPattern,
+	}
+
+	// 동적 필드에 대한 조건 추가
 	for _, field := range searchableFields {
-		conditions = append(conditions, fmt.Sprintf("%s LIKE '%%%s%%'", field.ColumnName, query))
+		// 카운트 쿼리용 (별칭 없음)
+		countConditions = append(countConditions, fmt.Sprintf("%s LIKE ?", field.ColumnName))
+		countParams = append(countParams, searchPattern)
+
+		// 선택 쿼리용 (p. 별칭 포함)
+		selectConditions = append(selectConditions, fmt.Sprintf("p.%s LIKE ?", field.ColumnName))
+		selectParams = append(selectParams, searchPattern)
 	}
 
-	whereClause := strings.Join(conditions, " OR ")
+	// 각각의 WHERE 절 생성
+	countWhereClause := strings.Join(countConditions, " OR ")
+	selectWhereClause := strings.Join(selectConditions, " OR ")
 
 	// 페이지네이션 계산
 	offset := (page - 1) * pageSize
 
-	// 총 게시물 수 조회
-	countQuery := s.db.NewSelect().
-		Table(board.TableName).
+	// 총 게시물 수 조회 (별칭 없음)
+	var countQuery *bun.SelectQuery
+	tableName := board.TableName
+
+	countQuery = s.db.NewSelect().
+		Table(tableName).
 		ColumnExpr("COUNT(*) AS count").
-		Where(whereClause)
+		Where(countWhereClause, countParams...)
 
 	var count int
 	err = countQuery.Scan(ctx, &count)
@@ -449,13 +531,22 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 		return nil, 0, err
 	}
 
-	// 게시물 목록 조회
-	selectQuery := s.db.NewSelect().
-		Table(board.TableName + " AS p").
-		Column("p.*").
+	// 게시물 목록 조회 (p. 별칭 사용)
+	var selectQuery *bun.SelectQuery
+	var tableExpr string
+
+	if s.isPostgres() {
+		tableExpr = fmt.Sprintf("%s AS p", board.TableName)
+	} else {
+		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
+	}
+
+	selectQuery = s.db.NewSelect().
+		TableExpr(tableExpr).
+		Column("p.id", "p.title", "p.content", "p.user_id", "p.view_count", "p.created_at", "p.updated_at").
 		ColumnExpr("u.username").
 		Join("LEFT JOIN users AS u ON u.id = p.user_id").
-		Where(whereClause).
+		Where(selectWhereClause, selectParams...).
 		OrderExpr("p.created_at DESC").
 		Limit(pageSize).
 		Offset(offset)
@@ -474,52 +565,28 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 	}
 
 	// 결과 변환
-	posts := make([]*models.DynamicPost, len(rows))
-	for i, row := range rows {
-		// ID 가져오기 (데이터베이스와 드라이버에 따라 타입이 다를 수 있음)
-		var postID int64
-		switch id := row["id"].(type) {
-		case int64:
-			postID = id
-		case int:
-			postID = int64(id)
-		case float64:
-			postID = int64(id)
-		case string:
-			postID, _ = strconv.ParseInt(id, 10, 64)
+	validPosts := make([]*models.DynamicPost, 0, len(rows))
+	for _, row := range rows {
+		// ID 값 확인
+		if row["id"] == nil {
+			continue
 		}
 
-		// 사용자 ID 가져오기
-		var userID int64
-		switch uid := row["user_id"].(type) {
-		case int64:
-			userID = uid
-		case int:
-			userID = int64(uid)
-		case float64:
-			userID = int64(uid)
-		}
-
-		// 조회수 가져오기
-		var viewCount int
-		switch vc := row["view_count"].(type) {
-		case int:
-			viewCount = vc
-		case int64:
-			viewCount = int(vc)
-		case float64:
-			viewCount = int(vc)
+		// 타입 변환에 유틸리티 함수 사용
+		postID := utils.InterfaceToInt64(row["id"])
+		if postID == 0 {
+			continue
 		}
 
 		post := &models.DynamicPost{
 			ID:        postID,
-			Title:     row["title"].(string),
-			Content:   row["content"].(string),
-			UserID:    userID,
-			Username:  row["username"].(string),
-			ViewCount: viewCount,
-			CreatedAt: row["created_at"].(time.Time),
-			UpdatedAt: row["updated_at"].(time.Time),
+			Title:     utils.InterfaceToString(row["title"]),
+			Content:   utils.InterfaceToString(row["content"]),
+			UserID:    utils.InterfaceToInt64(row["user_id"]),
+			Username:  utils.InterfaceToString(row["username"]),
+			ViewCount: utils.InterfaceToInt(row["view_count"]),
+			CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
+			UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
 			Fields:    make(map[string]models.DynamicField),
 			RawData:   row,
 		}
@@ -537,8 +604,8 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 			}
 		}
 
-		posts[i] = post
+		validPosts = append(validPosts, post)
 	}
 
-	return posts, count, nil
+	return validPosts, count, nil
 }

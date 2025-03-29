@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -31,6 +32,9 @@ type AuthService interface {
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
 	ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error
+	AdminChangePassword(ctx context.Context, id int64, newPassword string) error
+	DeleteUser(ctx context.Context, id int64) error
+	ListUsers(ctx context.Context, offset, limit int, search string) ([]*models.User, int, error)
 }
 
 type authService struct {
@@ -40,15 +44,18 @@ type authService struct {
 }
 
 func NewAuthService(userRepo repository.UserRepository) AuthService {
-	// 환경 변수에서 JWT 시크릿 키 로드 - 이 부분이 문제일 수 있음
-	// jwtSecret := "your-secret-key" // 하드코딩된 값 제거
-
-	// 설정에서 가져오도록 수정
+	// 환경 변수에서 JWT 시크릿 키 로드
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		// 개발 환경에서만 사용하는 대체 시크릿
-		jwtSecret = "development_secret_key_replace_in_production"
-		log.Println("경고: JWT_SECRET 환경 변수가 설정되지 않았습니다. 개발용 시크릿을 사용합니다.")
+		// 개발 환경에서만 사용하는 대체 시크릿을 환경 검사 후 설정
+		env := os.Getenv("APP_ENV")
+		if env != "production" {
+			// 개발 환경에서는 날짜 기반 임의 키 사용
+			jwtSecret = "dev_jwt_secret_" + time.Now().Format("20060102")
+			log.Println("경고: JWT_SECRET 환경 변수가 설정되지 않았습니다. 임시 시크릿을 생성합니다.")
+		} else {
+			log.Fatal("운영 환경에서 JWT_SECRET이 설정되지 않았습니다. 애플리케이션을 종료합니다.")
+		}
 	}
 
 	return &authService{
@@ -196,6 +203,87 @@ func (s *authService) ChangePassword(ctx context.Context, id int64, currentPassw
 	user.Password = string(hashedPassword)
 	user.UpdatedAt = time.Now()
 	return s.userRepo.Update(ctx, user)
+}
+
+// AdminChangePassword 관리자가 사용자 비밀번호 변경 (현재 비밀번호 검증 없음)
+func (s *authService) AdminChangePassword(ctx context.Context, id int64, newPassword string) error {
+	// 사용자 조회
+	user, err := s.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	// 새 비밀번호 해싱
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("비밀번호 해싱 오류: %w", err)
+	}
+
+	// 비밀번호 업데이트
+	user.Password = string(hashedPassword)
+	user.UpdatedAt = time.Now()
+	return s.userRepo.Update(ctx, user)
+}
+
+// DeleteUser 사용자 삭제
+func (s *authService) DeleteUser(ctx context.Context, id int64) error {
+	// 사용자 존재 확인
+	_, err := s.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	// 사용자 삭제
+	return s.userRepo.Delete(ctx, id)
+}
+
+// ListUsers 사용자 목록 조회
+func (s *authService) ListUsers(ctx context.Context, offset, limit int, search string) ([]*models.User, int, error) {
+	// 검색어가 있는 경우
+	if search != "" {
+		// 검색 로직을 구현 (사용자명, 이메일로 검색)
+		// 여기서는 간단히 Repository의 List를 사용하고 애플리케이션 레벨에서 필터링
+		users, _, err := s.userRepo.List(ctx, 0, 1000) // 더 큰 수를 가져와서 필터링
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// 검색어로 필터링
+		filteredUsers := make([]*models.User, 0)
+		for _, user := range users {
+			// 사용자명이나 이메일에 검색어가 포함되어 있으면 추가
+			if strings.Contains(strings.ToLower(user.Username), strings.ToLower(search)) ||
+				strings.Contains(strings.ToLower(user.Email), strings.ToLower(search)) ||
+				strings.Contains(strings.ToLower(user.FullName), strings.ToLower(search)) {
+				filteredUsers = append(filteredUsers, user)
+			}
+		}
+
+		// 결과 슬라이싱 (페이지네이션)
+		resultUsers := make([]*models.User, 0)
+		count := len(filteredUsers)
+
+		// 오프셋 유효성 검사
+		if offset >= count {
+			return resultUsers, count, nil
+		}
+
+		// 끝 인덱스 계산
+		end := offset + limit
+		if end > count {
+			end = count
+		}
+
+		// 결과 슬라이싱
+		if offset < count {
+			resultUsers = filteredUsers[offset:end]
+		}
+
+		return resultUsers, count, nil
+	}
+
+	// 검색어가 없는 경우 기본 목록 조회
+	return s.userRepo.List(ctx, offset, limit)
 }
 
 // JWT 토큰 생성 헬퍼 함수

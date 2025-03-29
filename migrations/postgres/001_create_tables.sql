@@ -1,8 +1,8 @@
--- migrations/001_create_tables.sql
+-- migrations/postgres/001_create_tables.sql
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(100) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS boards (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     slug VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS boards (
 
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS board_fields (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     board_id INT NOT NULL,
     name VARCHAR(50) NOT NULL,
     column_name VARCHAR(50) NOT NULL,

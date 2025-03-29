@@ -41,7 +41,7 @@
                         <div class="flex items-center justify-between">
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-blue-600 truncate">
-                                    {{.Title}}
+                                    {{toUTF8 .Title}}
                                 </p>
                                 <p class="mt-1 text-xs text-gray-500 truncate">
                                     {{.Username}} · 조회수 {{.ViewCount}}

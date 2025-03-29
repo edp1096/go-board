@@ -77,15 +77,36 @@
                             <button x-data @click="if (confirm('정말 삭제하시겠습니까? 관련된 모든 게시물이 삭제됩니다.')) { 
                                     fetch('/admin/boards/{{.ID}}', { 
                                         method: 'DELETE',
-                                        headers: { 'Accept': 'application/json' }
-                                    })
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        if (data.success) {
-                                            window.location.reload();
-                                        } else {
-                                            alert(data.message);
+                                        headers: { 
+                                            'Accept': 'application/json',
+                                            'X-CSRF-Token': '{{$.csrf}}'
                                         }
+                                    })
+                                    .then(res => {
+                                        // Content-Type 확인
+                                        const contentType = res.headers.get('Content-Type');
+                                        
+                                        // JSON 응답인 경우
+                                        if (contentType && contentType.includes('application/json')) {
+                                            return res.json().then(data => {
+                                                if (data.success) {
+                                                    window.location.reload();
+                                                } else {
+                                                    alert(data.message);
+                                                }
+                                            });
+                                        } 
+                                        // HTML 응답 (오류 페이지)인 경우
+                                        else {
+                                            return res.text().then(html => {
+                                                console.error('서버에서 HTML 응답이 반환되었습니다', html);
+                                                alert('처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                                            });
+                                        }
+                                    })
+                                    .catch(err => {
+                                        console.error('요청 처리 중 오류:', err);
+                                        alert('오류가 발생했습니다: ' + err);
                                     });
                                 }" class="text-red-600 hover:text-red-900">
                                 삭제

@@ -6,7 +6,7 @@ import (
 	"dynamic-board/internal/models"
 	"dynamic-board/internal/service"
 	"dynamic-board/internal/utils"
-	"log"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -38,7 +38,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	redirect := c.FormValue("redirect", "/")
 
 	// 로그인 처리
-	user, token, err := h.authService.Login(c.Context(), username, password)
+	_, token, err := h.authService.Login(c.Context(), username, password)
 	if err != nil {
 		return utils.RenderWithUser(c, "auth/login", fiber.Map{
 			"title":    "로그인",
@@ -48,24 +48,19 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 
-	// 로깅 추가 - 디버깅 용도
-	log.Printf("로그인 성공: 사용자 %s (ID: %d)", user.Username, user.ID)
-
-	// 토큰을 쿠키에 저장 - 설정 개선
+	// 토큰을 쿠키에 저장 - 보안 설정 적용
+	secure := os.Getenv("APP_ENV") == "production" // 운영환경에서만 Secure 활성화
+	
 	cookie := fiber.Cookie{
 		Name:     "auth_token",
 		Value:    token,
 		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour), // 24시간 유효
 		HTTPOnly: true,
-		// 개발 환경에서는 Secure를 false로 설정
-		Secure: false,
-		// 개발 환경에서는 SameSite를 Lax로 설정
+		Secure:   secure,
 		SameSite: "lax",
 	}
 	c.Cookie(&cookie)
-
-	log.Printf("쿠키 설정: %s=%s", cookie.Name, token[:10]+"...")
 
 	// 리다이렉트
 	return c.Redirect(redirect)

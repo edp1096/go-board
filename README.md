@@ -1,86 +1,76 @@
-# README.md
-# 동적 게시판 시스템
+# Go-Board
 
-이 프로젝트는 Go Fiber와 Alpine.js를 활용한 동적 게시판 시스템입니다.
+커스텀 필드를 지원하는 동적 게시판 시스템
 
-## 기능
+## 주요 기능
 
-- 회원 관리 기능
-- 동적 게시판 생성 기능
-- Alpine.js를 활용한 하이브리드 렌더링
-- MariaDB, PostgreSQL 지원
-- 관리자 페이지
+- 관리자 정의 커스텀 필드 게시판
+- 다양한 입력 타입 지원: 텍스트, 숫자, 날짜, 체크박스, 드롭다운
+- 사용자 인증 및 권한 관리
+- PostgreSQL, MySQL/MariaDB 지원
 
-## 시작하기
+## 빠른 시작
 
 ### 요구사항
-
 - Go 1.18+
-- PostgreSQL 또는 MariaDB
-- Node.js (개발 시)
+- PostgreSQL 또는 MySQL/MariaDB
 
-### 설치
+### 설치 및 실행
 
-1. 저장소 클론하기
-   ```
-   git clone https://github.com/your-username/dynamic-board.git
-   cd dynamic-board
-   ```
+1. **환경 설정** - `.env` 파일 생성:
+```
+# 기본 설정
+DEBUG=true
+SERVER_ADDRESS=:3300
 
-2. 의존성 설치
-   ```
-   go mod download
-   ```
+# 데이터베이스 (PostgreSQL)
+DB_DRIVER=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=root
+DB_PASSWORD=pgsql
+DB_NAME=dynamic_board
 
-3. 환경 설정
-   ```
-   cp .env.example .env
-   ```
-   `.env` 파일을 수정하여 데이터베이스 연결 정보 등을 설정하세요.
+# 보안
+JWT_SECRET=secure_jwt_key_here
+SESSION_SECRET=secure_session_key_here
+```
 
-4. 마이그레이션 적용
-   ```
-   make migrate-up
-   ```
+2. **데이터베이스 마이그레이션**:
+```bash
+# PostgreSQL
+make migrate-up postgres
 
-5. 관리자 계정 생성
-   ```
-   make create-admin
-   ```
+# MySQL
+make migrate-up mysql
+```
 
-6. 애플리케이션 실행
-   ```
-   make run
-   ```
+3. **실행**:
+```bash
+make dev    # 개발 모드
+# 또는
+go build -o go-board ./cmd
+./go-board  # 프로덕션
+```
 
-### 개발 모드
+### 관리자 계정
+초기 관리자: ID `admin`, 비밀번호 `admin`
 
-Air를 사용한 라이브 리로딩 개발 환경 설정:
+## 디렉토리 구조
 
-1. Air 설치
-   ```
-   go install github.com/cosmtrek/air@latest
-   ```
-
-2. 개발 모드로 실행
-   ```
-   make dev
-   ```
-
-## 구성
-
-- `cmd`: 애플리케이션 진입점
-- `config`: 설정 관리
-- `internal`: 내부 패키지
-  - `models`: 데이터 모델
-  - `handlers`: HTTP 핸들러
-  - `middleware`: 미들웨어
-  - `repository`: 데이터 액세스
-  - `service`: 비즈니스 로직
-- `migrations`: 데이터베이스 마이그레이션
-- `web`: 웹 리소스
-  - `templates`: HTML 템플릿
-  - `static`: 정적 파일 (CSS, JS 등)
+```
+cmd/          - 애플리케이션 진입점
+config/       - 설정 코드
+internal/     - 메인 코드
+  handlers/   - HTTP 핸들러
+  middleware/ - 미들웨어
+  models/     - 데이터 모델
+  repository/ - 데이터 액세스
+  service/    - 비즈니스 로직
+  utils/      - 유틸리티
+migrations/   - DB 마이그레이션
+web/          - 프론트엔드
+```
 
 ## 라이선스
 
