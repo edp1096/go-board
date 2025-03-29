@@ -111,8 +111,15 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 // Logout 로그아웃 처리
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	// 쿠키 삭제
-	c.ClearCookie("auth_token")
+	// 쿠키 명시적으로 만료 설정하여 삭제
+	c.Cookie(&fiber.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now().Add(-time.Hour), // 과거 시간으로 설정하여 즉시 만료
+		HTTPOnly: true,
+		SameSite: "lax",
+	})
 
 	// 메인 페이지로 리다이렉트
 	return c.Redirect("/")
