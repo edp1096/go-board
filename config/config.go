@@ -22,21 +22,21 @@ const (
 
 // Config 구조체 정의
 type Config struct {
-	Environment     Environment
-	Debug           bool
-	ServerAddress   string
-	DBDriver        string
-	DBHost          string
-	DBPort          string
-	DBUser          string
-	DBPassword      string
-	DBName          string
-	JWTSecret       string
-	SessionSecret   string
-	CookieSecure    bool
-	CookieHTTPOnly  bool
-	TemplateDir     string
-	StaticDir       string
+	Environment    Environment
+	Debug          bool
+	ServerAddress  string
+	DBDriver       string
+	DBHost         string
+	DBPort         string
+	DBUser         string
+	DBPassword     string
+	DBName         string
+	JWTSecret      string
+	SessionSecret  string
+	CookieSecure   bool
+	CookieHTTPOnly bool
+	TemplateDir    string
+	StaticDir      string
 }
 
 // Load 함수는 환경에 따라 config를 로드하고 반환
@@ -115,28 +115,28 @@ func Load() (*Config, error) {
 	// 디렉토리 존재 여부 확인
 	_, errTemplateDir := os.Stat(templateDir)
 	_, errStaticDir := os.Stat(staticDir)
-	
+
 	// 디렉토리가 없으면 오류 표시
 	if os.IsNotExist(errTemplateDir) || os.IsNotExist(errStaticDir) {
 		log.Printf("경고: 템플릿 디렉토리 또는 정적 파일 디렉토리가 존재하지 않습니다.")
 	}
 
 	return &Config{
-		Environment:     env,
-		Debug:           debug,
-		ServerAddress:   serverAddress,
-		DBDriver:        dbDriver,
-		DBHost:          getEnvWithDefault("DB_HOST", "localhost"),
-		DBPort:          getEnvWithDefault("DB_PORT", "5432"),
-		DBUser:          getEnvWithDefault("DB_USER", "postgres"),
-		DBPassword:      os.Getenv("DB_PASSWORD"),
-		DBName:          getEnvWithDefault("DB_NAME", "dynamic_board"),
-		JWTSecret:       jwtSecret,
-		SessionSecret:   sessionSecret,
-		CookieSecure:    os.Getenv("COOKIE_SECURE") == "true" || env == EnvProduction,
-		CookieHTTPOnly:  os.Getenv("COOKIE_HTTP_ONLY") != "false",
-		TemplateDir:     templateDir,
-		StaticDir:       staticDir,
+		Environment:    env,
+		Debug:          debug,
+		ServerAddress:  serverAddress,
+		DBDriver:       dbDriver,
+		DBHost:         getEnvWithDefault("DB_HOST", "localhost"),
+		DBPort:         getEnvWithDefault("DB_PORT", "5432"),
+		DBUser:         getEnvWithDefault("DB_USER", "postgres"),
+		DBPassword:     os.Getenv("DB_PASSWORD"),
+		DBName:         getEnvWithDefault("DB_NAME", "go_board"),
+		JWTSecret:      jwtSecret,
+		SessionSecret:  sessionSecret,
+		CookieSecure:   os.Getenv("COOKIE_SECURE") == "true" || env == EnvProduction,
+		CookieHTTPOnly: os.Getenv("COOKIE_HTTP_ONLY") != "false",
+		TemplateDir:    templateDir,
+		StaticDir:      staticDir,
 	}, nil
 }
 

@@ -3,9 +3,9 @@
 package handlers
 
 import (
-	"dynamic-board/internal/models"
-	"dynamic-board/internal/service"
-	"dynamic-board/internal/utils"
+	"go-board/internal/models"
+	"go-board/internal/service"
+	"go-board/internal/utils"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"

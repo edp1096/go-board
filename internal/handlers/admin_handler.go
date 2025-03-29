@@ -3,10 +3,10 @@
 package handlers
 
 import (
-	"dynamic-board/internal/models"
-	"dynamic-board/internal/service"
-	"dynamic-board/internal/utils" // utils 패키지 임포트 추가
 	"fmt"
+	"go-board/internal/models"
+	"go-board/internal/service"
+	"go-board/internal/utils" // utils 패키지 임포트 추가
 	"strconv"
 	"time"
 

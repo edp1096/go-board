@@ -4,9 +4,9 @@ package service
 import (
 	"context"
 	"database/sql"
-	"dynamic-board/internal/models"
 	"errors"
 	"fmt"
+	"go-board/internal/models"
 	"regexp"
 	"strings"
 	"time"

@@ -5,7 +5,7 @@ package middleware
 import (
 	"strings"
 
-	"dynamic-board/internal/service"
+	"go-board/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 )

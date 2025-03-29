@@ -3,9 +3,9 @@
 package handlers
 
 import (
-	"dynamic-board/internal/models"
-	"dynamic-board/internal/service"
-	"dynamic-board/internal/utils"
+	"go-board/internal/models"
+	"go-board/internal/service"
+	"go-board/internal/utils"
 	"os"
 	"time"
 
@@ -50,7 +50,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	// 토큰을 쿠키에 저장 - 보안 설정 적용
 	secure := os.Getenv("APP_ENV") == "production" // 운영환경에서만 Secure 활성화
-	
+
 	cookie := fiber.Cookie{
 		Name:     "auth_token",
 		Value:    token,

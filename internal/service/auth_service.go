@@ -3,10 +3,10 @@ package service
 
 import (
 	"context"
-	"dynamic-board/internal/models"
-	"dynamic-board/internal/repository"
 	"errors"
 	"fmt"
+	"go-board/internal/models"
+	"go-board/internal/repository"
 	"log"
 	"os"
 	"strings"

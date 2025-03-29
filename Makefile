@@ -1,17 +1,17 @@
 .PHONY: build run dev clean migrate-up migrate-down setup test
 
 # 설정 변수
-APP_NAME=dynamic-board
+APP_NAME=go-board
 DB_DRIVER=mysql
-DB_CONN=root:@tcp(localhost:13306)/dynamic_board?parseTime=true
+DB_CONN=root:@tcp(localhost:13306)/go_board?parseTime=true
 
 # 운영체제 확인
 ifeq ($(OS),Windows_NT)
-    APP_NAME=dynamic-board.exe
+    APP_NAME=go-board.exe
     RM_CMD=del /q /f
     APP_RUN=.\bin\$(APP_NAME)
 else
-    APP_NAME=dynamic-board
+    APP_NAME=go-board
     RM_CMD=rm -rf
     APP_RUN=./bin/$(APP_NAME)
 endif
@@ -36,15 +36,15 @@ migrate-up: ## 데이터베이스 마이그레이션 적용 (Goose 필요)
 	@echo "Applying migrations..."
 ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
 ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=dynamic_board sslmode=disable" up
+	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=go_board sslmode=disable" up
 else
-	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=dynamic_board sslmode=disable" goose -dir migrations/postgres up
+	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=go_board sslmode=disable" goose -dir migrations/postgres up
 endif
 else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
 ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/dynamic_board?parseTime=true" up
+	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/go_board?parseTime=true" up
 else
-	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/dynamic_board?parseTime=true" goose -dir migrations/mysql up
+	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/go_board?parseTime=true" goose -dir migrations/mysql up
 endif
 else
 	@goose -dir migrations $(DB_DRIVER) "$(DB_CONN)" up
@@ -55,15 +55,15 @@ migrate-down: ## 데이터베이스 마이그레이션 롤백 (Goose 필요)
 	@echo "Rolling back migrations..."
 ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
 ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=dynamic_board sslmode=disable" down
+	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=go_board sslmode=disable" down
 else
-	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=dynamic_board sslmode=disable" goose -dir migrations/postgres down
+	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=go_board sslmode=disable" goose -dir migrations/postgres down
 endif
 else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
 ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/dynamic_board?parseTime=true" down
+	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/go_board?parseTime=true" down
 else
-	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/dynamic_board?parseTime=true" goose -dir migrations/mysql down
+	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/go_board?parseTime=true" goose -dir migrations/mysql down
 endif
 else
 	@goose -dir migrations $(DB_DRIVER) "$(DB_CONN)" down

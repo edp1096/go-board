@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"dynamic-board/config"
-	"dynamic-board/internal/handlers"
-	"dynamic-board/internal/middleware"
-	"dynamic-board/internal/repository"
-	"dynamic-board/internal/service"
+	"go-board/config"
+	"go-board/internal/handlers"
+	"go-board/internal/middleware"
+	"go-board/internal/repository"
+	"go-board/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -41,7 +41,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("설정을 로드할 수 없습니다: %v", err)
 	}
-	
+
 	// 데이터베이스 연결
 	database, err := config.NewDatabase(cfg)
 	if err != nil {
@@ -63,7 +63,7 @@ func main() {
 		}
 		return string(jsonBytes)
 	})
-	
+
 	// 바이트 배열을 문자열로 변환하는 도우미 함수 추가
 	engine.AddFunc("toUTF8", func(v interface{}) string {
 		switch value := v.(type) {
@@ -114,7 +114,7 @@ func main() {
 		// 파일 업로드 설정
 		BodyLimit: 10 * 1024 * 1024, // 10MB 제한
 		// UTF-8 인코딩 설정
-		Immutable:     true,
+		Immutable:      true,
 		ReadBufferSize: 8192,
 		// 문자셋 설정 (한글 호환성 개선)
 		JSONEncoder: json.Marshal,
@@ -227,7 +227,7 @@ func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler
 	// 관리자 라우트 (관리자 권한 필요)
 	admin := app.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
 	admin.Get("/", adminHandler.Dashboard)
-	
+
 	// 게시판 관리 라우트
 	admin.Get("/boards", adminHandler.ListBoards)
 	admin.Get("/boards/create", adminHandler.CreateBoardPage)
@@ -235,7 +235,7 @@ func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler
 	admin.Get("/boards/:boardID/edit", adminHandler.EditBoardPage)
 	admin.Put("/boards/:boardID", adminHandler.UpdateBoard)
 	admin.Delete("/boards/:boardID", adminHandler.DeleteBoard)
-	
+
 	// 사용자 관리 라우트
 	admin.Get("/users", adminHandler.ListUsers)
 	admin.Get("/users/create", adminHandler.CreateUserPage)

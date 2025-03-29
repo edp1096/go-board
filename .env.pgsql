@@ -7,7 +7,7 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=root
 DB_PASSWORD=pgsql
-DB_NAME=dynamic_board
+DB_NAME=go_board
 
 # 보안 설정
 JWT_SECRET=your_very_long_and_secure_jwt_secret_key

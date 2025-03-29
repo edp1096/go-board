@@ -1,4 +1,4 @@
-module dynamic-board
+module go-board
 
 go 1.24
 

@@ -4,11 +4,11 @@ package service
 import (
 	"context"
 	"database/sql"
-	"dynamic-board/internal/models"
-	"dynamic-board/internal/repository"
-	"dynamic-board/internal/utils"
 	"errors"
 	"fmt"
+	"go-board/internal/models"
+	"go-board/internal/repository"
+	"go-board/internal/utils"
 	"strings"
 	"time"
 

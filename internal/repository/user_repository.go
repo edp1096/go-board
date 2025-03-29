@@ -3,7 +3,7 @@ package repository
 
 import (
 	"context"
-	"dynamic-board/internal/models"
+	"go-board/internal/models"
 
 	"github.com/uptrace/bun"
 )
