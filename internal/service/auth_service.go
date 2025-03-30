@@ -269,10 +269,7 @@ func (s *authService) ListUsers(ctx context.Context, offset, limit int, search s
 		}
 
 		// 끝 인덱스 계산
-		end := offset + limit
-		if end > count {
-			end = count
-		}
+		end := min(offset+limit, count)
 
 		// 결과 슬라이싱
 		if offset < count {

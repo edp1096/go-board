@@ -7,13 +7,17 @@
                 submitting = true;
                 const formData = new FormData($el);
                 formData.append('field_count', fieldCount);
-                // CSRF 토큰 추가
-                formData.append('_csrf', '{{.csrf}}');
+                // // CSRF 토큰 추가
+                // formData.append('_csrf', '{{.csrf}}');
+
+                // 쿠키에서 CSRF 토큰 가져오기
+                const csrfToken = '{{.csrf}}';
+                console.log(csrfToken);
                 
                 fetch('/admin/boards', {
                     method: 'POST',
                     headers: {
-                        'X-CSRF-Token': '{{.csrf}}',
+                        'X-CSRF-Token': csrfToken,
                         'Accept': 'application/json'
                     },
                     body: formData

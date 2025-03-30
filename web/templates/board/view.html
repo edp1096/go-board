@@ -129,23 +129,26 @@
     commentsEnabled: {{.board.CommentsEnabled}},
     error: null
 }" x-init="
-    // 컴포넌트 초기화 시 댓글 로드
-    if (commentsEnabled) {
-        fetch('/api/boards/{{.board.ID}}/posts/{{.post.ID}}/comments')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    comments = data.comments;
-                } else {
-                    error = data.message;
-                }
-                loading = false;
-            })
-            .catch(err => {
-                error = '댓글을 불러오는 중 오류가 발생했습니다.';
-                loading = false;
-            });
-    }
+    (() => {
+        if (commentsEnabled) {
+            fetch('/api/boards/{{.board.ID}}/posts/{{.post.ID}}/comments')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        comments = data.comments;
+                    } else {
+                        error = data.message;
+                    }
+                    loading = false;
+                })
+                .catch(err => {
+                    error = '댓글을 불러오는 중 오류가 발생했습니다.';
+                    loading = false;
+                });
+        } else {
+            loading = false;
+        }
+    })()
 ">
     <div class="mt-8 border-t border-gray-200 pt-8" x-show="commentsEnabled">
         <h3 class="text-lg font-medium text-gray-900">댓글</h3>
@@ -156,7 +159,8 @@
             <div class="flex space-x-3">
                 <div class="flex-shrink-0">
                     <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span class="text-sm font-medium text-gray-500">{{index (slice .user.Username 0 1) 0}}</span>
+                        <!-- <span class="text-sm font-medium text-gray-500">{{index (slice .user.Username 0 1) 0}}</span> -->
+                        <span class="text-sm font-medium text-gray-500">{{slice .user.Username 0 1}}</span>
                     </div>
                 </div>
                 <div class="min-w-0 flex-1">

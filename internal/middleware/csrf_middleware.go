@@ -73,17 +73,21 @@ func CSRF(config ...CSRFConfig) fiber.Handler {
 		}
 	}
 
-	// 난수 생성기 초기화
-	rand.Seed(time.Now().UnixNano())
+	// 난수 생성기 초기화 - Go 1.20+ 에서는 전역 rand가 자동으로 초기화되므로 Seed 호출 필요 없음
+	// rand.Seed(time.Now().UnixNano())
 
 	// Fiber 핸들러 반환
 	return func(c *fiber.Ctx) error {
 		// GET, HEAD, OPTIONS 요청은 CSRF 검증 제외
 		method := c.Method()
 		if method == "GET" || method == "HEAD" || method == "OPTIONS" {
-			// CSRF 토큰 생성 및 쿠키 설정
-			token := generateToken()
-			setCookie(c, cfg.CookieName, token, cfg.Expiration, cfg.CookiePath)
+			// 기존 토큰이 없는 경우에만 새 토큰 생성
+			token := c.Cookies(cfg.CookieName)
+			if token == "" {
+				token = generateToken()
+				setCookie(c, cfg.CookieName, token, cfg.Expiration, cfg.CookiePath)
+			}
+			// 기존 쿠키 값을 locals로 사용
 			c.Locals("csrf", token)
 			return c.Next()
 		}
@@ -91,10 +95,10 @@ func CSRF(config ...CSRFConfig) fiber.Handler {
 		// POST, PUT, DELETE 등 상태 변경 요청은 CSRF 검증
 		// 토큰 확인
 		var clientToken string
-		lookups := strings.Split(cfg.TokenLookup, ",")
+		lookups := strings.SplitSeq(cfg.TokenLookup, ",")
 
 		// 여러 소스에서 토큰 검색
-		for _, lookup := range lookups {
+		for lookup := range lookups {
 			parts := strings.Split(lookup, ":")
 			if len(parts) != 2 {
 				continue
@@ -138,10 +142,13 @@ func CSRF(config ...CSRFConfig) fiber.Handler {
 			})
 		}
 
-		// 새 토큰 생성 (매 요청마다 갱신)
-		newToken := generateToken()
-		setCookie(c, cfg.CookieName, newToken, cfg.Expiration, cfg.CookiePath)
-		c.Locals("csrf", newToken)
+		// // 새 토큰 생성 (매 요청마다 갱신)
+		// newToken := generateToken()
+		// setCookie(c, cfg.CookieName, newToken, cfg.Expiration, cfg.CookiePath)
+		// c.Locals("csrf", newToken)
+
+		// 토큰이 일치하면 기존 토큰 유지 (재생성하지 않음)
+		c.Locals("csrf", serverToken)
 
 		return c.Next()
 	}
@@ -150,9 +157,11 @@ func CSRF(config ...CSRFConfig) fiber.Handler {
 // 랜덤 토큰 생성
 func generateToken() string {
 	b := make([]byte, csrfTokenLength)
+
 	for i := range b {
 		b[i] = byte(rand.Intn(256))
 	}
+
 	return base64.StdEncoding.EncodeToString(b)
 }
 

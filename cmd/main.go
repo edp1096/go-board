@@ -246,10 +246,16 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, authService service.Aut
 		AllowMethods: "GET,POST,PUT,DELETE",
 	}))
 
-	// 로거 설정
-	app.Use(flogger.New(flogger.Config{
-		Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
-	}))
+	// // 로거 설정
+	// app.Use(flogger.New(flogger.Config{
+	// 	Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
+	// }))
+	// 로거 설정 (디버그 모드일 때만)
+	if cfg.Debug {
+		app.Use(flogger.New(flogger.Config{
+			Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
+		}))
+	}
 
 	// UTF-8 인코딩 강제 적용 미들웨어
 	app.Use(func(c *fiber.Ctx) error {
