@@ -21,7 +21,7 @@ import (
 func main() {
 	// 명령행 인자 파싱
 	driver := flag.String("driver", "", "데이터베이스 드라이버 (mysql 또는 postgres)")
-	operation := flag.String("op", "up", "마이그레이션 작업 (up, down, status, redo, version)")
+	operation := flag.String("op", "up", "마이그레이션 작업 (up, down, reset, status, create, redo, version)")
 	newMigration := flag.String("name", "", "새 마이그레이션 이름 (create 명령에만 사용)")
 	flag.Parse()
 

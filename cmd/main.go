@@ -140,16 +140,19 @@ func main() {
 	// 저장소 초기화
 	userRepo := repository.NewUserRepository(db)
 	boardRepo := repository.NewBoardRepository(db)
+	commentRepo := repository.NewCommentRepository(db)
 
 	// 서비스 초기화
 	authService := service.NewAuthService(userRepo)
 	boardService := service.NewBoardService(boardRepo, db)
 	dynamicBoardService := service.NewDynamicBoardService(db)
+	commentService := service.NewCommentService(commentRepo, boardRepo)
 
 	// 핸들러 초기화
 	authHandler := handlers.NewAuthHandler(authService)
-	boardHandler := handlers.NewBoardHandler(boardService)
+	boardHandler := handlers.NewBoardHandler(boardService, commentService)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
+	commentHandler := handlers.NewCommentHandler(commentService)
 
 	// 인증 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
@@ -182,7 +185,7 @@ func main() {
 	}))
 
 	// 라우트 설정
-	setupRoutes(app, authHandler, boardHandler, adminHandler, authMiddleware, adminMiddleware)
+	setupRoutes(app, authHandler, boardHandler, adminHandler, commentHandler, authMiddleware, adminMiddleware)
 
 	// 서버 시작
 	go startServer(app, cfg.ServerAddress)
@@ -262,7 +265,7 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, authService service.Aut
 }
 
 // setupRoutes는 앱의 라우트를 설정합니다
-func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler *handlers.BoardHandler, adminHandler *handlers.AdminHandler, authMiddleware middleware.AuthMiddleware, adminMiddleware middleware.AdminMiddleware) {
+func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler *handlers.BoardHandler, adminHandler *handlers.AdminHandler, commentHandler *handlers.CommentHandler, authMiddleware middleware.AuthMiddleware, adminMiddleware middleware.AdminMiddleware) {
 	// 인증 관련 라우트
 	auth := app.Group("/auth")
 	auth.Get("/login", authHandler.LoginPage)
@@ -319,6 +322,19 @@ func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler
 	admin.Delete("/users/:userID", adminHandler.DeleteUser)
 	admin.Put("/users/:userID/role", adminHandler.UpdateUserRole)
 	admin.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
+
+	// API 라우트 (댓글 기능)
+	api := app.Group("/api")
+
+	// 댓글 관련 API 라우트
+	commentsAPI := api.Group("/boards/:boardID/posts/:postID/comments")
+	commentsAPI.Get("/", commentHandler.GetComments)
+	commentsAPI.Post("/", authMiddleware.RequireAuth, commentHandler.CreateComment)
+
+	// 댓글 수정/삭제 API 라우트
+	commentActions := api.Group("/comments/:commentID", authMiddleware.RequireAuth)
+	commentActions.Put("/", commentHandler.UpdateComment)
+	commentActions.Delete("/", commentHandler.DeleteComment)
 
 	// 루트 라우트
 	app.Get("/", func(c *fiber.Ctx) error {

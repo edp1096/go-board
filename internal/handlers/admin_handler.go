@@ -83,6 +83,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 	boardTypeStr := c.FormValue("board_type")
 	boardType := models.BoardType(boardTypeStr)
 	slugStr := c.FormValue("slug")
+	commentsEnabled := c.FormValue("comments_enabled") == "on"
 
 	// 유효성 검사
 	if name == "" {
@@ -102,12 +103,13 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 
 	// 게시판 객체 생성
 	board := &models.Board{
-		Name:        name,
-		Description: description,
-		BoardType:   boardType,
-		Slug:        slugStr,
-		TableName:   tableName,
-		Active:      true,
+		Name:            name,
+		Description:     description,
+		BoardType:       boardType,
+		Slug:            slugStr,
+		TableName:       tableName,
+		Active:          true,
+		CommentsEnabled: commentsEnabled,
 	}
 
 	// 필드 정보 파싱
@@ -256,6 +258,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	description := c.FormValue("description")
 	boardTypeStr := c.FormValue("board_type")
 	active := c.FormValue("active") == "on"
+	commentsEnabled := c.FormValue("comments_enabled") == "on"
 
 	// 유효성 검사
 	if name == "" {
@@ -270,6 +273,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	board.Description = description
 	board.BoardType = models.BoardType(boardTypeStr)
 	board.Active = active
+	board.CommentsEnabled = commentsEnabled
 
 	// 필드 정보 파싱
 	fieldCount, _ := strconv.Atoi(c.FormValue("field_count", "0"))

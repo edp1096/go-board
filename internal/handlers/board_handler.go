@@ -7,6 +7,7 @@ import (
 	"go-board/internal/models"
 	"go-board/internal/service"
 	"go-board/internal/utils"
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,12 +15,14 @@ import (
 )
 
 type BoardHandler struct {
-	boardService service.BoardService
+	boardService   service.BoardService
+	commentService service.CommentService // 추가된 필드
 }
 
-func NewBoardHandler(boardService service.BoardService) *BoardHandler {
+func NewBoardHandler(boardService service.BoardService, commentService service.CommentService) *BoardHandler {
 	return &BoardHandler{
-		boardService: boardService,
+		boardService:   boardService,
+		commentService: commentService,
 	}
 }
 
@@ -554,6 +557,15 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 			"success": false,
 			"message": "게시물을 삭제할 권한이 없습니다",
 		})
+	}
+
+	// 댓글 삭제 (댓글 서비스가 존재하는 경우)
+	if h.commentService != nil {
+		err = h.commentService.DeleteCommentsByPostID(c.Context(), boardID, postID)
+		if err != nil {
+			// 댓글 삭제 오류는 로깅만 하고 진행 (게시물 삭제가 우선)
+			log.Printf("게시물 댓글 삭제 실패 (boardID: %d, postID: %d): %v", boardID, postID, err)
+		}
 	}
 
 	// 게시물 삭제

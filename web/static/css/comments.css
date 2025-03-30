@@ -1,0 +1,163 @@
+/* web/static/css/comments.css */
+/* 댓글 영역 스타일 */
+
+.comment-section {
+    margin-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 2rem;
+}
+
+.comment-form textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.comment-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.comment-item:hover {
+    background-color: #f9fafb;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.comment-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.comment-author {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.comment-content {
+    margin-left: 3.25rem;
+    margin-bottom: 0.5rem;
+    white-space: pre-wrap;
+}
+
+.comment-footer {
+    margin-left: 3.25rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.comment-footer button {
+    margin-left: 0.75rem;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: #4b5563;
+}
+
+.comment-footer button:hover {
+    color: #1f2937;
+    text-decoration: underline;
+}
+
+.comment-footer button.delete-btn {
+    color: #ef4444;
+}
+
+.comment-footer button.delete-btn:hover {
+    color: #dc2626;
+}
+
+.comment-replies {
+    margin-left: 3.25rem;
+    margin-top: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid #e5e7eb;
+}
+
+.reply-form {
+    margin-top: 1rem;
+    margin-left: 3.25rem;
+    padding-left: 1rem;
+}
+
+.reply-to-indicator {
+    background-color: #f3f4f6;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.reply-to-indicator button {
+    float: right;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.reply-to-indicator button:hover {
+    color: #4b5563;
+}
+
+/* 로딩 애니메이션 */
+.comment-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.comment-loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 댓글 없음 메시지 */
+.no-comments {
+    text-align: center;
+    padding: 2rem 0;
+    color: #6b7280;
+}
+
+/* 오류 메시지 */
+.comment-error {
+    background-color: #fee2e2;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    color: #b91c1c;
+}
