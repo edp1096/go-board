@@ -1,4 +1,5 @@
-DEBUG=true
+APP_ENV=development    # development, test, production
+DEBUG=false
 SERVER_ADDRESS=127.0.0.1:3000
 
 # 데이터베이스 설정 (PostgreSQL)
@@ -14,3 +15,7 @@ JWT_SECRET=your_very_long_and_secure_jwt_secret_key
 SESSION_SECRET=your_very_long_and_secure_session_secret_key
 COOKIE_SECURE=false
 COOKIE_HTTP_ONLY=true
+
+# 디렉토리 설정
+TEMPLATE_DIR=./web/templates
+STATIC_DIR=./web/static
