@@ -1,25 +1,37 @@
-.PHONY: build run dev clean migrate-up migrate-down setup test
+.PHONY: build run dev clean migrate-up migrate-down migrate-status migrate-create setup test
 
 # 설정 변수
 APP_NAME=go-board
+MIGRATE_NAME=migrate
 DB_DRIVER=mysql
-DB_CONN=root:@tcp(localhost:13306)/go_board?parseTime=true
 
 # 운영체제 확인
 ifeq ($(OS),Windows_NT)
     APP_NAME=go-board.exe
+    MIGRATE_NAME=migrate.exe
     RM_CMD=del /q /f
     APP_RUN=.\bin\$(APP_NAME)
+    MIGRATE_RUN=.\bin\$(MIGRATE_NAME)
 else
     APP_NAME=go-board
+    MIGRATE_NAME=migrate
     RM_CMD=rm -rf
     APP_RUN=./bin/$(APP_NAME)
+    MIGRATE_RUN=./bin/$(MIGRATE_NAME)
 endif
 
 # 빌드
-build:
+build: build-app build-migrate
+
+# 앱 빌드
+build-app:
 	@echo "Building application..."
 	@go build -o ./bin/$(APP_NAME) ./cmd
+
+# 마이그레이터 빌드
+build-migrate:
+	@echo "Building migrator..."
+	@go build -o ./bin/$(MIGRATE_NAME) ./cmd/migrate
 
 # 실행
 run: build
@@ -32,41 +44,48 @@ dev:
 	@go run ./cmd/main.go
 
 # 마이그레이션 적용
-migrate-up: ## 데이터베이스 마이그레이션 적용 (Goose 필요)
+migrate-up: build-migrate ## 데이터베이스 마이그레이션 적용
 	@echo "Applying migrations..."
 ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
-ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=go_board sslmode=disable" up
-else
-	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=go_board sslmode=disable" goose -dir migrations/postgres up
-endif
+	@$(MIGRATE_RUN) -driver postgres -op up
 else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
-ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/go_board?parseTime=true" up
+	@$(MIGRATE_RUN) -driver mysql -op up
 else
-	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/go_board?parseTime=true" goose -dir migrations/mysql up
-endif
-else
-	@goose -dir migrations $(DB_DRIVER) "$(DB_CONN)" up
+	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op up
 endif
 
 # 마이그레이션 롤백
-migrate-down: ## 데이터베이스 마이그레이션 롤백 (Goose 필요)
+migrate-down: build-migrate ## 데이터베이스 마이그레이션 롤백
 	@echo "Rolling back migrations..."
 ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
-ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/postgres postgres "user=root password=pgsql dbname=go_board sslmode=disable" down
-else
-	@DB_DRIVER=postgres DB_CONN="user=root password=pgsql dbname=go_board sslmode=disable" goose -dir migrations/postgres down
-endif
+	@$(MIGRATE_RUN) -driver postgres -op down
 else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
-ifeq ($(OS),Windows_NT)
-	@goose -dir migrations/mysql mysql "root:@tcp(localhost:13306)/go_board?parseTime=true" down
+	@$(MIGRATE_RUN) -driver mysql -op down
 else
-	@DB_DRIVER=mysql DB_CONN="root:@tcp(localhost:13306)/go_board?parseTime=true" goose -dir migrations/mysql down
+	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op down
 endif
+
+# 마이그레이션 상태
+migrate-status: build-migrate ## 데이터베이스 마이그레이션 상태 확인
+	@echo "Checking migration status..."
+ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
+	@$(MIGRATE_RUN) -driver postgres -op status
+else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
+	@$(MIGRATE_RUN) -driver mysql -op status
 else
-	@goose -dir migrations $(DB_DRIVER) "$(DB_CONN)" down
+	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op status
+endif
+
+# 새 마이그레이션 생성
+migrate-create: build-migrate ## 새 마이그레이션 생성
+	@echo "Creating new migration..."
+	@[ "${name}" ] || ( echo "Error: name parameter is required. Use: make migrate-create name=your_migration_name"; exit 1 )
+ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
+	@$(MIGRATE_RUN) -driver postgres -op create -name $(name)
+else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
+	@$(MIGRATE_RUN) -driver mysql -op create -name $(name)
+else
+	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op create -name $(name)
 endif
 
 # 더미 타겟
@@ -88,7 +107,9 @@ setup:
 clean:
 	@echo "Cleaning up..."
 ifeq ($(OS),Windows_NT)
-	@if exist .\bin $(RM_CMD) .\bin\*
+	@if exist .\bin\$(APP_NAME) $(RM_CMD) .\bin\$(APP_NAME)
+	@if exist .\bin\$(MIGRATE_NAME) $(RM_CMD) .\bin\$(MIGRATE_NAME)
 else
-	@$(RM_CMD) ./bin 2>/dev/null || true
+	@$(RM_CMD) ./bin/$(APP_NAME) 2>/dev/null || true
+	@$(RM_CMD) ./bin/$(MIGRATE_NAME) 2>/dev/null || true
 endif

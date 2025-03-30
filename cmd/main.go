@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	goboard "go-board"
 	"go-board/config"
 	"go-board/internal/handlers"
 	"go-board/internal/middleware"
@@ -18,6 +20,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	flogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/html/v2"
@@ -50,8 +53,8 @@ func main() {
 	defer database.Close()
 	db := database.DB
 
-	// HTML 템플릿 엔진 설정
-	engine := html.New(cfg.TemplateDir, ".html")
+	// HTML 템플릿 엔진 설정 - 하이브리드 파일시스템 사용
+	engine := html.NewFileSystem(goboard.GetTemplatesFS(), goboard.GetTemplatesDir())
 	// 디버그 모드에서 템플릿 자동 리로드 활성화
 	engine.Reload(cfg.Debug)
 
@@ -99,11 +102,11 @@ func main() {
 
 	// 경로 관련 함수
 	engine.AddFunc("jsPath", func(fileName string) string {
-		return filepath.Join("/static/js", fileName)
+		return "/static/js/" + fileName
 	})
 
 	engine.AddFunc("cssPath", func(fileName string) string {
-		return filepath.Join("/static/css", fileName)
+		return "/static/css/" + fileName
 	})
 
 	// Fiber 앱 생성
@@ -143,8 +146,13 @@ func main() {
 	// 미들웨어 설정
 	setupMiddleware(app, cfg, authService)
 
-	// 정적 파일 제공
-	app.Static("/static", cfg.StaticDir)
+	// 정적 파일 제공 - 하이브리드 파일시스템 사용
+	app.Use("/static", filesystem.New(filesystem.Config{
+		Root:         goboard.GetStaticFS(),
+		Browse:       true,
+		Index:        "index.html",
+		NotFoundFile: "404.html",
+	}))
 
 	// 라우트 설정
 	setupRoutes(app, authHandler, boardHandler, adminHandler, authMiddleware, adminMiddleware)
@@ -158,6 +166,45 @@ func main() {
 
 	// 종료 시그널 처리
 	handleShutdown(app)
+}
+
+// 명령행 인자 처리 및 도움말 출력
+func handleCommandLineArgs() (bool, error) {
+	// 도움말 표시 처리
+	helpCmd := flag.NewFlagSet("help", flag.ExitOnError)
+
+	// 명령행 인자가 없으면 정상 실행
+	if len(os.Args) < 2 {
+		return false, nil
+	}
+
+	// 명령 처리
+	switch os.Args[1] {
+	case "help", "--help", "-h":
+		helpCmd.Parse(os.Args[2:])
+		printHelp()
+		return true, nil
+
+	case "version", "--version", "-v":
+		fmt.Println("Dynamic Board 버전 1.0.0")
+		return true, nil
+
+	default:
+		// 알 수 없는 명령 처리
+		fmt.Fprintf(os.Stderr, "알 수 없는 명령: %s\n", os.Args[1])
+		printHelp()
+		return true, fmt.Errorf("알 수 없는 명령: %s", os.Args[1])
+	}
+}
+
+// 도움말 출력
+func printHelp() {
+	progName := filepath.Base(os.Args[0])
+	fmt.Printf("사용법: %s [명령] [옵션]\n\n", progName)
+	fmt.Println("명령:")
+	fmt.Println("  help\t\t이 도움말을 표시합니다")
+	fmt.Println("  version\t버전 정보를 표시합니다")
+	fmt.Println()
 }
 
 // setupMiddleware는 앱에 필요한 미들웨어를 설정합니다

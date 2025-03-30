@@ -8,6 +8,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/mysqldialect"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -33,7 +34,7 @@ func ConnectDatabase(cfg *Config) (*bun.DB, error) {
 		sqldb = sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 
 	case "mysql", "mariadb":
-		// MySQL/MariaDB 연결 설정 (MariaDB는 MySQL과 호환됨)
+		// MySQL/MariaDB 연결 설정
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&collation=utf8mb4_unicode_ci",
 			cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
 		sqldb, err = sql.Open("mysql", dsn)
@@ -65,7 +66,6 @@ func ConnectDatabase(cfg *Config) (*bun.DB, error) {
 		db = bun.NewDB(sqldb, mysqldialect.New())
 	}
 
-	// 디버그 모드 설정 - 이제는 로그 없이 조용히 작동
 	return db, nil
 }
 
