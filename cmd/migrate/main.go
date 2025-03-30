@@ -2,15 +2,16 @@ package main
 
 import (
 	"database/sql"
-	"embed"
 	"flag"
 	"fmt"
-	goboard "go-board"
-	"go-board/config"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	goboard "go-board"
+	"go-board/config"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -49,19 +50,40 @@ func main() {
 
 	fmt.Printf("데이터베이스 '%s'가 준비되었습니다\n", cfg.DBName)
 
-	// 데이터베이스 연결 가져오기
+	// SQL DB 인스턴스 가져오기
 	sqlDB := database.DB.DB
 
-	// 마이그레이션 디렉토리 준비
-	migrationsDir, err := prepareMigrations(cfg.DBDriver)
-	if err != nil {
-		log.Fatalf("마이그레이션 파일 준비 실패: %v", err)
+	// 마이그레이션 설정
+	goose.SetBaseFS(nil) // 기본 파일시스템 설정 초기화
+
+	// 방언 설정
+	if err := goose.SetDialect(cfg.DBDriver); err != nil {
+		log.Fatalf("데이터베이스 방언 설정 실패: %v", err)
 	}
 
-	// 임시 디렉토리가 생성된 경우, 함수 종료 시 정리
-	if strings.HasPrefix(migrationsDir, os.TempDir()) {
-		defer os.RemoveAll(migrationsDir)
+	// 임베디드 마이그레이션 파일 시스템 가져오기
+	var migrationFS fs.FS
+	var migrationsDir string
+	if cfg.DBDriver == "postgres" {
+		// PostgreSQL 마이그레이션 설정
+		subFS, err := fs.Sub(goboard.PostgresMigrationsFS, "migrations/postgres")
+		if err != nil {
+			log.Fatalf("PostgreSQL 마이그레이션 파일 접근 실패: %v", err)
+		}
+		migrationFS = subFS
+		migrationsDir = "."
+	} else {
+		// MySQL 마이그레이션 설정
+		subFS, err := fs.Sub(goboard.MysqlMigrationsFS, "migrations/mysql")
+		if err != nil {
+			log.Fatalf("MySQL 마이그레이션 파일 접근 실패: %v", err)
+		}
+		migrationFS = subFS
+		migrationsDir = "."
 	}
+
+	// 마이그레이션 파일 시스템 설정
+	goose.SetBaseFS(migrationFS)
 
 	// 마이그레이션 실행
 	if err := runMigration(sqlDB, cfg.DBDriver, migrationsDir, *operation, *newMigration); err != nil {
@@ -150,104 +172,9 @@ func ensureDatabaseExists(cfg *config.Config) error {
 	return nil
 }
 
-// prepareMigrations는 마이그레이션 파일을 준비합니다
-func prepareMigrations(driver string) (string, error) {
-	// 먼저 실제 디렉토리가 있는지 확인
-	var realDir string
-	if driver == "postgres" {
-		realDir = "./migrations/postgres"
-	} else {
-		realDir = "./migrations/mysql"
-	}
-
-	// 실제 디렉토리가 있으면 그것을 사용
-	if _, err := os.Stat(realDir); err == nil {
-		fmt.Printf("실제 마이그레이션 디렉토리 사용: %s\n", realDir)
-		return realDir, nil
-	}
-
-	// 임시 디렉토리 생성
-	tmpDir, err := os.MkdirTemp("", "migrations")
-	if err != nil {
-		return "", fmt.Errorf("임시 디렉토리 생성 실패: %w", err)
-	}
-
-	fmt.Printf("임베디드 마이그레이션에서 임시 디렉토리 생성: %s\n", tmpDir)
-
-	// 임베디드 마이그레이션 파일 추출
-	if driver == "postgres" {
-		if err := extractMigrations(goboard.PostgresMigrationsFS, "migrations/postgres", tmpDir); err != nil {
-			os.RemoveAll(tmpDir)
-			return "", err
-		}
-	} else {
-		if err := extractMigrations(goboard.MysqlMigrationsFS, "migrations/mysql", tmpDir); err != nil {
-			os.RemoveAll(tmpDir)
-			return "", err
-		}
-	}
-
-	return tmpDir, nil
-}
-
-// extractMigrations는 임베디드 파일시스템에서 마이그레이션 파일을 추출합니다
-func extractMigrations(embeddedFS embed.FS, basePath, targetDir string) error {
-	// 파일 시스템에서 마이그레이션 디렉토리 접근
-	entries, err := embeddedFS.ReadDir(basePath)
-	if err != nil {
-		return fmt.Errorf("마이그레이션 디렉토리 읽기 실패: %w", err)
-	}
-
-	// 모든 파일 순회
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		// SQL 파일만 처리
-		name := entry.Name()
-		if !strings.HasSuffix(name, ".sql") {
-			continue
-		}
-
-		// 파일 내용 읽기
-		filePath := filepath.Join(basePath, name)
-		content, err := embeddedFS.ReadFile(filePath)
-		if err != nil {
-			return fmt.Errorf("파일 읽기 실패: %w", err)
-		}
-
-		// 대상 경로 생성
-		targetPath := filepath.Join(targetDir, name)
-
-		// 파일 쓰기
-		if err := os.WriteFile(targetPath, content, 0644); err != nil {
-			return fmt.Errorf("파일 쓰기 실패: %w", err)
-		}
-
-		fmt.Printf("마이그레이션 파일 추출: %s\n", name)
-	}
-
-	return nil
-}
-
 // runMigration은 지정된 마이그레이션 작업을 실행합니다
 func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration string) error {
-	// Goose 디렉터리 설정
-	goose.SetBaseFS(nil)
-
-	// Goose 방언 설정
-	if driver == "postgres" {
-		if err := goose.SetDialect("postgres"); err != nil {
-			return fmt.Errorf("PostgreSQL 방언 설정 실패: %w", err)
-		}
-	} else {
-		if err := goose.SetDialect("mysql"); err != nil {
-			return fmt.Errorf("MySQL 방언 설정 실패: %w", err)
-		}
-	}
-
-	// Goose 명령 실행
+	// 마이그레이션 작업 실행
 	var err error
 	switch operation {
 	case "up":
@@ -263,11 +190,73 @@ func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration str
 		fmt.Println("마이그레이션 상태 확인 중...")
 		err = goose.Status(db, migrationsDir)
 	case "create":
+		// create는 임베디드 파일 시스템에서 직접 수행할 수 없으므로
+		// 임시 디렉토리에 생성해야 합니다.
 		if newMigration == "" {
 			return fmt.Errorf("새 마이그레이션 이름을 지정해야 합니다 (-name 플래그 사용)")
 		}
-		fmt.Printf("새 마이그레이션 생성 중: %s\n", newMigration)
-		err = goose.Create(db, migrationsDir, newMigration, "sql")
+
+		// 임시 디렉토리 생성
+		tmpDir, err := os.MkdirTemp("", "migrations")
+		if err != nil {
+			return fmt.Errorf("임시 디렉토리 생성 실패: %w", err)
+		}
+		defer os.RemoveAll(tmpDir)
+
+		fmt.Printf("새 마이그레이션 생성 중: %s (임시 위치: %s)\n", newMigration, tmpDir)
+
+		// 임시 디렉토리로 변경 (goose.Create가 현재 디렉토리 기준으로 동작)
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("현재 작업 디렉토리 확인 실패: %w", err)
+		}
+
+		if err := os.Chdir(tmpDir); err != nil {
+			return fmt.Errorf("작업 디렉토리 변경 실패: %w", err)
+		}
+
+		// 작업 완료 후 원래 디렉토리로 돌아가기
+		defer os.Chdir(wd)
+
+		// 마이그레이션 파일 생성
+		err = goose.Create(db, ".", newMigration, "sql")
+		if err != nil {
+			return fmt.Errorf("마이그레이션 생성 실패: %w", err)
+		}
+
+		// 생성된 파일 경로 확인
+		upFile := filepath.Join(tmpDir, fmt.Sprintf("%s.sql", newMigration))
+
+		// SQL 파일 내용 읽기
+		upContent, err := os.ReadFile(upFile)
+		if err != nil {
+			return fmt.Errorf("생성된 마이그레이션 파일 읽기 실패: %w", err)
+		}
+
+		// 마이그레이션 디렉토리 확인 및 생성
+		var targetDir string
+		if driver == "postgres" {
+			targetDir = "migrations/postgres"
+		} else {
+			targetDir = "migrations/mysql"
+		}
+
+		if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(targetDir, 0755); err != nil {
+				return fmt.Errorf("마이그레이션 디렉토리 생성 실패: %w", err)
+			}
+		}
+
+		// 새 마이그레이션 파일 경로
+		targetFile := filepath.Join(targetDir, filepath.Base(upFile))
+
+		// 임시 파일을 실제 마이그레이션 디렉토리로 복사
+		if err := os.WriteFile(targetFile, upContent, 0644); err != nil {
+			return fmt.Errorf("마이그레이션 파일 복사 실패: %w", err)
+		}
+
+		fmt.Printf("새 마이그레이션 파일이 생성되었습니다: %s\n", targetFile)
+
 	case "redo":
 		fmt.Println("마지막 마이그레이션 재실행 중...")
 		err = goose.Redo(db, migrationsDir)

@@ -3,12 +3,14 @@
 package handlers
 
 import (
+	"fmt"
 	"go-board/internal/models"
 	"go-board/internal/service"
 	"go-board/internal/utils"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/template/html/v2"
 )
 
 type BoardHandler struct {
@@ -26,12 +28,24 @@ func (h *BoardHandler) ListBoards(c *fiber.Ctx) error {
 	// 활성 게시판만 조회
 	boards, err := h.boardService.ListBoards(c.Context(), true)
 	if err != nil {
+		fmt.Printf("게시판 목록 조회 오류: %v\n", err)
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
 			"message": "게시판 목록을 불러오는데 실패했습니다",
 			"error":   err.Error(),
 		})
 	}
+
+	// fmt.Printf("게시판 목록 조회 성공: %d개 게시판\n", len(boards))
+
+	// 템플릿 파일이 존재하는지 직접 확인
+	templatesFS := c.App().Config().Views.(*html.Engine)
+	if templatesFS == nil {
+		fmt.Println("템플릿 엔진이 nil입니다!")
+	}
+
+	// // 디버그용 템플릿 정보 출력
+	// fmt.Printf("렌더링할 템플릿: %s\n", "board/list")
 
 	return utils.RenderWithUser(c, "board/list", fiber.Map{
 		"title":  "게시판 목록",

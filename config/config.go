@@ -3,7 +3,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -112,14 +111,14 @@ func Load() (*Config, error) {
 	templateDir = filepath.Clean(templateDir)
 	staticDir = filepath.Clean(staticDir)
 
-	// 디렉토리 존재 여부 확인
-	_, errTemplateDir := os.Stat(templateDir)
-	_, errStaticDir := os.Stat(staticDir)
+	// // 디렉토리 존재 여부 확인
+	// _, errTemplateDir := os.Stat(templateDir)
+	// _, errStaticDir := os.Stat(staticDir)
 
-	// 디렉토리가 없으면 오류 표시
-	if os.IsNotExist(errTemplateDir) || os.IsNotExist(errStaticDir) {
-		log.Printf("경고: 템플릿 디렉토리 또는 정적 파일 디렉토리가 존재하지 않습니다.")
-	}
+	// // 디렉토리가 없으면 오류 표시
+	// if os.IsNotExist(errTemplateDir) || os.IsNotExist(errStaticDir) {
+	// 	log.Printf("경고: 템플릿 디렉토리 또는 정적 파일 디렉토리가 존재하지 않습니다.")
+	// }
 
 	return &Config{
 		Environment:    env,

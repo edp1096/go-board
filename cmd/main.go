@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -27,8 +28,8 @@ import (
 )
 
 func main() {
-	// 시작 시간 기록
-	startTime := time.Now()
+	// // 시작 시간 기록
+	// startTime := time.Now()
 
 	// 명령행 인자 처리 (내보내기, 도움말 등)
 	shouldExit, err := handleCommandLineArgs()
@@ -53,13 +54,23 @@ func main() {
 	defer database.Close()
 	db := database.DB
 
-	// HTML 템플릿 엔진 설정 - 하이브리드 파일시스템 사용
-	engine := html.NewFileSystem(goboard.GetTemplatesFS(), goboard.GetTemplatesDir())
-	// 디버그 모드에서 템플릿 자동 리로드 활성화
+	// HTML 템플릿 엔진 설정 - 단순화된 자동 감지 방식
+	var engine *html.Engine
+
+	// 현재 디렉토리 기준으로 템플릿 디렉토리 확인
+	if _, err := os.Stat("./web/templates"); err == nil {
+		// 실제 파일 시스템 사용
+		engine = html.New("./web/templates", ".html")
+	} else {
+		// 임베디드 파일 시스템 사용
+		engine = html.NewFileSystem(goboard.GetTemplatesFS(), ".html")
+	}
+
+	// 공통 설정
 	engine.Reload(cfg.Debug)
 
 	// 템플릿 함수 등록
-	engine.AddFunc("json", func(v interface{}) string {
+	engine.AddFunc("json", func(v any) string {
 		jsonBytes, err := json.Marshal(v)
 		if err != nil {
 			return "Error: Could not marshal JSON"
@@ -68,7 +79,7 @@ func main() {
 	})
 
 	// 바이트 배열을 문자열로 변환하는 도우미 함수 추가
-	engine.AddFunc("toUTF8", func(v interface{}) string {
+	engine.AddFunc("toUTF8", func(v any) string {
 		switch value := v.(type) {
 		case []byte:
 			return string(value)
@@ -83,7 +94,7 @@ func main() {
 		return a + b
 	})
 
-	engine.AddFunc("parseJSON", func(s string) interface{} {
+	engine.AddFunc("parseJSON", func(s string) any {
 		var result any
 		err := json.Unmarshal([]byte(s), &result)
 		if err != nil {
@@ -114,6 +125,7 @@ func main() {
 		Views:                 engine,
 		ViewsLayout:           "layouts/base",
 		DisableStartupMessage: true,
+		// EnablePrintRoutes:     true,
 		// 파일 업로드 설정
 		BodyLimit: 10 * 1024 * 1024, // 10MB 제한
 		// UTF-8 인코딩 설정
@@ -146,9 +158,24 @@ func main() {
 	// 미들웨어 설정
 	setupMiddleware(app, cfg, authService)
 
+	// 정적 파일 제공 - 단순화된 자동 감지 방식
+	var staticFS http.FileSystem
+
+	// 현재 디렉토리 기준으로 정적 파일 디렉토리 확인
+	if _, err := os.Stat("./web/static"); err == nil {
+		// 실제 파일 시스템 사용
+		staticFS = http.Dir("./web/static")
+		// log.Println("실제 정적 파일 디렉토리 사용: ./web/static")
+	} else {
+		// 임베디드 파일 시스템 사용
+		staticFS = goboard.GetStaticFS()
+		// log.Println("임베디드 정적 파일 시스템 사용 (실제 디렉토리 없음)")
+	}
+
 	// 정적 파일 제공 - 하이브리드 파일시스템 사용
 	app.Use("/static", filesystem.New(filesystem.Config{
-		Root:         goboard.GetStaticFS(),
+		// Root:         goboard.GetStaticFS(),
+		Root:         staticFS,
 		Browse:       true,
 		Index:        "index.html",
 		NotFoundFile: "404.html",
@@ -160,9 +187,9 @@ func main() {
 	// 서버 시작
 	go startServer(app, cfg.ServerAddress)
 
-	// 준비 시간 계산 및 출력
-	readyTime := time.Since(startTime)
-	log.Printf("서버가 %.2f초 만에 준비되었습니다", readyTime.Seconds())
+	// // 준비 시간 계산 및 출력
+	// readyTime := time.Since(startTime)
+	// log.Printf("서버가 %.2f초 만에 준비되었습니다", readyTime.Seconds())
 
 	// 종료 시그널 처리
 	handleShutdown(app)
@@ -309,7 +336,7 @@ func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler
 
 // startServer는 서버를 시작합니다
 func startServer(app *fiber.App, address string) {
-	log.Printf("서버를 시작합니다: %s", address)
+	fmt.Printf("서버를 시작합니다: %s\n", address)
 	if err := app.Listen(address); err != nil {
 		log.Fatalf("서버 시작 실패: %v", err)
 	}
@@ -322,10 +349,10 @@ func handleShutdown(app *fiber.App) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	log.Println("서버를 종료합니다...")
+	fmt.Println("서버를 종료합니다..")
 	shutdownTimeout := 3 * time.Second
 	if err := app.ShutdownWithTimeout(shutdownTimeout); err != nil {
 		log.Fatalf("서버 종료 실패: %v", err)
 	}
-	log.Println("서버가 안전하게 종료되었습니다.")
+	fmt.Println("서버가 안전하게 종료되었습니다.")
 }

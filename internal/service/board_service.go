@@ -137,7 +137,7 @@ func (s *boardService) CreatePost(ctx context.Context, boardID int64, post *mode
 	}
 
 	// 값 맵 생성
-	values := map[string]interface{}{
+	values := map[string]any{
 		"title":      post.Title,
 		"content":    post.Content,
 		"user_id":    post.UserID,
@@ -224,7 +224,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 	}
 
 	// 쿼리 실행
-	var row map[string]interface{}
+	var row map[string]any
 	err = query.Scan(ctx, &row)
 	if err != nil {
 		return nil, ErrPostNotFound
@@ -291,7 +291,7 @@ func (s *boardService) UpdatePost(ctx context.Context, boardID int64, post *mode
 	}
 
 	// 기본 필드 설정
-	values := map[string]interface{}{
+	values := map[string]any{
 		"title":      post.Title,
 		"content":    post.Content,
 		"updated_at": time.Now(),
@@ -399,7 +399,7 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 		Offset(offset)
 
 	// 쿼리 실행
-	var rows []map[string]interface{}
+	var rows []map[string]any
 	err = query.Scan(ctx, &rows)
 	if err != nil {
 		return nil, 0, err
@@ -488,12 +488,12 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 	searchPattern := "%" + query + "%"
 
 	// 파라미터 준비 (각 쿼리에 대해 복제)
-	countParams := []interface{}{
+	countParams := []any{
 		searchPattern,
 		searchPattern,
 	}
 
-	selectParams := []interface{}{
+	selectParams := []any{
 		searchPattern,
 		searchPattern,
 	}
@@ -552,7 +552,7 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 		Offset(offset)
 
 	// 쿼리 실행 및 결과 처리
-	var rows []map[string]interface{}
+	var rows []map[string]any
 	err = selectQuery.Scan(ctx, &rows)
 	if err != nil {
 		return nil, 0, err

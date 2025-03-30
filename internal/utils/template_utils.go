@@ -39,8 +39,8 @@ func JSPath(path string) string {
 }
 
 // templateMap은 템플릿별 기본 데이터를 관리합니다.
-func TemplateMap(title string, data map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+func TemplateMap(title string, data map[string]any) map[string]any {
+	result := make(map[string]any)
 
 	// 기본 데이터 설정
 	result["title"] = title
@@ -60,7 +60,7 @@ func MergeUserData(c *fiber.Ctx, data fiber.Map) fiber.Map {
 	if user != nil {
 		data["user"] = user
 	}
-	
+
 	// CSRF 토큰 추가
 	if csrf := c.Locals("csrf"); csrf != nil {
 		data["csrf"] = csrf

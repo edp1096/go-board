@@ -134,7 +134,7 @@ func (s *authService) Login(ctx context.Context, username, password string) (*mo
 
 func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*models.User, error) {
 	// 토큰 파싱
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		// 서명 알고리즘 확인
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("예상치 못한 서명 방법: %v", token.Header["alg"])

@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
@@ -16,6 +17,8 @@ func InterfaceToString(val any) string {
 	switch t := val.(type) {
 	case string:
 		return t
+	case sql.NullString:
+		return t.String
 	case []byte:
 		return string(t)
 	default:
@@ -32,10 +35,14 @@ func InterfaceToInt64(val any) int64 {
 	switch v := val.(type) {
 	case int64:
 		return v
+	case sql.NullInt64:
+		return v.Int64
 	case int:
 		return int64(v)
 	case float64:
 		return int64(v)
+	case sql.NullFloat64:
+		return int64(v.Float64)
 	case uint64:
 		return int64(v)
 	case uint:
@@ -48,6 +55,9 @@ func InterfaceToInt64(val any) int64 {
 		return int64(v)
 	case string:
 		id, _ := strconv.ParseInt(v, 10, 64)
+		return id
+	case sql.NullString:
+		id, _ := strconv.ParseInt(v.String, 10, 64)
 		return id
 	case []byte:
 		s := string(v)
