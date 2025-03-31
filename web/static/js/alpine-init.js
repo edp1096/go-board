@@ -1,6 +1,31 @@
 /* web/static/js/alpine-init.js */
 // Alpine.js 초기화 및 전역 컴포넌트 정의
 
+// 모든 컴포넌트 로드
+document.addEventListener('DOMContentLoaded', function () {
+    // 컴포넌트 스크립트 동적 로드
+    const components = [
+        // 'auth-forms.js',
+        // 'board-create-form.js',
+        // 'board-edit-form.js',
+        // 'board-field-manager.js',
+        // 'board-list-manager.js',
+        // 'comments-manager.js',
+        // 'form-validator.js',
+        // 'post-editor.js',
+        // 'post-manager.js',
+        // // 'prosemirror-editor.js',
+        // 'user-manager.js',
+    ];
+
+    components.forEach(component => {
+        const script = document.createElement('script');
+        script.src = `/static/js/alpine-components/${component}`;
+        script.async = true;
+        document.head.appendChild(script);
+    });
+});
+
 document.addEventListener('alpine:init', () => {
     // Notification 컴포넌트
     Alpine.data('notification', (message = '', type = 'info', autoClose = true) => ({
@@ -119,40 +144,6 @@ document.addEventListener('alpine:init', () => {
 });
 
 // 사용자 정의 유틸리티 함수
-
-// AJAX 요청 헬퍼
-function ajaxRequest(url, method = 'GET', data = null) {
-    const options = {
-        method,
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    };
-
-    // CSRF 토큰 가져오기
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (csrfToken) {
-        options.headers['X-CSRF-Token'] = csrfToken;
-    }
-
-    // 데이터 설정
-    if (data) {
-        if (data instanceof FormData) {
-            options.body = data;
-        } else {
-            options.headers['Content-Type'] = 'application/json';
-            options.body = JSON.stringify(data);
-        }
-    }
-
-    return fetch(url, options).then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    });
-}
 
 // 날짜 포맷 유틸리티
 function formatDate(dateString, format = 'YYYY-MM-DD HH:mm') {

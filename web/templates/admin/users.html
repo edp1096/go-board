@@ -88,14 +88,15 @@
                                title="사용자 정보 수정">
                                수정
                             </a>
+                            {{$admin := eq .Role "admin"}}
                             <button
-                                onclick="toggleUserRole({{.ID}}, '{{.Role}}')"
-                                class="{{if eq .Role "admin"}}bg-yellow-500{{else}}bg-blue-500{{end}} text-white px-2 py-1 rounded-md text-xs"
-                                title="{{if eq .Role "admin"}}관리자 권한 해제{{else}}관리자 권한 부여{{end}}">
+                                onclick="toggleUserRole('{{.ID}}', '{{.Role}}')"
+                                class="{{if $admin}}bg-yellow-500{{else}}bg-blue-500{{end}} text-white px-2 py-1 rounded-md text-xs"
+                                title="{{if $admin}}관리자 권한 해제{{else}}관리자 권한 부여{{end}}">
                                 {{if eq .Role "admin"}}해제{{else}}승급{{end}}
                             </button>
                             <button
-                                onclick="toggleUserStatus({{.ID}}, {{.Active}})"
+                                onclick="toggleUserStatus('{{.ID}}', '{{.Active}}')"
                                 class="{{if .Active}}bg-red-500{{else}}bg-green-500{{end}} text-white px-2 py-1 rounded-md text-xs"
                                 title="{{if .Active}}계정 비활성화{{else}}계정 활성화{{end}}">
                                 {{if .Active}}정지{{else}}복구{{end}}
@@ -138,6 +139,8 @@ function toggleUserRole(userId, currentRole) {
         return;
     }
 
+    const userId = parseInt(userId);
+
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     
     fetch(`/admin/users/${userId}/role`, {
@@ -167,6 +170,9 @@ function toggleUserStatus(userId, currentStatus) {
     if (!confirm(currentStatus ? '이 사용자의 계정을 비활성화하시겠습니까?' : '이 사용자의 계정을 활성화하시겠습니까?')) {
         return;
     }
+
+    const userId = parseInt(userId);
+    const currentStatus = parseBool(currentStatus);
 
     const newStatus = !currentStatus;
     

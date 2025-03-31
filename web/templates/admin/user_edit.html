@@ -46,11 +46,13 @@
                 </div>
 
                 <div>
+                    {{$admin := eq .user.Role "admin"}}
+                    {{$user := eq .user.Role "user"}}
                     <label for="role" class="block text-sm font-medium text-gray-700">역할</label>
                     <select id="role" name="role"
                         class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="user" {{if eq .user.Role "user"}}selected{{end}}>일반 사용자</option>
-                        <option value="admin" {{if eq .user.Role "admin"}}selected{{end}}>관리자</option>
+                        <option value="user" {{if $user}}selected{{end}}>일반 사용자</option>
+                        <option value="admin" {{if $admin}}selected{{end}}>관리자</option>
                     </select>
                 </div>
             </div>
