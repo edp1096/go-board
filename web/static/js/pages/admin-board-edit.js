@@ -22,17 +22,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 폼 제출 전 유효성 검사
-    function validateEditForm() {
-        const name = document.getElementById('name');
-        if (!name || name.value.trim() === '') {
-            alert('게시판 이름을 입력해주세요.');
-            return false;
-        }
-
-        return true;
-    }
-
     // 초기화
     setupExistingFields();
 
