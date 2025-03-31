@@ -216,7 +216,7 @@ func (s *dynamicBoardService) AlterBoardTable(ctx context.Context, board *models
 	// 2. 필드 수정 (PostgreSQL과 MySQL/MariaDB 방식이 다름)
 	for _, field := range modifyFields {
 		// 컬럼 이름 유효성 검사
-		if !columnNameRegex.MatchString(field.ColumnName) {
+		if field.ID <= 0 && !columnNameRegex.MatchString(field.ColumnName) {
 			return fmt.Errorf("유효하지 않은 컬럼 이름입니다: %s (영문자, 숫자, 언더스코어만 허용)", field.ColumnName)
 		}
 

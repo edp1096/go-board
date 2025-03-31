@@ -289,7 +289,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	// 제출된 필드 ID 목록
 	submittedFieldIDs := make(map[int64]bool)
 
-	for i := 0; i < fieldCount; i++ {
+	for i := range fieldCount {
 		fieldIDStr := c.FormValue(fmt.Sprintf("field_id_%d", i))
 		fieldID, _ := strconv.ParseInt(fieldIDStr, 10, 64)
 
@@ -312,10 +312,23 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 			// 기존 필드 수정
 			submittedFieldIDs[fieldID] = true
 
+			// 기존 필드에서 columnName 찾기
+			var columnName string
+			var createdAt time.Time
+
+			for _, existingField := range board.Fields {
+				if existingField.ID == fieldID {
+					columnName = existingField.ColumnName
+					createdAt = existingField.CreatedAt
+					break
+				}
+			}
+
 			field := &models.BoardField{
 				ID:          fieldID,
 				BoardID:     boardID,
 				Name:        fieldName,
+				ColumnName:  columnName,
 				DisplayName: displayName,
 				FieldType:   fieldType,
 				Required:    required,
@@ -323,6 +336,8 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 				Searchable:  searchable,
 				Options:     options,
 				SortOrder:   i + 1,
+				CreatedAt:   createdAt,  // 기존 생성 시간 유지
+				UpdatedAt:   time.Now(), // 현재 시간으로 업데이트
 			}
 
 			modifyFields = append(modifyFields, field)
