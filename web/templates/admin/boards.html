@@ -1,5 +1,5 @@
 <!-- web/templates/admin/boards.html -->
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto" x-data="boardManagement()">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">게시판 관리</h1>
         <a href="/admin/boards/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -74,41 +74,7 @@
                         <div class="flex justify-end space-x-2">
                             <a href="/boards/{{.ID}}/posts" class="text-blue-600 hover:text-blue-900">보기</a>
                             <a href="/admin/boards/{{.ID}}/edit" class="text-indigo-600 hover:text-indigo-900">수정</a>
-                            <button x-data @click="if (confirm('정말 삭제하시겠습니까? 관련된 모든 게시물이 삭제됩니다.')) { 
-                                    fetch('/admin/boards/{{.ID}}', { 
-                                        method: 'DELETE',
-                                        headers: { 
-                                            'Accept': 'application/json',
-                                            'X-CSRF-Token': '{{$.csrf}}'
-                                        }
-                                    })
-                                    .then(res => {
-                                        // Content-Type 확인
-                                        const contentType = res.headers.get('Content-Type');
-                                        
-                                        // JSON 응답인 경우
-                                        if (contentType && contentType.includes('application/json')) {
-                                            return res.json().then(data => {
-                                                if (data.success) {
-                                                    window.location.reload();
-                                                } else {
-                                                    alert(data.message);
-                                                }
-                                            });
-                                        } 
-                                        // HTML 응답 (오류 페이지)인 경우
-                                        else {
-                                            return res.text().then(html => {
-                                                console.error('서버에서 HTML 응답이 반환되었습니다', html);
-                                                alert('처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
-                                            });
-                                        }
-                                    })
-                                    .catch(err => {
-                                        console.error('요청 처리 중 오류:', err);
-                                        alert('오류가 발생했습니다: ' + err);
-                                    });
-                                }" class="text-red-600 hover:text-red-900">
+                            <button @click="deleteBoard('{{.ID}}')" class="text-red-600 hover:text-red-900">
                                 삭제
                             </button>
                         </div>

@@ -192,9 +192,10 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "board/view", fiber.Map{
-		"title": post.Title,
-		"board": board,
-		"post":  post,
+		"title":          post.Title,
+		"board":          board,
+		"post":           post,
+		"pageScriptPath": "/static/js/pages/board-view.js",
 	})
 }
 
@@ -386,9 +387,10 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "board/edit", fiber.Map{
-		"title": "게시물 수정",
-		"board": board,
-		"post":  post,
+		"title":          "게시물 수정",
+		"board":          board,
+		"post":           post,
+		"pageScriptPath": "/static/js/pages/board-edit.js",
 	})
 }
 

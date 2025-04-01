@@ -1,4 +1,8 @@
 <!-- web/templates/board/view.html -->
+<input type="hidden" id="boardId" value="{{.board.ID}}">
+<input type="hidden" id="postId" value="{{.post.ID}}">
+<input type="hidden" id="csrfToken" value="{{.csrf}}">
+
 <div>
     <div class="mb-4">
         <nav class="flex" aria-label="Breadcrumb">
@@ -94,20 +98,7 @@
                     <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         수정
                     </a>
-                    <button x-data @click="if (confirm('정말 삭제하시겠습니까?')) { 
-                            fetch('/boards/{{.board.ID}}/posts/{{.post.ID}}', { 
-                                method: 'DELETE',
-                                headers: { 'Accept': 'application/json' }
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    window.location.href = '/boards/{{.board.ID}}/posts';
-                                } else {
-                                    alert(data.message);
-                                }
-                            });
-                        }" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
                         삭제
                     </button>
                 </div>
@@ -118,297 +109,149 @@
     </div>
 </div>
 
-
 <!-- 댓글 섹션 -->
-<div x-data="{ 
-    comments: [], 
-    commentContent: '', 
-    replyToId: null, 
-    replyToUser: '',
-    loading: true,
-    commentsEnabled: {{.board.CommentsEnabled}},
-    error: null
-}" x-init="
-    (() => {
-        if (commentsEnabled) {
-            fetch('/api/boards/{{.board.ID}}/posts/{{.post.ID}}/comments')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        comments = data.comments;
-                    } else {
-                        error = data.message;
-                    }
-                    loading = false;
-                })
-                .catch(err => {
-                    error = '댓글을 불러오는 중 오류가 발생했습니다.';
-                    loading = false;
-                });
-        } else {
-            loading = false;
-        }
-    })()
-">
-    <div class="mt-8 border-t border-gray-200 pt-8" x-show="commentsEnabled">
-        <h3 class="text-lg font-medium text-gray-900">댓글</h3>
+<div x-data="commentSystem({{.board.CommentsEnabled}})" class="mt-8 border-t border-gray-200 pt-8" x-show="commentsEnabled">
+    <h3 class="text-lg font-medium text-gray-900">댓글</h3>
 
-        <!-- 댓글 작성 폼 -->
-        {{if .user}}
-        <div class="mt-4">
-            <div class="flex space-x-3">
-                <div class="flex-shrink-0">
-                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <!-- <span class="text-sm font-medium text-gray-500">{{index (slice .user.Username 0 1) 0}}</span> -->
-                        <span class="text-sm font-medium text-gray-500">{{slice .user.Username 0 1}}</span>
-                    </div>
+    <!-- 댓글 작성 폼 -->
+    {{if .user}}
+    <div class="mt-4">
+        <div class="flex space-x-3">
+            <div class="flex-shrink-0">
+                <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span class="text-sm font-medium text-gray-500">{{slice .user.Username 0 1}}</span>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <form @submit.prevent="
-                        fetch('/api/boards/{{.board.ID}}/posts/{{.post.ID}}/comments', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-Token': '{{.csrf}}'
-                            },
-                            body: JSON.stringify({
-                                content: commentContent,
-                                parentId: replyToId
-                            })
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                if (replyToId === null) {
-                                    comments.push(data.comment);
-                                } else {
-                                    // 부모 댓글 찾아서 답글 추가
-                                    const parentIndex = comments.findIndex(c => c.id === replyToId);
-                                    if (parentIndex !== -1) {
-                                        if (!comments[parentIndex].children) {
-                                            comments[parentIndex].children = [];
-                                        }
-                                        comments[parentIndex].children.push(data.comment);
-                                    }
-                                }
-                                commentContent = '';
-                                replyToId = null;
-                                replyToUser = '';
-                            } else {
-                                alert(data.message);
-                            }
-                        })
-                    ">
+            </div>
+            <div class="min-w-0 flex-1">
+                <form @submit.prevent="submitComment()">
+                    <div>
+                        <label for="comment" class="sr-only">댓글 내용</label>
+                        <textarea id="comment" name="comment" rows="3" x-model="commentContent" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" :placeholder="replyToId ? `${replyToUser}님에게 답글 작성...` : '댓글을 입력하세요...'" required></textarea>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between">
                         <div>
-                            <label for="comment" class="sr-only">댓글 내용</label>
-                            <textarea id="comment" name="comment" rows="3" x-model="commentContent" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" :placeholder="replyToId ? `${replyToUser}님에게 답글 작성...` : '댓글을 입력하세요...'" required></textarea>
+                            <template x-if="replyToId !== null">
+                                <button type="button" class="text-sm text-gray-500 hover:text-gray-700" @click="cancelReply()">
+                                    답글 취소
+                                </button>
+                            </template>
                         </div>
-                        <div class="mt-3 flex items-center justify-between">
-                            <div>
-                                <template x-if="replyToId !== null">
-                                    <button type="button" class="text-sm text-gray-500 hover:text-gray-700" @click="replyToId = null; replyToUser = '';">
-                                        답글 취소
-                                    </button>
+                        <button type="submit" class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            댓글 등록
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {{else}}
+    <div class="mt-4 bg-gray-50 p-4 rounded-md text-center">
+        <p class="text-gray-600">댓글을 작성하려면 <a href="/auth/login?redirect=/boards/{{.board.ID}}/posts/{{.post.ID}}" class="text-blue-600 hover:text-blue-500">로그인</a>이 필요합니다.</p>
+    </div>
+    {{end}}
+
+    <!-- 댓글 목록 -->
+    <div class="mt-6 space-y-6">
+        <!-- 로딩 표시 -->
+        <div x-show="loading" class="text-center py-4">
+            <svg class="animate-spin h-5 w-5 text-gray-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2 text-sm text-gray-500">댓글을 불러오는 중...</p>
+        </div>
+
+        <!-- 오류 메시지 -->
+        <div x-show="error" class="bg-red-50 p-4 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700" x-text="error"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 댓글 없음 메시지 -->
+        <div x-show="!loading && !error && comments.length === 0" class="text-center py-4">
+            <p class="text-gray-500">아직 댓글이 없습니다. 첫 댓글을 작성해보세요!</p>
+        </div>
+
+        <!-- 댓글 표시 -->
+        <template x-for="comment in comments" :key="comment.id">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <!-- 기본 댓글 -->
+                <div class="p-4">
+                    <div class="flex space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                <span class="text-sm font-medium text-gray-500" x-text="comment.user ? comment.user.username.charAt(0) : '?'"></span>
+                            </div>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-medium text-gray-900" x-text="comment.user ? comment.user.username : '알 수 없음'"></div>
+                            <div class="mt-1 text-sm text-gray-700" x-html="comment.content.replace(/\n/g, '<br>')"></div>
+                            <div class="mt-2 text-xs text-gray-500 flex items-center space-x-2">
+                                <span x-text="new Date(comment.createdAt).toLocaleString()"></span>
+                                {{if .user}}
+                                <button class="text-blue-600 hover:text-blue-800" @click="replyToId = comment.id; replyToUser = comment.user ? comment.user.username : '알 수 없음'; document.getElementById('comment').focus();">
+                                    답글
+                                </button>
+                                <template x-if="{{.user.ID}} === comment.userId || {{if eq .user.Role " admin"}}true{{else}}false{{end}}">
+                                    <div class="flex items-center space-x-2">
+                                        <button class="text-gray-600 hover:text-gray-800" @click="editComment(comment.id, comment.content)">
+                                            수정
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-800" @click="deleteComment(comment.id)">
+                                            삭제
+                                        </button>
+                                    </div>
                                 </template>
-                            </div>
-                            <button type="submit" class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                댓글 등록
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        {{else}}
-        <div class="mt-4 bg-gray-50 p-4 rounded-md text-center">
-            <p class="text-gray-600">댓글을 작성하려면 <a href="/auth/login?redirect=/boards/{{.board.ID}}/posts/{{.post.ID}}" class="text-blue-600 hover:text-blue-500">로그인</a>이 필요합니다.</p>
-        </div>
-        {{end}}
-
-        <!-- 댓글 목록 -->
-        <div class="mt-6 space-y-6">
-            <!-- 로딩 표시 -->
-            <div x-show="loading" class="text-center py-4">
-                <svg class="animate-spin h-5 w-5 text-gray-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="mt-2 text-sm text-gray-500">댓글을 불러오는 중...</p>
-            </div>
-
-            <!-- 오류 메시지 -->
-            <div x-show="error" class="bg-red-50 p-4 rounded-md">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-red-700" x-text="error"></p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 댓글 없음 메시지 -->
-            <div x-show="!loading && !error && comments.length === 0" class="text-center py-4">
-                <p class="text-gray-500">아직 댓글이 없습니다. 첫 댓글을 작성해보세요!</p>
-            </div>
-
-            <!-- 댓글 표시 -->
-            <template x-for="comment in comments" :key="comment.id">
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <!-- 기본 댓글 -->
-                    <div class="p-4">
-                        <div class="flex space-x-3">
-                            <div class="flex-shrink-0">
-                                <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                    <span class="text-sm font-medium text-gray-500" x-text="comment.user ? comment.user.username.charAt(0) : '?'"></span>
-                                </div>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="text-sm font-medium text-gray-900" x-text="comment.user ? comment.user.username : '알 수 없음'"></div>
-                                <div class="mt-1 text-sm text-gray-700" x-html="comment.content.replace(/\n/g, '<br>')"></div>
-                                <div class="mt-2 text-xs text-gray-500 flex items-center space-x-2">
-                                    <span x-text="new Date(comment.createdAt).toLocaleString()"></span>
-                                    {{$admin := eq .user.Role "admin"}}
-                                    {{if .user}}
-                                    <button class="text-blue-600 hover:text-blue-800" @click="replyToId = comment.id; replyToUser = comment.user ? comment.user.username : '알 수 없음'; document.getElementById('comment').focus();">
-                                        답글
-                                    </button>
-                                    <template x-if="{{.user.ID}} === comment.userId || {{if $admin}}true{{else}}false{{end}}">
-                                        <div class="flex items-center space-x-2">
-                                            <button class="text-gray-600 hover:text-gray-800" @click="
-                                                    const newContent = prompt('댓글을 수정합니다:', comment.content);
-                                                    if (newContent && newContent !== comment.content) {
-                                                        fetch('/api/comments/' + comment.id, {
-                                                            method: 'PUT',
-                                                            headers: {
-                                                                'Content-Type': 'application/json',
-                                                                'X-CSRF-Token': '{{.csrf}}'
-                                                            },
-                                                            body: JSON.stringify({
-                                                                content: newContent
-                                                            })
-                                                        })
-                                                        .then(res => res.json())
-                                                        .then(data => {
-                                                            if (data.success) {
-                                                                comment.content = data.comment.content;
-                                                                comment.updatedAt = data.comment.updatedAt;
-                                                            } else {
-                                                                alert(data.message);
-                                                            }
-                                                        });
-                                                    }
-                                                ">
-                                                수정
-                                            </button>
-                                            <button class="text-red-600 hover:text-red-800" @click="
-                                                    if (confirm('댓글을 삭제하시겠습니까?')) {
-                                                        fetch('/api/comments/' + comment.id, {
-                                                            method: 'DELETE',
-                                                            headers: {
-                                                                'X-CSRF-Token': '{{.csrf}}'
-                                                            }
-                                                        })
-                                                        .then(res => res.json())
-                                                        .then(data => {
-                                                            if (data.success) {
-                                                                comments = comments.filter(c => c.id !== comment.id);
-                                                            } else {
-                                                                alert(data.message);
-                                                            }
-                                                        });
-                                                    }
-                                                ">
-                                                삭제
-                                            </button>
-                                        </div>
-                                    </template>
-                                    {{end}}
-                                </div>
+                                {{end}}
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- 답글 -->
-                    <template x-if="comment.children && comment.children.length > 0">
-                        <div class="bg-gray-50 px-4 py-2 border-t border-gray-100">
-                            <template x-for="reply in comment.children" :key="reply.id">
-                                <div class="mt-2 mb-2">
-                                    <div class="flex space-x-3">
-                                        <div class="flex-shrink-0">
-                                            <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                                <span class="text-xs font-medium text-gray-500" x-text="reply.user ? reply.user.username.charAt(0) : '?'"></span>
-                                            </div>
+                <!-- 답글 -->
+                <template x-if="comment.children && comment.children.length > 0">
+                    <div class="bg-gray-50 px-4 py-2 border-t border-gray-100">
+                        <template x-for="reply in comment.children" :key="reply.id">
+                            <div class="mt-2 mb-2">
+                                <div class="flex space-x-3">
+                                    <div class="flex-shrink-0">
+                                        <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <span class="text-xs font-medium text-gray-500" x-text="reply.user ? reply.user.username.charAt(0) : '?'"></span>
                                         </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="text-sm font-medium text-gray-900" x-text="reply.user ? reply.user.username : '알 수 없음'"></div>
-                                            <div class="mt-1 text-sm text-gray-700" x-html="reply.content.replace(/\n/g, '<br>')"></div>
-                                            <div class="mt-2 text-xs text-gray-500 flex items-center space-x-2">
-                                                <span x-text="new Date(reply.createdAt).toLocaleString()"></span>
-                                                {{if .user}}
-                                                <template x-if="{{.user.ID}} === reply.userId || {{if eq .user.Role " admin"}}true{{else}}false{{end}}">
-                                                    <div class="flex items-center space-x-2">
-                                                        <button class="text-gray-600 hover:text-gray-800" @click="
-                                                                const newContent = prompt('댓글을 수정합니다:', reply.content);
-                                                                if (newContent && newContent !== reply.content) {
-                                                                    fetch('/api/comments/' + reply.id, {
-                                                                        method: 'PUT',
-                                                                        headers: {
-                                                                            'Content-Type': 'application/json',
-                                                                            'X-CSRF-Token': '{{.csrf}}'
-                                                                        },
-                                                                        body: JSON.stringify({
-                                                                            content: newContent
-                                                                        })
-                                                                    })
-                                                                    .then(res => res.json())
-                                                                    .then(data => {
-                                                                        if (data.success) {
-                                                                            reply.content = data.comment.content;
-                                                                            reply.updatedAt = data.comment.updatedAt;
-                                                                        } else {
-                                                                            alert(data.message);
-                                                                        }
-                                                                    });
-                                                                }
-                                                            ">
-                                                            수정
-                                                        </button>
-                                                        <button class="text-red-600 hover:text-red-800" @click="
-                                                                if (confirm('댓글을 삭제하시겠습니까?')) {
-                                                                    fetch('/api/comments/' + reply.id, {
-                                                                        method: 'DELETE',
-                                                                        headers: {
-                                                                            'X-CSRF-Token': '{{.csrf}}'
-                                                                        }
-                                                                    })
-                                                                    .then(res => res.json())
-                                                                    .then(data => {
-                                                                        if (data.success) {
-                                                                            comment.children = comment.children.filter(r => r.id !== reply.id);
-                                                                        } else {
-                                                                            alert(data.message);
-                                                                        }
-                                                                    });
-                                                                }
-                                                            ">
-                                                            삭제
-                                                        </button>
-                                                    </div>
-                                                </template>
-                                                {{end}}
-                                            </div>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-gray-900" x-text="reply.user ? reply.user.username : '알 수 없음'"></div>
+                                        <div class="mt-1 text-sm text-gray-700" x-html="reply.content.replace(/\n/g, '<br>')"></div>
+                                        <div class="mt-2 text-xs text-gray-500 flex items-center space-x-2">
+                                            <span x-text="new Date(reply.createdAt).toLocaleString()"></span>
+                                            {{if .user}}
+                                            <template x-if="{{.user.ID}} === reply.userId || {{if eq .user.Role " admin"}}true{{else}}false{{end}}">
+                                                <div class="flex items-center space-x-2">
+                                                    <button class="text-gray-600 hover:text-gray-800" @click="editComment(reply.id, reply.content)">
+                                                        수정
+                                                    </button>
+                                                    <button class="text-red-600 hover:text-red-800" @click="deleteComment(reply.id, true, comment.id)">
+                                                        삭제
+                                                    </button>
+                                                </div>
+                                            </template>
+                                            {{end}}
                                         </div>
                                     </div>
                                 </div>
-                            </template>
-                        </div>
-                    </template>
-                </div>
-            </template>
-        </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
     </div>
 </div>

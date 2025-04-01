@@ -48,8 +48,9 @@ func (h *AdminHandler) ListBoards(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "admin/boards", fiber.Map{
-		"title":  "게시판 관리",
-		"boards": boards,
+		"title":          "게시판 관리",
+		"boards":         boards,
+		"pageScriptPath": "/static/js/pages/admin-boards.js",
 	})
 }
 
@@ -516,12 +517,13 @@ func (h *AdminHandler) ListUsers(c *fiber.Ctx) error {
 	totalPages := (count + pageSize - 1) / pageSize
 
 	return utils.RenderWithUser(c, "admin/users", fiber.Map{
-		"title":       "사용자 관리",
-		"users":       users,
-		"currentPage": page,
-		"totalPages":  totalPages,
-		"totalUsers":  count,
-		"search":      search,
+		"title":          "사용자 관리",
+		"users":          users,
+		"currentPage":    page,
+		"totalPages":     totalPages,
+		"totalUsers":     count,
+		"search":         search,
+		"pageScriptPath": "/static/js/pages/admin-users.js",
 	})
 }
 
@@ -646,7 +648,8 @@ func (h *AdminHandler) UpdateUserStatus(c *fiber.Ctx) error {
 // CreateUserPage 사용자 추가 페이지 렌더링
 func (h *AdminHandler) CreateUserPage(c *fiber.Ctx) error {
 	return utils.RenderWithUser(c, "admin/user_create", fiber.Map{
-		"title": "새 사용자 추가",
+		"title":          "새 사용자 추가",
+		"pageScriptPath": "/static/js/pages/admin-user-create.js",
 	})
 }
 
@@ -747,8 +750,9 @@ func (h *AdminHandler) EditUserPage(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "admin/user_edit", fiber.Map{
-		"title": "사용자 정보 수정",
-		"user":  user,
+		"title":          "사용자 정보 수정",
+		"user":           user,
+		"pageScriptPath": "/static/js/pages/admin-user-edit.js",
 	})
 }
 

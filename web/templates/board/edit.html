@@ -1,32 +1,12 @@
 <!-- web/templates/board/edit.html -->
+<input type="hidden" id="boardId" value="{{.board.ID}}">
+<input type="hidden" id="postId" value="{{.post.ID}}">
+
 <div>
     <h1 class="text-2xl font-bold mb-6">게시물 수정</h1>
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
-        <form x-data="{ submitting: false }" @submit.prevent="
-            submitting = true;
-            fetch('/boards/{{.board.ID}}/posts/{{.post.ID}}', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Accept': 'application/json'
-                },
-                body: new URLSearchParams(new FormData($el))
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = '/boards/{{.board.ID}}/posts/{{.post.ID}}';
-                } else {
-                    alert(data.message);
-                    submitting = false;
-                }
-            })
-            .catch(err => {
-                alert('오류가 발생했습니다: ' + err);
-                submitting = false;
-            })
-        ">
+        <form x-data="postEditor()" @submit.prevent="submitForm($el)">
             <div class="p-6">
                 <div class="mb-4">
                     <label for="title" class="block text-sm font-medium text-gray-700">제목 <span class="text-red-500">*</span></label>
