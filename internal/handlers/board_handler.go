@@ -17,6 +17,7 @@ import (
 type BoardHandler struct {
 	boardService   service.BoardService
 	commentService service.CommentService // 추가된 필드
+	uploadService  service.UploadService  // 추가된 필드
 }
 
 func NewBoardHandler(boardService service.BoardService, commentService service.CommentService) *BoardHandler {
@@ -567,6 +568,15 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 		if err != nil {
 			// 댓글 삭제 오류는 로깅만 하고 진행 (게시물 삭제가 우선)
 			log.Printf("게시물 댓글 삭제 실패 (boardID: %d, postID: %d): %v", boardID, postID, err)
+		}
+	}
+
+	// 첨부 파일 삭제 (uploadService가 있는 경우)
+	if h.uploadService != nil {
+		err = h.uploadService.DeleteAttachmentsByPostID(c.Context(), boardID, postID)
+		if err != nil {
+			// 첨부 파일 삭제 오류는 로깅만 하고 진행 (게시물 삭제가 우선)
+			log.Printf("게시물 첨부 파일 삭제 실패 (boardID: %d, postID: %d): %v", boardID, postID, err)
 		}
 	}
 

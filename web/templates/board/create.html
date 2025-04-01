@@ -51,6 +51,29 @@
                     <label for="content" class="block text-sm font-medium text-gray-700">내용 <span class="text-red-500">*</span></label>
                     <textarea name="content" id="content" rows="10" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
                 </div>
+
+                <!-- 첨부 파일 업로드 필드 -->
+                <div class="mb-4">
+                    <label for="files" class="block text-sm font-medium text-gray-700">첨부 파일</label>
+                    <div class="mt-1" x-data="{ files: [] }">
+                        <input type="file" name="files" id="files" class="hidden" multiple @change="files = Array.from($event.target.files).map(f => f.name)">
+                        <label for="files" class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50">
+                            파일 선택
+                        </label>
+                        <div class="mt-2 text-sm text-gray-500">
+                            <template x-if="files.length === 0">
+                                <span>선택된 파일 없음</span>
+                            </template>
+                            <template x-if="files.length > 0">
+                                <ul class="list-disc pl-5">
+                                    <template x-for="file in files" :key="file">
+                                        <li x-text="file"></li>
+                                    </template>
+                                </ul>
+                            </template>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">

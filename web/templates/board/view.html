@@ -83,6 +83,82 @@
             </div>
         </div>
 
+        <!-- 첨부 파일 섹션 -->
+        <div class="mt-6 border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-medium text-gray-900">첨부 파일</h3>
+            <div class="mt-4" x-data="{ attachments: [] }" x-init="
+                fetch('/api/boards/{{.board.ID}}/posts/{{.post.ID}}/attachments')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) attachments = data.attachments;
+                    })
+            ">
+                <div x-show="attachments.length === 0" class="text-sm text-gray-500">
+                    첨부 파일이 없습니다.
+                </div>
+                <ul x-show="attachments.length > 0" class="border border-gray-200 rounded-md divide-y divide-gray-200">
+                    <template x-for="file in attachments" :key="file.id">
+                        <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                            <div class="flex-1 flex items-center">
+                                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                                <span class="ml-2 flex-1 truncate" x-text="file.fileName"></span>
+                                <span class="ml-2 flex-shrink-0 text-gray-400" x-text="formatFileSize(file.fileSize)"></span>
+                            </div>
+                            <div class="ml-4 flex-shrink-0 flex">
+                                <a :href="'/attachments/' + file.id + '/download'" class="font-medium text-blue-600 hover:text-blue-500">
+                                    다운로드
+                                </a>
+                                <!-- 권한이 있는 경우에만 삭제 버튼 표시 -->
+                                <template x-if="{{if .user}}{{if or (eq .user.ID .post.UserID) (eq .user.Role 'admin')}}true{{else}}false{{end}}{{else}}false{{end}}">
+                                    <button class="ml-4 font-medium text-red-600 hover:text-red-500" @click="deleteAttachment(file.id)">
+                                        삭제
+                                    </button>
+                                </template>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+        </div>
+        
+        <script>
+            // 파일 크기 포맷팅 함수
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            // 첨부 파일 삭제 함수
+            function deleteAttachment(id) {
+                if (!confirm('첨부 파일을 삭제하시겠습니까?')) return;
+
+                fetch(`/api/attachments/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-Token': document.getElementById('csrfToken').value
+                    }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 페이지 새로고침
+                            window.location.reload();
+                        } else {
+                            alert('첨부 파일 삭제 실패: ' + data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('첨부 파일 삭제 중 오류:', err);
+                        alert('첨부 파일 삭제 중 오류가 발생했습니다.');
+                    });
+            }
+        </script>
+
         <!-- 게시물 푸터 -->
         <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <div class="flex justify-between">

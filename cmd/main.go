@@ -136,23 +136,35 @@ func main() {
 		JSONDecoder: json.Unmarshal,
 	})
 
+	// 업로드 디렉토리 확인
+	uploadDir := "uploads"
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(uploadDir, 0755); err != nil {
+			log.Fatalf("업로드 디렉토리 생성 실패: %v", err)
+		}
+		log.Printf("업로드 디렉토리 생성됨: %s", uploadDir)
+	}
+
 	// 계층 구성 (의존성 주입)
 	// 저장소 초기화
 	userRepo := repository.NewUserRepository(db)
 	boardRepo := repository.NewBoardRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
+	attachmentRepo := repository.NewAttachmentRepository(db)
 
 	// 서비스 초기화
 	authService := service.NewAuthService(userRepo)
 	boardService := service.NewBoardService(boardRepo, db)
 	dynamicBoardService := service.NewDynamicBoardService(db)
 	commentService := service.NewCommentService(commentRepo, boardRepo)
+	uploadService := service.NewUploadService(attachmentRepo)
 
 	// 핸들러 초기화
 	authHandler := handlers.NewAuthHandler(authService)
 	boardHandler := handlers.NewBoardHandler(boardService, commentService)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 	commentHandler := handlers.NewCommentHandler(commentService)
+	uploadHandler := handlers.NewUploadHandler(uploadService, boardService)
 
 	// 인증 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
@@ -186,6 +198,19 @@ func main() {
 
 	// 라우트 설정
 	setupRoutes(app, authHandler, boardHandler, adminHandler, commentHandler, authMiddleware, adminMiddleware)
+
+	// 업로드 관련 라우트 추가
+	api := app.Group("/api")
+	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
+	api.Post("/boards/:boardID/posts/:postID/attachments", authMiddleware.RequireAuth, uploadHandler.UploadAttachments)
+	api.Get("/boards/:boardID/posts/:postID/attachments", uploadHandler.GetAttachments)
+	api.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
+	api.Delete("/attachments/:attachmentID", authMiddleware.RequireAuth, uploadHandler.DeleteAttachment)
+
+	// 업로드된 파일 정적 제공
+	app.Static("/uploads", "./uploads", fiber.Static{
+		Browse: false,
+	})
 
 	// 서버 시작
 	go startServer(app, cfg.ServerAddress)
