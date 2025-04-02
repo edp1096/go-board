@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"fmt"
 	"go-board/internal/models"
 	"go-board/internal/service"
 	"go-board/internal/utils"
@@ -27,6 +28,9 @@ func NewUploadHandler(uploadService service.UploadService, boardService service.
 
 // UploadAttachments는 게시물 첨부 파일을 업로드합니다
 func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
+	// 디버그 로그 추가
+	fmt.Println("============ UploadAttachments 핸들러 시작 ============")
+
 	// 게시판 ID 확인
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
 	if err != nil {
@@ -35,12 +39,14 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"message": "잘못된 게시판 ID입니다",
 		})
 	}
+	fmt.Println("게시판 ID:", boardID)
 
 	// 게시물 ID 확인
 	postID, err := strconv.ParseInt(c.Params("postID", "0"), 10, 64)
 	if err != nil {
 		postID = 0 // 임시 저장
 	}
+	fmt.Println("게시물 ID:", postID)
 
 	// 현재 사용자 확인
 	user := c.Locals("user").(*models.User)
@@ -50,6 +56,7 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"message": "로그인이 필요합니다",
 		})
 	}
+	fmt.Println("사용자 ID:", user.ID, "사용자명:", user.Username)
 
 	// 파일 확인
 	form, err := c.MultipartForm()
@@ -58,6 +65,21 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"success": false,
 			"message": "파일 업로드 데이터가 올바르지 않습니다",
 		})
+	}
+
+	// 모든 폼 필드 출력
+	fmt.Println("폼 필드:")
+	for key, values := range form.Value {
+		fmt.Printf("  %s: %v\n", key, values)
+	}
+
+	// 모든 파일 필드 출력
+	fmt.Println("파일 필드:")
+	for key, files := range form.File {
+		fmt.Printf("  %s: %d개 파일\n", key, len(files))
+		for i, file := range files {
+			fmt.Printf("    파일 %d: %s (%d bytes, %s)\n", i+1, file.Filename, file.Size, file.Header.Get("Content-Type"))
+		}
 	}
 
 	files := form.File["files"]
@@ -88,6 +110,8 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"message": "첨부 파일 정보 저장 실패: " + err.Error(),
 		})
 	}
+
+	fmt.Println("============ UploadAttachments 핸들러 종료 ============")
 
 	return c.JSON(fiber.Map{
 		"success":     true,

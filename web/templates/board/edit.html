@@ -6,7 +6,7 @@
     <h1 class="text-2xl font-bold mb-6">게시물 수정</h1>
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
-        <form x-data="postEditor()" @submit.prevent="submitForm($el)">
+        <form x-data="postEditor()" @submit.prevent="submitForm($el)" enctype="multipart/form-data">
             <div class="p-6">
                 <div class="mb-4">
                     <label for="title" class="block text-sm font-medium text-gray-700">제목 <span class="text-red-500">*</span></label>

@@ -10,13 +10,16 @@ document.addEventListener('alpine:init', () => {
 
                 this.submitting = true;
 
+                // FormData 객체 생성 (파일 업로드를 위해)
+                const formData = new FormData(form);
+
                 fetch(`/boards/${boardId}/posts/${postId}`, {
                     method: 'PUT',
+                    body: formData, // FormData 사용
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
                         'Accept': 'application/json'
-                    },
-                    body: new URLSearchParams(new FormData(form))
+                        // Content-Type 헤더는 자동으로 설정됨
+                    }
                 })
                     .then(res => res.json())
                     .then(data => {

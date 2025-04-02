@@ -90,7 +90,7 @@
                 fetch('/api/boards/{{.board.ID}}/posts/{{.post.ID}}/attachments')
                     .then(res => res.json())
                     .then(data => {
-                        if (data.success) attachments = data.attachments;
+                        if (data.success) attachments = data.attachments || [];
                     })
             ">
                 <div x-show="attachments.length === 0" class="text-sm text-gray-500">

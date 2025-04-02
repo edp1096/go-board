@@ -8,6 +8,7 @@ import (
 	"go-board/internal/service"
 	"go-board/internal/utils"
 	"log"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -16,14 +17,15 @@ import (
 
 type BoardHandler struct {
 	boardService   service.BoardService
-	commentService service.CommentService // 추가된 필드
-	uploadService  service.UploadService  // 추가된 필드
+	commentService service.CommentService
+	uploadService  service.UploadService
 }
 
-func NewBoardHandler(boardService service.BoardService, commentService service.CommentService) *BoardHandler {
+func NewBoardHandler(boardService service.BoardService, commentService service.CommentService, uploadService service.UploadService) *BoardHandler {
 	return &BoardHandler{
 		boardService:   boardService,
 		commentService: commentService,
+		uploadService:  uploadService,
 	}
 }
 
@@ -222,8 +224,9 @@ func (h *BoardHandler) CreatePostPage(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "board/create", fiber.Map{
-		"title": "게시물 작성",
-		"board": board,
+		"title":          "게시물 작성",
+		"board":          board,
+		"pageScriptPath": "/static/js/pages/board-create.js",
 	})
 }
 
@@ -248,6 +251,25 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 
 	// 현재 로그인한 사용자 가져오기
 	user := c.Locals("user").(*models.User)
+
+	// 폼 데이터 출력
+	form, err := c.MultipartForm()
+	if err != nil {
+		fmt.Println("MultipartForm 오류:", err)
+	} else {
+		fmt.Println("폼 필드:")
+		for key, values := range form.Value {
+			fmt.Printf("  %s: %v\n", key, values)
+		}
+
+		fmt.Println("파일 필드:")
+		for key, files := range form.File {
+			fmt.Printf("  %s: %d개 파일\n", key, len(files))
+			for i, file := range files {
+				fmt.Printf("    파일 %d: %s (%d bytes, %s)\n", i+1, file.Filename, file.Size, file.Header.Get("Content-Type"))
+			}
+		}
+	}
 
 	// 기본 필드 가져오기
 	title := c.FormValue("title")
@@ -321,6 +343,33 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 			"success": false,
 			"message": "게시물 작성에 실패했습니다: " + err.Error(),
 		})
+	}
+
+	// 파일 첨부가 있는 경우 처리
+	if form != nil && len(form.File["files"]) > 0 {
+		fmt.Println("첨부 파일 업로드 시작")
+		files := form.File["files"]
+
+		// 업로드 경로 생성
+		uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "attachments")
+		fmt.Println("업로드 경로:", uploadPath)
+
+		// 파일 업로드
+		uploadedFiles, err := utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+		if err != nil {
+			fmt.Println("파일 업로드 실패:", err)
+			// 실패해도 게시물은 생성되므로 계속 진행
+		} else if h.uploadService != nil {
+			// 데이터베이스에 첨부 파일 정보 저장
+			_, err := h.uploadService.SaveAttachments(c.Context(), boardID, post.ID, user.ID, uploadedFiles)
+			if err != nil {
+				fmt.Println("첨부 파일 정보 저장 실패:", err)
+			} else {
+				fmt.Println("첨부 파일 저장 성공")
+			}
+		} else {
+			fmt.Println("uploadService가 nil임")
+		}
 	}
 
 	// JSON 요청인 경우

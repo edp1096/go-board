@@ -161,7 +161,7 @@ func main() {
 
 	// 핸들러 초기화
 	authHandler := handlers.NewAuthHandler(authService)
-	boardHandler := handlers.NewBoardHandler(boardService, commentService)
+	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	uploadHandler := handlers.NewUploadHandler(uploadService, boardService)
@@ -197,15 +197,16 @@ func main() {
 	}))
 
 	// 라우트 설정
-	setupRoutes(app, authHandler, boardHandler, adminHandler, commentHandler, authMiddleware, adminMiddleware)
-
-	// 업로드 관련 라우트 추가
-	api := app.Group("/api")
-	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
-	api.Post("/boards/:boardID/posts/:postID/attachments", authMiddleware.RequireAuth, uploadHandler.UploadAttachments)
-	api.Get("/boards/:boardID/posts/:postID/attachments", uploadHandler.GetAttachments)
-	api.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
-	api.Delete("/attachments/:attachmentID", authMiddleware.RequireAuth, uploadHandler.DeleteAttachment)
+	setupRoutes(
+		app,
+		authHandler,
+		boardHandler,
+		uploadHandler,
+		commentHandler,
+		adminHandler,
+		authMiddleware,
+		adminMiddleware,
+	)
 
 	// 업로드된 파일 정적 제공
 	app.Static("/uploads", "./uploads", fiber.Static{
@@ -296,7 +297,16 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, authService service.Aut
 }
 
 // setupRoutes는 앱의 라우트를 설정합니다
-func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler *handlers.BoardHandler, adminHandler *handlers.AdminHandler, commentHandler *handlers.CommentHandler, authMiddleware middleware.AuthMiddleware, adminMiddleware middleware.AdminMiddleware) {
+func setupRoutes(
+	app *fiber.App,
+	authHandler *handlers.AuthHandler,
+	boardHandler *handlers.BoardHandler,
+	uploadHandler *handlers.UploadHandler,
+	commentHandler *handlers.CommentHandler,
+	adminHandler *handlers.AdminHandler,
+	authMiddleware middleware.AuthMiddleware,
+	adminMiddleware middleware.AdminMiddleware,
+) {
 	// 인증 관련 라우트
 	auth := app.Group("/auth")
 	auth.Get("/login", authHandler.LoginPage)
@@ -357,6 +367,13 @@ func setupRoutes(app *fiber.App, authHandler *handlers.AuthHandler, boardHandler
 	// API 라우트 (댓글 기능)
 	api := app.Group("/api")
 
+	// 업로드 관련 라우트 추가
+	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
+	api.Post("/boards/:boardID/posts/:postID/attachments", authMiddleware.RequireAuth, uploadHandler.UploadAttachments)
+	api.Get("/boards/:boardID/posts/:postID/attachments", uploadHandler.GetAttachments)
+	api.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
+	api.Delete("/attachments/:attachmentID", authMiddleware.RequireAuth, uploadHandler.DeleteAttachment)
+
 	// 댓글 관련 API 라우트
 	commentsAPI := api.Group("/boards/:boardID/posts/:postID/comments")
 	commentsAPI.Get("/", commentHandler.GetComments)
@@ -397,7 +414,7 @@ func handleShutdown(app *fiber.App) {
 	<-c
 
 	fmt.Println("서버를 종료합니다..")
-	shutdownTimeout := 3 * time.Second
+	shutdownTimeout := 1 * time.Second
 	if err := app.ShutdownWithTimeout(shutdownTimeout); err != nil {
 		log.Fatalf("서버 종료 실패: %v", err)
 	}

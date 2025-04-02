@@ -1,9 +1,14 @@
 <!-- web/templates/board/create.html -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/edp1096/hello-prosemirror/dist/myeditor.css">
+<script src="https://cdn.jsdelivr.net/gh/edp1096/hello-prosemirror/dist/myeditor.js"></script>
+
+<input type="hidden" id="boardId" value="{{.board.ID}}">
+
 <div>
     <h1 class="text-2xl font-bold mb-6">게시물 작성</h1>
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
-        <form action="/boards/{{.board.ID}}/posts" method="POST" x-data="{ submitting: false }">
+        <form action="/boards/{{.board.ID}}/posts" method="POST" enctype="multipart/form-data" x-data="{ submitting: false, fileNames: [] }">
             <div class="p-6">
                 <div class="mb-4">
                     <label for="title" class="block text-sm font-medium text-gray-700">제목 <span class="text-red-500">*</span></label>
@@ -40,7 +45,20 @@
                             <label for="{{.Name}}" class="ml-2 text-sm text-gray-700">예</label>
                         </div>
                         {{else if eq .FieldType "file"}}
-                        <input type="file" name="{{.Name}}" id="{{.Name}}" {{if .Required}}required{{end}} class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <div class="mt-1">
+                            <input type="file" name="files" id="files" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" @change="fileNames = Array.from($event.target.files).map(f => f.name)">
+                            <div class="mt-2 text-xs text-gray-500">여러 파일을 선택할 수 있습니다.</div>
+
+                            <!-- 선택된 파일 목록 표시 -->
+                            <div class="mt-2" x-show="fileNames.length > 0">
+                                <p class="text-sm font-medium text-gray-700">선택된 파일:</p>
+                                <ul class="mt-1 text-sm text-gray-500 list-disc list-inside">
+                                    <template x-for="(name, index) in fileNames" :key="index">
+                                        <li x-text="name"></li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
                         {{end}}
                     </div>
                     {{end}}
@@ -49,38 +67,17 @@
 
                 <div class="mb-4">
                     <label for="content" class="block text-sm font-medium text-gray-700">내용 <span class="text-red-500">*</span></label>
-                    <textarea name="content" id="content" rows="10" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
+                    <!-- <textarea name="content" id="content" rows="10" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea> -->
+                    <editor-other id="editor" data-idx="1"></editor-other>
                 </div>
 
-                <!-- 첨부 파일 업로드 필드 -->
-                <div class="mb-4">
-                    <label for="files" class="block text-sm font-medium text-gray-700">첨부 파일</label>
-                    <div class="mt-1" x-data="{ files: [] }">
-                        <input type="file" name="files" id="files" class="hidden" multiple @change="files = Array.from($event.target.files).map(f => f.name)">
-                        <label for="files" class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50">
-                            파일 선택
-                        </label>
-                        <div class="mt-2 text-sm text-gray-500">
-                            <template x-if="files.length === 0">
-                                <span>선택된 파일 없음</span>
-                            </template>
-                            <template x-if="files.length > 0">
-                                <ul class="list-disc pl-5">
-                                    <template x-for="file in files" :key="file">
-                                        <li x-text="file"></li>
-                                    </template>
-                                </ul>
-                            </template>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
                 <a href="/boards/{{.board.ID}}/posts" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     취소
                 </a>
-                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting" @click="console.log('폼 제출 버튼 클릭됨')">
                     <span x-show="!submitting">등록</span>
                     <span x-show="submitting" class="flex items-center">
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -94,3 +91,69 @@
         </form>
     </div>
 </div>
+
+<template id="editor-shadow-dom-template">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/edp1096/hello-prosemirror/dist/myeditor.css">
+
+    <style>
+        #editor-shadow-dom {
+            resize: vertical;
+            overflow: hidden;
+            height: 88vh;
+            border: 1px solid silver;
+        }
+    </style>
+
+    <div class="editor-shadow-dom-container">
+        <div id="editor-shadow-dom"></div>
+    </div>
+</template>
+
+<script>
+    class modifierElement extends HTMLElement {
+        constructor() {
+            super()
+            const templateContent = document.querySelector("#editor-shadow-dom-template").content
+            const shadowRoot = this.attachShadow({ mode: "open" })
+            shadowRoot.appendChild(templateContent.cloneNode(true))
+        }
+    }
+    customElements.define("editor-other", modifierElement)
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        const fileInput = document.getElementById('files');
+
+        // 파일 선택 시 로그
+        if (fileInput) {
+            fileInput.addEventListener('change', function (e) {
+                console.log('파일 선택됨:', this.files);
+                console.log('선택된 파일 수:', this.files.length);
+                for (let i = 0; i < this.files.length; i++) {
+                    console.log(`파일 ${i + 1}:`, this.files[i].name, this.files[i].size, this.files[i].type);
+                }
+            });
+        }
+
+        // 폼 제출 시 로그
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                console.log('폼 제출됨');
+                console.log('파일 필드:', fileInput?.files);
+
+                // FormData 내용 확인
+                const formData = new FormData(this);
+                console.log('FormData 객체:');
+                for (let [key, value] of formData.entries()) {
+                    if (value instanceof File) {
+                        console.log(key, ':', value.name, '(', value.size, 'bytes)');
+                    } else {
+                        console.log(key, ':', value);
+                    }
+                }
+            });
+        }
+    });
+</script>
