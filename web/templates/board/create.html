@@ -1,8 +1,5 @@
 <!-- web/templates/board/create.html -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/edp1096/hello-prosemirror/dist/myeditor.css">
-<script src="https://cdn.jsdelivr.net/gh/edp1096/hello-prosemirror/dist/myeditor.js"></script>
-
-<input type="hidden" id="boardId" value="{{.board.ID}}">
+<input type="hidden" id="board-id" value="{{.board.ID}}">
 
 <div>
     <h1 class="text-2xl font-bold mb-6">게시물 작성</h1>
@@ -92,14 +89,18 @@
     </div>
 </div>
 
+
+<link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+<script src="/static/vendor/myeditor/myeditor.js"></script>
+
 <template id="editor-shadow-dom-template">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/edp1096/hello-prosemirror/dist/myeditor.css">
+    <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
 
     <style>
         #editor-shadow-dom {
             resize: vertical;
             overflow: hidden;
-            height: 88vh;
+            height: 35vh;
             border: 1px solid silver;
         }
     </style>

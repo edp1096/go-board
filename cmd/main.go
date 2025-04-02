@@ -18,6 +18,7 @@ import (
 	"go-board/internal/middleware"
 	"go-board/internal/repository"
 	"go-board/internal/service"
+	"go-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -208,11 +209,6 @@ func main() {
 		adminMiddleware,
 	)
 
-	// 업로드된 파일 정적 제공
-	app.Static("/uploads", "./uploads", fiber.Static{
-		Browse: false,
-	})
-
 	// 서버 시작
 	go startServer(app, cfg.ServerAddress)
 
@@ -294,6 +290,18 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, authService service.Aut
 
 	// 전역 인증 미들웨어 (모든 요청에서 인증 정보 확인)
 	app.Use(middleware.GlobalAuth(authService))
+
+	// MIME 타입
+	app.Use("/uploads/*", func(c *fiber.Ctx) error {
+		err := c.Next()
+
+		// 파일을 성공적으로 찾았을 때만 MIME 타입 설정
+		if err == nil {
+			utils.SetMimeTypeHeader(c, c.Path())
+		}
+
+		return err
+	})
 }
 
 // setupRoutes는 앱의 라우트를 설정합니다
@@ -383,6 +391,11 @@ func setupRoutes(
 	commentActions := api.Group("/comments/:commentID", authMiddleware.RequireAuth)
 	commentActions.Put("/", commentHandler.UpdateComment)
 	commentActions.Delete("/", commentHandler.DeleteComment)
+
+	// 업로드된 파일 정적 제공
+	app.Static("/uploads", "./uploads", fiber.Static{
+		Browse: false,
+	})
 
 	// 루트 라우트
 	app.Get("/", func(c *fiber.Ctx) error {

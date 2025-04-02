@@ -3,12 +3,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const editorContainer = document.querySelector(`editor-other#editor`).shadowRoot
     const editorEL = editorContainer.querySelector("#editor-shadow-dom")
     if (editorContainer) {
-        const boardId = document.getElementById('boardId').value;
+        const boardId = document.getElementById('board-id').value;
         const contentField = document.getElementById('content');
         const editorOptions = {
             uploadInputName: "upload-files[]",
-            uploadActionURI: `/api/boards/${boardId}/images`,
-            uploadAccessURI: "/uploads",
+            uploadActionURI: `/api/boards/${boardId}/upload`,
+            uploadAccessURI: `/uploads/boards/${boardId}/images`,
             uploadCallback: function (response) {
                 console.log("업로드 완료:", response);
             }

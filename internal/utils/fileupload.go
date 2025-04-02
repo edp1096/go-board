@@ -140,7 +140,7 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 		Path:         fullPath,
 		Size:         file.Size,
 		MimeType:     mimeType,
-		URL:          filepath.Join("/uploads", storageName), // URL 경로 설정
+		URL:          filepath.Join("/uploads", storageName),
 		IsImage:      isImage,
 	}, nil
 }
