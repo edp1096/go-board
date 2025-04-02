@@ -105,17 +105,11 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 	// 파일명 준비
 	originalName := filepath.Base(file.Filename)
 	ext := filepath.Ext(originalName)
-	// nameWithoutExt := strings.TrimSuffix(originalName, ext)
 
 	var storageName string
 	if config.UniqueFilename {
-		// // 고유 파일명 생성
-		// storageName = fmt.Sprintf("%s_%s%s",
-		// 	generateRandomString(8),
-		// 	strings.ReplaceAll(nameWithoutExt, " ", "_"),
-		// 	ext)
-		// storageName = base64.URLEncoding.EncodeToString([]byte(storageName))
-		storageName = fmt.Sprintf("%s%s", uuid.New().String(), ext)
+		// 고유 파일명 생성
+		storageName = uuid.New().String() + ext
 	} else {
 		storageName = originalName
 	}
