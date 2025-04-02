@@ -13,6 +13,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/text/unicode/norm"
 )
 
 // 허용된 이미지 MIME 타입 목록
@@ -32,6 +35,7 @@ var AllowedFileTypes = map[string]bool{
 	"application/vnd.ms-excel": true,
 	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
 	"text/plain":                   true,
+	"text/plain; charset=utf-8":    true,
 	"text/csv":                     true,
 	"application/zip":              true,
 	"application/x-zip-compressed": true,
@@ -91,6 +95,7 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 
 	// MIME 타입 감지
 	mimeType := http.DetectContentType(buffer)
+	mimeType = strings.SplitN(mimeType, ";", 2)[0]
 
 	// MIME 타입 확인
 	if !config.AllowedTypes[mimeType] {
@@ -100,15 +105,17 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 	// 파일명 준비
 	originalName := filepath.Base(file.Filename)
 	ext := filepath.Ext(originalName)
-	nameWithoutExt := strings.TrimSuffix(originalName, ext)
+	// nameWithoutExt := strings.TrimSuffix(originalName, ext)
 
 	var storageName string
 	if config.UniqueFilename {
-		// 고유 파일명 생성
-		storageName = fmt.Sprintf("%s_%s%s",
-			generateRandomString(8),
-			strings.ReplaceAll(nameWithoutExt, " ", "_"),
-			ext)
+		// // 고유 파일명 생성
+		// storageName = fmt.Sprintf("%s_%s%s",
+		// 	generateRandomString(8),
+		// 	strings.ReplaceAll(nameWithoutExt, " ", "_"),
+		// 	ext)
+		// storageName = base64.URLEncoding.EncodeToString([]byte(storageName))
+		storageName = fmt.Sprintf("%s%s", uuid.New().String(), ext)
 	} else {
 		storageName = originalName
 	}
@@ -178,8 +185,9 @@ func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64)
 
 // 일반 파일 업로드 헬퍼 함수
 func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize int64) ([]*UploadedFile, error) {
+	normalizedPath := norm.NFC.String(basePath)
 	config := UploadConfig{
-		BasePath:       basePath,
+		BasePath:       normalizedPath,
 		MaxSize:        maxSize,
 		AllowedTypes:   AllowedFileTypes,
 		UniqueFilename: true,

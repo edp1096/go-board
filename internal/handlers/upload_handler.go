@@ -28,9 +28,6 @@ func NewUploadHandler(uploadService service.UploadService, boardService service.
 
 // UploadAttachments는 게시물 첨부 파일을 업로드합니다
 func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
-	// 디버그 로그 추가
-	fmt.Println("============ UploadAttachments 핸들러 시작 ============")
-
 	// 게시판 ID 확인
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
 	if err != nil {
@@ -39,14 +36,12 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"message": "잘못된 게시판 ID입니다",
 		})
 	}
-	fmt.Println("게시판 ID:", boardID)
 
 	// 게시물 ID 확인
 	postID, err := strconv.ParseInt(c.Params("postID", "0"), 10, 64)
 	if err != nil {
 		postID = 0 // 임시 저장
 	}
-	fmt.Println("게시물 ID:", postID)
 
 	// 현재 사용자 확인
 	user := c.Locals("user").(*models.User)
@@ -56,7 +51,6 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"message": "로그인이 필요합니다",
 		})
 	}
-	fmt.Println("사용자 ID:", user.ID, "사용자명:", user.Username)
 
 	// 파일 확인
 	form, err := c.MultipartForm()
@@ -65,21 +59,6 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"success": false,
 			"message": "파일 업로드 데이터가 올바르지 않습니다",
 		})
-	}
-
-	// 모든 폼 필드 출력
-	fmt.Println("폼 필드:")
-	for key, values := range form.Value {
-		fmt.Printf("  %s: %v\n", key, values)
-	}
-
-	// 모든 파일 필드 출력
-	fmt.Println("파일 필드:")
-	for key, files := range form.File {
-		fmt.Printf("  %s: %d개 파일\n", key, len(files))
-		for i, file := range files {
-			fmt.Printf("    파일 %d: %s (%d bytes, %s)\n", i+1, file.Filename, file.Size, file.Header.Get("Content-Type"))
-		}
 	}
 
 	files := form.File["files"]
@@ -110,8 +89,6 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 			"message": "첨부 파일 정보 저장 실패: " + err.Error(),
 		})
 	}
-
-	fmt.Println("============ UploadAttachments 핸들러 종료 ============")
 
 	return c.JSON(fiber.Map{
 		"success":     true,
@@ -227,7 +204,6 @@ func (h *UploadHandler) GetAttachments(c *fiber.Ctx) error {
 
 // DownloadAttachment는 첨부 파일을 다운로드합니다
 func (h *UploadHandler) DownloadAttachment(c *fiber.Ctx) error {
-	// 첨부 파일 ID 확인
 	attachmentID, err := strconv.ParseInt(c.Params("attachmentID"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -236,7 +212,6 @@ func (h *UploadHandler) DownloadAttachment(c *fiber.Ctx) error {
 		})
 	}
 
-	// 첨부 파일 정보 조회
 	attachment, err := h.uploadService.GetAttachmentByID(c.Context(), attachmentID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -245,11 +220,11 @@ func (h *UploadHandler) DownloadAttachment(c *fiber.Ctx) error {
 		})
 	}
 
-	// 다운로드 카운트 증가
 	h.uploadService.IncrementDownloadCount(c.Context(), attachmentID)
 
-	// 파일 다운로드
-	return c.Download(attachment.FilePath, attachment.FileName)
+	c.Set(fiber.HeaderContentDisposition, fmt.Sprintf(`attachment; filename="%s"`, attachment.FileName))
+	c.Set("Content-Type", attachment.MimeType)
+	return c.SendFile(attachment.FilePath)
 }
 
 // DeleteAttachment는 첨부 파일을 삭제합니다

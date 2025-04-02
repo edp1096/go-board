@@ -379,7 +379,7 @@ func setupRoutes(
 	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
 	api.Post("/boards/:boardID/posts/:postID/attachments", authMiddleware.RequireAuth, uploadHandler.UploadAttachments)
 	api.Get("/boards/:boardID/posts/:postID/attachments", uploadHandler.GetAttachments)
-	api.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
+	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
 	api.Delete("/attachments/:attachmentID", authMiddleware.RequireAuth, uploadHandler.DeleteAttachment)
 
 	// 댓글 관련 API 라우트
