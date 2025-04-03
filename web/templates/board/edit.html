@@ -1,6 +1,6 @@
 <!-- web/templates/board/edit.html -->
-<input type="hidden" id="boardId" value="{{.board.ID}}">
-<input type="hidden" id="postId" value="{{.post.ID}}">
+<input type="hidden" id="board-id" value="{{.board.ID}}">
+<input type="hidden" id="post-id" value="{{.post.ID}}">
 
 <div>
     <h1 class="text-2xl font-bold mb-6">게시물 수정</h1>
@@ -62,8 +62,11 @@
                 {{end}}
 
                 <div class="mb-4">
-                    <label for="content" class="block text-sm font-medium text-gray-700">내용 <span class="text-red-500">*</span></label>
-                    <textarea name="content" id="content" rows="10" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">{{.post.Content}}</textarea>
+                    <label for="content-editor" class="block text-sm font-medium text-gray-700">내용 <span class="text-red-500">*</span></label>
+                    <!-- 에디터 내용을 저장할 hidden input 추가 -->
+                    <input type="hidden" name="content" id="content" value="{{.post.Content}}">
+                    <!-- 에디터 컴포넌트 -->
+                    <editor-other id="editor" data-idx="1"></editor-other>
                 </div>
             </div>
 
@@ -85,3 +88,36 @@
         </form>
     </div>
 </div>
+
+
+<link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+<script src="/static/vendor/myeditor/myeditor.js"></script>
+
+<template id="editor-shadow-dom-template">
+    <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+
+    <style>
+        #editor-shadow-dom {
+            resize: vertical;
+            overflow: hidden;
+            height: 35vh;
+            border: 1px solid silver;
+        }
+    </style>
+
+    <div class="editor-shadow-dom-container">
+        <div id="editor-shadow-dom"></div>
+    </div>
+</template>
+
+<script>
+    class modifierElement extends HTMLElement {
+        constructor() {
+            super()
+            const templateContent = document.querySelector("#editor-shadow-dom-template").content
+            const shadowRoot = this.attachShadow({ mode: "open" })
+            shadowRoot.appendChild(templateContent.cloneNode(true))
+        }
+    }
+    customElements.define("editor-other", modifierElement)
+</script>

@@ -1,12 +1,71 @@
 // board-edit.js
+
+let editor;
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    // 에디터 초기화
+    const editorContainer = document.querySelector(`editor-other#editor`).shadowRoot
+    const editorEL = editorContainer.querySelector("#editor-shadow-dom")
+    if (editorContainer) {
+        const boardId = document.getElementById('board-id').value;
+        const contentField = document.getElementById('content');
+        const editorOptions = {
+            uploadInputName: "upload-files[]",
+            uploadActionURI: `/api/boards/${boardId}/upload`,
+            uploadAccessURI: `/uploads/boards/${boardId}/images`,
+            uploadCallback: function (response) {
+                console.log("업로드 완료:", response);
+            }
+        };
+
+        const content = document.querySelector("#content").value;
+        editor = new MyEditor(content, editorEL, editorOptions);
+
+        // 폼 제출 이벤트 핸들러
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function () {
+            // 에디터 내용을 hidden input에 설정
+            contentField.value = editor.getHTML();
+        });
+    }
+
+    // 파일 업로드 프리뷰 기능
+    const fileInput = document.getElementById('files');
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            const filesList = document.getElementById('files-list');
+            if (filesList) {
+                filesList.innerHTML = '';
+                if (this.files.length > 0) {
+                    for (let i = 0; i < this.files.length; i++) {
+                        const li = document.createElement('li');
+                        li.textContent = this.files[i].name;
+                        filesList.appendChild(li);
+                    }
+                } else {
+                    const li = document.createElement('li');
+                    li.textContent = '선택된 파일 없음';
+                    filesList.appendChild(li);
+                }
+            }
+        });
+    }
+});
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('postEditor', function () {
         return {
             submitting: false,
 
             submitForm(form) {
-                const boardId = document.getElementById('boardId').value;
-                const postId = document.getElementById('postId').value;
+                const boardId = document.getElementById('board-id').value;
+                const postId = document.getElementById('post-id').value;
+
+                // 에디터 내용을 hidden input에 설정
+                // const editorContent = document.querySelector('editor-other').shadowRoot.querySelector('#editor-shadow-dom').innerHTML;
+                const editorContent = editor.getHTML();
+                document.getElementById('content').value = editorContent;
 
                 this.submitting = true;
 

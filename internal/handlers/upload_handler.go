@@ -145,7 +145,7 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 	uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "images")
 
 	// 이미지 업로드
-	uploadedFiles, err := utils.UploadImages(files, uploadPath, 5*1024*1024) // 5MB 제한
+	uploadedFiles, err := utils.UploadImages(files, uploadPath, 20*1024*1024) // 20MB 제한
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         };
         // const editor = new MyEditor(contentField.value, editorContainer, editorOptions);
-        const editor = new MyEditor("Hello world!!", editorEL, editorOptions);
+        const editor = new MyEditor("", editorEL, editorOptions);
 
         // 폼 제출 이벤트 핸들러
         const form = document.querySelector('form');

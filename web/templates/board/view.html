@@ -79,7 +79,12 @@
 
             <!-- 본문 -->
             <div class="prose max-w-none">
-                {{.post.Content}}
+                <!-- HTML 태그를 그대로 렌더링하기 위해 안전한 방식으로 출력 -->
+                <div id="post-content"></div>
+                <script>
+                    // 서버에서 받은 HTML 내용을 안전하게 설정
+                    document.getElementById('post-content').innerHTML = `{{.post.Content}}`;
+                </script>
             </div>
         </div>
 
@@ -123,7 +128,7 @@
                 </ul>
             </div>
         </div>
-        
+
         <script>
             // 파일 크기 포맷팅 함수
             function formatFileSize(bytes) {

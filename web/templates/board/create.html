@@ -6,6 +6,13 @@
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
         <form action="/boards/{{.board.ID}}/posts" method="POST" enctype="multipart/form-data" x-data="{ submitting: false, fileNames: [] }">
+        <!-- <form action="/boards/{{.board.ID}}/posts" method="POST" enctype="multipart/form-data" x-data="{ submitting: false, fileNames: [] }" @submit.prevent="
+            // 에디터 내용을 hidden input에 설정
+            document.getElementById('content').value = document.querySelector('editor-other').shadowRoot.querySelector('#editor-shadow-dom').innerHTML;
+            submitting = true;
+            $el.submit();
+        "> -->
+            <input type="hidden" name="content" id="content">
             <div class="p-6">
                 <div class="mb-4">
                     <label for="title" class="block text-sm font-medium text-gray-700">제목 <span class="text-red-500">*</span></label>
@@ -120,41 +127,4 @@
         }
     }
     customElements.define("editor-other", modifierElement)
-</script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.querySelector('form');
-        const fileInput = document.getElementById('files');
-
-        // 파일 선택 시 로그
-        if (fileInput) {
-            fileInput.addEventListener('change', function (e) {
-                console.log('파일 선택됨:', this.files);
-                console.log('선택된 파일 수:', this.files.length);
-                for (let i = 0; i < this.files.length; i++) {
-                    console.log(`파일 ${i + 1}:`, this.files[i].name, this.files[i].size, this.files[i].type);
-                }
-            });
-        }
-
-        // 폼 제출 시 로그
-        if (form) {
-            form.addEventListener('submit', function (e) {
-                console.log('폼 제출됨');
-                console.log('파일 필드:', fileInput?.files);
-
-                // FormData 내용 확인
-                const formData = new FormData(this);
-                console.log('FormData 객체:');
-                for (let [key, value] of formData.entries()) {
-                    if (value instanceof File) {
-                        console.log(key, ':', value.name, '(', value.size, 'bytes)');
-                    } else {
-                        console.log(key, ':', value);
-                    }
-                }
-            });
-        }
-    });
 </script>
