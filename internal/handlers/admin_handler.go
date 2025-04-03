@@ -629,9 +629,12 @@ func (h *AdminHandler) UpdateUserStatus(c *fiber.Ctx) error {
 		})
 	}
 
-	// 상태 업데이트
+	// 명시적으로 Active 필드 설정
 	user.Active = body.Active
-	err = h.authService.UpdateUser(c.Context(), user)
+	user.UpdatedAt = time.Now()
+
+	// 특정 필드만 업데이트하도록 수정
+	err = h.authService.UpdateUserActiveStatus(c.Context(), user.ID, body.Active)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,

@@ -31,6 +31,7 @@ type AuthService interface {
 	GetUserByID(ctx context.Context, id int64) (*models.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
+	UpdateUserActiveStatus(ctx context.Context, id int64, active bool) error
 	ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error
 	AdminChangePassword(ctx context.Context, id int64, newPassword string) error
 	DeleteUser(ctx context.Context, id int64) error
@@ -178,6 +179,11 @@ func (s *authService) GetUserByUsername(ctx context.Context, username string) (*
 func (s *authService) UpdateUser(ctx context.Context, user *models.User) error {
 	user.UpdatedAt = time.Now()
 	return s.userRepo.Update(ctx, user)
+}
+
+// UpdateUserActiveStatus는 사용자의 활성 상태만 업데이트합니다
+func (s *authService) UpdateUserActiveStatus(ctx context.Context, id int64, active bool) error {
+	return s.userRepo.UpdateActiveStatus(ctx, id, active)
 }
 
 func (s *authService) ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error {

@@ -4,6 +4,7 @@ package repository
 import (
 	"context"
 	"go-board/internal/models"
+	"time"
 
 	"github.com/uptrace/bun"
 )
@@ -14,6 +15,7 @@ type UserRepository interface {
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
+	UpdateActiveStatus(ctx context.Context, id int64, active bool) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*models.User, int, error)
 }
@@ -60,6 +62,17 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 
 func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 	_, err := r.db.NewUpdate().Model(user).WherePK().Exec(ctx)
+	return err
+}
+
+func (r *userRepository) UpdateActiveStatus(ctx context.Context, id int64, active bool) error {
+	_, err := r.db.NewUpdate().
+		Table("users").
+		Set("active = ?", active).
+		Set("updated_at = ?", time.Now()).
+		Where("id = ?", id).
+		Exec(ctx)
+
 	return err
 }
 
