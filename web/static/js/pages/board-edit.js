@@ -2,6 +2,14 @@
 
 let editor;
 
+// 파일 크기 포맷팅 함수
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     // 에디터 초기화

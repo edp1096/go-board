@@ -54,24 +54,102 @@
                         </div>
                         {{else if eq .FieldType "file"}}
                         <div class="mt-1">
-                            <!-- <input type="file" name="{{.Name}}" id="{{.Name}}" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"> -->
+                            <!-- 파일 업로드 입력 필드 -->
                             <input type="file" name="files" id="files" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" @change="fileNames = Array.from($event.target.files).map(f => f.name)">
                             <div class="mt-2 text-xs text-gray-500">여러 파일을 선택할 수 있습니다.</div>
-
-                            {{if $field}}
-                            <div class="mb-2 text-sm text-gray-500">
-                                현재 파일: {{$field.Value}}
-                            </div>
-                            {{end}}
-
-                            <!-- 선택된 파일 목록 표시 -->
-                            <div class="mt-2" x-show="fileNames.length > 0">
-                                <p class="text-sm font-medium text-gray-700">선택된 파일:</p>
-                                <ul class="mt-1 text-sm text-gray-500 list-disc list-inside">
-                                    <template x-for="(name, index) in fileNames" :key="index">
-                                        <li x-text="name"></li>
+                        
+                            <!-- 기존 첨부 파일 목록 -->
+                            <div class="mt-4" x-data="{ 
+                                attachments: [], 
+                                deletedFiles: [], // 삭제된 파일들의 전체 정보 저장
+                                markForDeletion(file) {
+                                    this.deletedFiles.push(file);
+                                    this.attachments = this.attachments.filter(f => f.id !== file.id);
+                                },
+                                restoreFile(fileId) {
+                                    // 삭제 목록에서 파일 찾기
+                                    const fileToRestore = this.deletedFiles.find(file => file.id === fileId);
+                                    if (fileToRestore) {
+                                        // 원래 목록에 복원
+                                        this.attachments.push(fileToRestore);
+                                        // 정렬 (필요시)
+                                        this.attachments.sort((a, b) => a.id - b.id);
+                                        // 삭제 목록에서 제거
+                                        this.deletedFiles = this.deletedFiles.filter(file => file.id !== fileId);
+                                    }
+                                }
+                            }" x-init="
+                                fetch('/api/boards/{{$.board.ID}}/posts/{{$.post.ID}}/attachments')
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.success) attachments = data.attachments || [];
+                                    })
+                            ">
+                                <!-- 삭제할 파일 ID들을 hidden input으로 포함 -->
+                                <template x-for="file in deletedFiles">
+                                    <input type="hidden" name="delete_attachments[]" :value="file.id">
+                                </template>
+                        
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">기존 첨부 파일</h4>
+                                <div x-show="attachments.length === 0 && deletedFiles.length === 0" class="text-sm text-gray-500">
+                                    첨부 파일이 없습니다.
+                                </div>
+                                <ul x-show="attachments.length > 0" class="border border-gray-200 rounded-md divide-y divide-gray-200">
+                                    <template x-for="file in attachments" :key="file.id">
+                                        <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                            <div class="flex-1 flex items-center">
+                                                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                </svg>
+                                                <span class="ml-2 flex-1 truncate" x-text="file.fileName"></span>
+                                                <span class="ml-2 flex-shrink-0 text-gray-400" x-text="formatFileSize(file.fileSize)"></span>
+                                            </div>
+                                            <div class="ml-4 flex-shrink-0 flex">
+                                                <button type="button" class="font-medium text-red-600 hover:text-red-500" @click="markForDeletion(file)">
+                                                    삭제
+                                                </button>
+                                            </div>
+                                        </li>
                                     </template>
                                 </ul>
+                        
+                                <!-- 삭제 표시된 파일 목록 (취소 가능) -->
+                                <div x-show="deletedFiles.length > 0" class="mt-4">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">삭제 예정 파일</h4>
+                                    <ul class="border border-gray-200 border-dashed rounded-md divide-y divide-gray-200 bg-gray-50">
+                                        <template x-for="file in deletedFiles" :key="file.id">
+                                            <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm line-through text-gray-500">
+                                                <div class="flex-1 flex items-center">
+                                                    <svg class="flex-shrink-0 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                    </svg>
+                                                    <span class="ml-2 flex-1 truncate" x-text="file.fileName"></span>
+                                                    <span class="ml-2 flex-shrink-0 text-gray-400" x-text="formatFileSize(file.fileSize)"></span>
+                                                </div>
+                                                <div class="ml-4 flex-shrink-0">
+                                                    <button type="button" class="font-medium text-blue-600 hover:text-blue-500" @click="restoreFile(file.id)">
+                                                        복원
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                        
+                                <!-- 선택된 새 파일 목록 표시 -->
+                                <div class="mt-4" x-show="fileNames.length > 0">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">추가할 파일</h4>
+                                    <ul class="border border-gray-200 rounded-md divide-y divide-gray-200 bg-green-50">
+                                        <template x-for="(name, index) in fileNames" :key="index">
+                                            <li class="pl-3 pr-4 py-3 flex items-center text-sm">
+                                                <svg class="flex-shrink-0 h-5 w-5 text-gray-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                                </svg>
+                                                <span x-text="name"></span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                         {{end}}

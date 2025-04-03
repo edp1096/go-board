@@ -10,6 +10,7 @@ import (
 	"log"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
@@ -559,6 +560,58 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 			"success": false,
 			"message": "게시물 수정에 실패했습니다: " + err.Error(),
 		})
+	}
+
+	// 삭제할 첨부 파일 처리
+	deleteAttachments := c.FormValue("delete_attachments[]")
+	if deleteAttachments == "" {
+		// Fiber가 배열을 다른 방식으로 처리하는지 확인
+		deleteAttachments = c.FormValue("delete_attachments")
+	}
+
+	if deleteAttachments != "" {
+		// 쉼표로 구분된 값으로 가정
+		attachmentIDs := strings.Split(deleteAttachments, ",")
+		for _, idStr := range attachmentIDs {
+			idStr = strings.TrimSpace(idStr)
+			if idStr == "" {
+				continue
+			}
+
+			attachmentID, err := strconv.ParseInt(idStr, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			err = h.uploadService.DeleteAttachment(c.Context(), attachmentID)
+			if err != nil {
+				// 오류 로깅만 하고 계속 진행
+				fmt.Printf("첨부 파일 삭제 실패 (ID: %d): %v\n", attachmentID, err)
+			}
+		}
+	}
+
+	// 파일 첨부 처리
+	form, err := c.MultipartForm()
+	if err == nil && form != nil && len(form.File["files"]) > 0 {
+		files := form.File["files"]
+
+		// 업로드 경로 생성
+		uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
+
+		// 파일 업로드
+		uploadedFiles, err := utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+		if err != nil {
+			// 오류 로깅만 하고 계속 진행
+			fmt.Printf("파일 업로드 실패: %v\n", err)
+		} else if h.uploadService != nil {
+			// 데이터베이스에 첨부 파일 정보 저장
+			_, err := h.uploadService.SaveAttachments(c.Context(), boardID, postID, user.ID, uploadedFiles)
+			if err != nil {
+				// 오류 로깅만 하고 계속 진행
+				fmt.Printf("첨부 파일 정보 저장 실패: %v\n", err)
+			}
+		}
 	}
 
 	// JSON 요청인 경우
