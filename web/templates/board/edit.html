@@ -13,6 +13,12 @@
                     <input type="text" name="title" id="title" required value="{{.post.Title}}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                 </div>
 
+                <div class="mb-4">
+                    <label for="content-editor" class="block text-sm font-medium text-gray-700">내용 <span class="text-red-500">*</span></label>
+                    <input type="hidden" name="content" id="content" value="{{.post.Content}}">
+                    <editor-other id="editor" data-idx="1"></editor-other>
+                </div>
+
                 {{if .board.Fields}}
                 <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {{range .board.Fields}}
@@ -73,14 +79,6 @@
                     {{end}}
                 </div>
                 {{end}}
-
-                <div class="mb-4">
-                    <label for="content-editor" class="block text-sm font-medium text-gray-700">내용 <span class="text-red-500">*</span></label>
-                    <!-- 에디터 내용을 저장할 hidden input 추가 -->
-                    <input type="hidden" name="content" id="content" value="{{.post.Content}}">
-                    <!-- 에디터 컴포넌트 -->
-                    <editor-other id="editor" data-idx="1"></editor-other>
-                </div>
             </div>
 
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between">
