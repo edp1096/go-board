@@ -57,6 +57,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('postEditor', function () {
         return {
             submitting: false,
+            fileNames: [],
 
             submitForm(form) {
                 const boardId = document.getElementById('board-id').value;

@@ -48,12 +48,25 @@
                         </div>
                         {{else if eq .FieldType "file"}}
                         <div class="mt-1">
+                            <!-- <input type="file" name="{{.Name}}" id="{{.Name}}" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"> -->
+                            <input type="file" name="files" id="files" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" @change="fileNames = Array.from($event.target.files).map(f => f.name)">
+                            <div class="mt-2 text-xs text-gray-500">여러 파일을 선택할 수 있습니다.</div>
+
                             {{if $field}}
                             <div class="mb-2 text-sm text-gray-500">
                                 현재 파일: {{$field.Value}}
                             </div>
                             {{end}}
-                            <input type="file" name="{{.Name}}" id="{{.Name}}" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+
+                            <!-- 선택된 파일 목록 표시 -->
+                            <div class="mt-2" x-show="fileNames.length > 0">
+                                <p class="text-sm font-medium text-gray-700">선택된 파일:</p>
+                                <ul class="mt-1 text-sm text-gray-500 list-disc list-inside">
+                                    <template x-for="(name, index) in fileNames" :key="index">
+                                        <li x-text="name"></li>
+                                    </template>
+                                </ul>
+                            </div>
                         </div>
                         {{end}}
                     </div>
