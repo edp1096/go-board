@@ -48,6 +48,16 @@
 
         <!-- 게시물 내용 -->
         <div class="px-6 py-4">
+            <!-- 본문 -->
+            <div class="prose max-w-none">
+                <!-- HTML 태그를 그대로 렌더링하기 위해 안전한 방식으로 출력 -->
+                <div id="post-content"></div>
+                <script>
+                    // 서버에서 받은 HTML 내용을 안전하게 설정
+                    document.getElementById('post-content').innerHTML = `{{.post.Content}}`;
+                </script>
+            </div>
+
             <!-- 동적 필드 정보 -->
             {{if .board.Fields}}
             <div class="mb-4 grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
@@ -77,15 +87,6 @@
             </div>
             {{end}}
 
-            <!-- 본문 -->
-            <div class="prose max-w-none">
-                <!-- HTML 태그를 그대로 렌더링하기 위해 안전한 방식으로 출력 -->
-                <div id="post-content"></div>
-                <script>
-                    // 서버에서 받은 HTML 내용을 안전하게 설정
-                    document.getElementById('post-content').innerHTML = `{{.post.Content}}`;
-                </script>
-            </div>
         </div>
 
         <!-- 첨부 파일 섹션 -->
