@@ -339,6 +339,7 @@ func setupRoutes(
 	boardsWithID := boards.Group("/:boardID", boardAccessMiddleware.CheckBoardAccess)
 	boardsWithID.Get("", boardHandler.GetBoard)
 	boardsWithID.Get("/posts", boardHandler.ListPosts)
+	boardsWithID.Get("/posts/:postID", boardHandler.GetPost)
 
 	// 게시물 작성/수정/삭제 (인증 필요)
 	boardsAuthWithID := boards.Group("/:boardID", authMiddleware.RequireAuth)
@@ -348,7 +349,6 @@ func setupRoutes(
 	boardsAuthWithID.Post("/posts", boardHandler.CreatePost)
 
 	// 그 다음에 파라미터 경로 정의
-	boardsWithID.Get("/posts/:postID", boardHandler.GetPost)
 	boardsAuthWithID.Get("/posts/:postID/edit", boardHandler.EditPostPage)
 	boardsAuthWithID.Put("/posts/:postID", boardHandler.UpdatePost)
 	boardsAuthWithID.Delete("/posts/:postID", boardHandler.DeletePost)

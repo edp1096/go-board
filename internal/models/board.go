@@ -71,7 +71,7 @@ type BoardField struct {
 	Board *Board `bun:"rel:belongs-to,join:board_id=id" json:"board,omitempty"`
 }
 
-// 게시물 공통 속성 (각 동적 게시판에 공통으로 적용됨)
+// 게시물 공통 속성 (각 게시판에 공통으로 적용됨)
 type PostCommon struct {
 	ID        int64     `bun:"id,pk,autoincrement" json:"id"`
 	Title     string    `bun:"title,notnull" json:"title"`

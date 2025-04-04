@@ -34,7 +34,7 @@
 │   ├── service/            # 비즈니스 로직
 │   │   ├── auth_service.go       # 인증 관련 서비스
 │   │   ├── board_service.go      # 게시판 서비스
-│   │   └── dynamic_board_service.go # 동적 게시판 서비스
+│   │   └── dynamic_board_service.go # 게시판 서비스
 │   │
 │   └── utils/              # 유틸리티 함수
 │       ├── convert_utils.go  # 데이터 변환 유틸리티

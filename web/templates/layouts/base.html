@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{if .title}}{{.title}} - {{end}}동적 게시판 시스템</title>
+    <title>{{if .title}}{{.title}} - {{end}}게시판 시스템</title>
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,7 +18,7 @@
     <script defer src="/static/js/alpine-init.js"></script>
 
     <!-- SEO 메타 태그 -->
-    <meta name="description" content="{{if .description}}{{.description}}{{else}}동적 게시판 시스템{{end}}">
+    <meta name="description" content="{{if .description}}{{.description}}{{else}}게시판 시스템{{end}}">
 
     <!-- CSRF 토큰 -->
     <meta name="csrf-token" content="{{.csrfToken}}">

@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS board_fields (
     UNIQUE (board_id, column_name)
 );
 
--- 동적 게시판 예시 (실제로는 관리자 기능을 통해 생성됨)
+-- 게시판 예시 (실제로는 관리자 기능을 통해 생성됨)
 -- 동적 생성 방식을 보여주기 위한 참고용입니다.
 /*
 CREATE TABLE board_example (
