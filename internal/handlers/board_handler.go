@@ -580,12 +580,78 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	post.Title = title
 	post.Content = content
 
+	// 삭제할 첨부 파일 목록 가져오기
+	deleteAttachments := c.FormValue("delete_attachments[]")
+	if deleteAttachments == "" {
+		// Fiber가 배열을 다른 방식으로 처리하는지 확인
+		deleteAttachments = c.FormValue("delete_attachments")
+	}
+
+	var deleteAttachmentIDs []int64
+	if deleteAttachments != "" {
+		// 쉼표로 구분된 값으로 가정
+		attachmentIDStrings := strings.Split(deleteAttachments, ",")
+		for _, idStr := range attachmentIDStrings {
+			idStr = strings.TrimSpace(idStr)
+			if idStr == "" {
+				continue
+			}
+
+			id, err := strconv.ParseInt(idStr, 10, 64)
+			if err == nil {
+				deleteAttachmentIDs = append(deleteAttachmentIDs, id)
+			}
+		}
+	}
+
+	// 갤러리 게시판인 경우 기존 첨부 파일 확인
+	var hasExistingAttachments bool
+	var existingAttachments []*models.Attachment
+
+	if board.BoardType == models.BoardTypeGallery && h.uploadService != nil {
+		existingAttachments, err = h.uploadService.GetAttachmentsByPostID(c.Context(), boardID, postID)
+		if err == nil && len(existingAttachments) > 0 {
+			// 삭제되지 않을 첨부 파일이 있는지 확인
+			for _, attachment := range existingAttachments {
+				isMarkedForDeletion := false
+				for _, deleteID := range deleteAttachmentIDs {
+					if attachment.ID == deleteID {
+						isMarkedForDeletion = true
+						break
+					}
+				}
+
+				if !isMarkedForDeletion {
+					hasExistingAttachments = true
+					break
+				}
+			}
+		}
+	}
+
 	// 동적 필드 처리
 	for _, field := range board.Fields {
 		// 필드값 가져오기
 		value := c.FormValue(field.Name)
 
-		// 필수 필드 검증
+		// 갤러리 이미지 필드인 경우 특별 처리
+		if board.BoardType == models.BoardTypeGallery && field.FieldType == models.FieldTypeFile && field.Required {
+			// 기존 이미지가 있고 모두 삭제되지 않는 경우, 필수 검증 건너뛰기
+			if hasExistingAttachments {
+				// 값만 설정하고 필수 검증 건너뛰기
+				var fieldValue any = value
+				post.Fields[field.Name] = models.DynamicField{
+					Name:       field.Name,
+					ColumnName: field.ColumnName,
+					Value:      fieldValue,
+					FieldType:  field.FieldType,
+					Required:   field.Required,
+				}
+				continue
+			}
+		}
+
+		// 일반적인 필수 필드 검증
 		if field.Required && value == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"success": false,
@@ -636,30 +702,12 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	}
 
 	// 삭제할 첨부 파일 처리
-	deleteAttachments := c.FormValue("delete_attachments[]")
-	if deleteAttachments == "" {
-		// Fiber가 배열을 다른 방식으로 처리하는지 확인
-		deleteAttachments = c.FormValue("delete_attachments")
-	}
-
 	if deleteAttachments != "" {
-		// 쉼표로 구분된 값으로 가정
-		attachmentIDs := strings.Split(deleteAttachments, ",")
-		for _, idStr := range attachmentIDs {
-			idStr = strings.TrimSpace(idStr)
-			if idStr == "" {
-				continue
-			}
-
-			attachmentID, err := strconv.ParseInt(idStr, 10, 64)
-			if err != nil {
-				continue
-			}
-
-			err = h.uploadService.DeleteAttachment(c.Context(), attachmentID)
+		for _, id := range deleteAttachmentIDs {
+			err = h.uploadService.DeleteAttachment(c.Context(), id)
 			if err != nil {
 				// 오류 로깅만 하고 계속 진행
-				fmt.Printf("첨부 파일 삭제 실패 (ID: %d): %v\n", attachmentID, err)
+				fmt.Printf("첨부 파일 삭제 실패 (ID: %d): %v\n", id, err)
 			}
 		}
 	}
