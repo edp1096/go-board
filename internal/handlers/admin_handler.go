@@ -85,6 +85,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 	boardType := models.BoardType(boardTypeStr)
 	slugStr := c.FormValue("slug")
 	commentsEnabled := c.FormValue("comments_enabled") == "on"
+	allowAnonymous := c.FormValue("allow_anonymous") == "on"
 
 	// 유효성 검사
 	if name == "" {
@@ -111,6 +112,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 		TableName:       tableName,
 		Active:          true,
 		CommentsEnabled: commentsEnabled,
+		AllowAnonymous:  allowAnonymous,
 	}
 
 	// 필드 정보 파싱
@@ -260,6 +262,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	boardTypeStr := c.FormValue("board_type")
 	active := c.FormValue("active") == "on"
 	commentsEnabled := c.FormValue("comments_enabled") == "on"
+	allowAnonymous := c.FormValue("allow_anonymous") == "on"
 
 	// 유효성 검사
 	if name == "" {
@@ -275,6 +278,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	board.BoardType = models.BoardType(boardTypeStr)
 	board.Active = active
 	board.CommentsEnabled = commentsEnabled
+	board.AllowAnonymous = allowAnonymous
 
 	// 필드 정보 파싱
 	fieldCount, _ := strconv.Atoi(c.FormValue("field_count", "0"))

@@ -41,6 +41,7 @@ type Board struct {
 	TableName       string    `bun:"table_name,notnull,unique" json:"tableName"` // 실제 DB 테이블 이름
 	Active          bool      `bun:"active,notnull,default:true" json:"active"`
 	CommentsEnabled bool      `bun:"comments_enabled,notnull,default:true" json:"commentsEnabled"` // 댓글 기능 활성화 여부
+	AllowAnonymous  bool      `bun:"allow_anonymous,notnull,default:false" json:"allowAnonymous"`  // 익명 사용자 접근 허용 여부
 	CreatedAt       time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
 	UpdatedAt       time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
 

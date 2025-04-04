@@ -169,6 +169,7 @@ func main() {
 
 	// 인증 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
+	boardAccessMiddleware := middleware.NewBoardAccessMiddleware(boardService)
 	adminMiddleware := middleware.NewAdminMiddleware(authService)
 
 	// 미들웨어 설정
@@ -206,6 +207,7 @@ func main() {
 		commentHandler,
 		adminHandler,
 		authMiddleware,
+		boardAccessMiddleware,
 		adminMiddleware,
 	)
 
@@ -313,6 +315,7 @@ func setupRoutes(
 	commentHandler *handlers.CommentHandler,
 	adminHandler *handlers.AdminHandler,
 	authMiddleware middleware.AuthMiddleware,
+	boardAccessMiddleware middleware.BoardAccessMiddleware,
 	adminMiddleware middleware.AdminMiddleware,
 ) {
 	// 인증 관련 라우트
@@ -333,7 +336,7 @@ func setupRoutes(
 	boards.Get("/", boardHandler.ListBoards)
 
 	// /boards/:boardID 라우트
-	boardsWithID := boards.Group("/:boardID")
+	boardsWithID := boards.Group("/:boardID", boardAccessMiddleware.CheckBoardAccess)
 	boardsWithID.Get("", boardHandler.GetBoard)
 	boardsWithID.Get("/posts", boardHandler.ListPosts)
 
