@@ -85,6 +85,9 @@ func (h *BoardHandler) GetBoard(c *fiber.Ctx) error {
 }
 
 // ListPosts 게시물 목록 조회
+// internal/handlers/board_handler.go의 ListPosts 메서드 수정
+
+// ListPosts 게시물 목록 조회
 func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
 	if err != nil {
@@ -112,6 +115,9 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	}
 
 	pageSize := 20 // 페이지당 게시물 수
+	if board.BoardType == models.BoardTypeGallery {
+		pageSize = 16 // 갤러리는 한 페이지에 16개 항목으로 조정
+	}
 
 	// 정렬 파라미터
 	sortField := c.Query("sort", "created_at")
@@ -141,7 +147,39 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	// 페이지네이션 계산
 	totalPages := (total + pageSize - 1) / pageSize
 
-	return utils.RenderWithUser(c, "board/posts", fiber.Map{
+	// 게시판 타입이 갤러리인 경우 썸네일 정보 추가
+	if board.BoardType == models.BoardTypeGallery {
+		// 게시물 ID 목록 수집
+		postIDs := make([]int64, 0, len(posts))
+		for _, post := range posts {
+			postIDs = append(postIDs, post.ID)
+		}
+
+		// 썸네일 조회
+		thumbnails, err := h.boardService.GetPostThumbnails(c.Context(), boardID, postIDs)
+		if err != nil {
+			// 썸네일 조회 실패 시 로그만 남기고 계속 진행
+			fmt.Printf("썸네일 조회 실패: %v\n", err)
+		} else {
+			// 각 게시물에 썸네일 URL 추가
+			for _, post := range posts {
+				if url, ok := thumbnails[post.ID]; ok {
+					// 백슬래시를 슬래시로 변환 (Windows 경로 문제 해결)
+					post.RawData["ThumbnailURL"] = strings.ReplaceAll(url, "\\", "/")
+				}
+			}
+		}
+	}
+
+	// 템플릿 선택 (게시판 타입에 따라)
+	templateName := "board/posts"
+	if board.BoardType == models.BoardTypeGallery {
+		templateName = "board/gallery_posts"
+	} else if board.BoardType == models.BoardTypeQnA {
+		templateName = "board/qna_posts" // 아직 구현되지 않음
+	}
+
+	return utils.RenderWithUser(c, templateName, fiber.Map{
 		"title":      board.Name,
 		"board":      board,
 		"posts":      posts,
@@ -293,11 +331,34 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 
 	// 동적 필드 처리
 	for _, field := range board.Fields {
-		// 필드값 가져오기
+		// 필드값 가져오기 (파일 필드는 별도 처리)
+		if field.FieldType == models.FieldTypeFile {
+			// 파일 필드는 멀티파트 폼에서 "files" 이름으로 통일해서 처리
+			if form != nil && len(form.File["files"]) > 0 {
+				// 파일이 있으면 필드에 "파일 있음" 표시만 하고, 실제 파일은 나중에 처리
+				post.Fields[field.Name] = models.DynamicField{
+					Name:       field.Name,
+					ColumnName: field.ColumnName,
+					Value:      "파일 있음", // 실제 파일 처리는 게시물 생성 후 수행
+					FieldType:  field.FieldType,
+					Required:   field.Required,
+				}
+				continue
+			} else if field.Required {
+				// 필수 파일 필드인데 파일이 없는 경우
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"success": false,
+					"message": field.DisplayName + "을(를) 입력해주세요",
+					"field":   field.Name,
+				})
+			}
+		}
+
+		// 다른 타입의 필드 처리
 		value := c.FormValue(field.Name)
 
 		// 필수 필드 검증
-		if field.Required && value == "" {
+		if field.Required && value == "" && field.FieldType != models.FieldTypeFile {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"success": false,
 				"message": field.DisplayName + "을(를) 입력해주세요",
@@ -327,13 +388,15 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 			fieldValue = value == "on" || value == "true" || value == "1"
 		}
 
-		// 동적 필드 추가
-		post.Fields[field.Name] = models.DynamicField{
-			Name:       field.Name,
-			ColumnName: field.ColumnName,
-			Value:      fieldValue,
-			FieldType:  field.FieldType,
-			Required:   field.Required,
+		// 동적 필드 추가 (파일 필드가 아닌 경우)
+		if field.FieldType != models.FieldTypeFile || value != "" {
+			post.Fields[field.Name] = models.DynamicField{
+				Name:       field.Name,
+				ColumnName: field.ColumnName,
+				Value:      fieldValue,
+				FieldType:  field.FieldType,
+				Required:   field.Required,
+			}
 		}
 	}
 
@@ -355,8 +418,18 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "attachments")
 		fmt.Println("업로드 경로:", uploadPath)
 
-		// 파일 업로드
-		uploadedFiles, err := utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+		var uploadedFiles []*utils.UploadedFile
+		var err error
+
+		// 게시판 타입에 따라 다른 업로드 함수 사용
+		if board.BoardType == models.BoardTypeGallery {
+			// 갤러리 게시판은 이미지 타입도 허용
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, 10*1024*1024) // 10MB 제한
+		} else {
+			// 일반 게시판은 기존대로 처리
+			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+		}
+
 		if err != nil {
 			fmt.Println("파일 업로드 실패:", err)
 			// 실패해도 게시물은 생성되므로 계속 진행
@@ -599,8 +672,18 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		// 업로드 경로 생성
 		uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
 
-		// 파일 업로드
-		uploadedFiles, err := utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+		var uploadedFiles []*utils.UploadedFile
+		var err error
+
+		// 게시판 타입에 따라 다른 업로드 함수 사용
+		if board.BoardType == models.BoardTypeGallery {
+			// 갤러리 게시판은 이미지 타입도 허용
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, 10*1024*1024) // 10MB 제한
+		} else {
+			// 일반 게시판은 기존대로 처리
+			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+		}
+
 		if err != nil {
 			// 오류 로깅만 하고 계속 진행
 			fmt.Printf("파일 업로드 실패: %v\n", err)

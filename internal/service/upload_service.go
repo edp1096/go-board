@@ -38,17 +38,21 @@ func (s *uploadService) SaveAttachments(ctx context.Context, boardID, postID, us
 	var attachments []*models.Attachment
 
 	for _, file := range files {
+		// 경로에서 항상 슬래시(/)를 사용하도록 수정
+		downloadURL := filepath.ToSlash(file.URL)
+
 		attachment := &models.Attachment{
-			BoardID:       boardID,
-			PostID:        postID,
-			UserID:        userID,
-			FileName:      file.OriginalName,
-			FilePath:      file.Path,
-			StorageName:   file.StorageName,
-			FileSize:      file.Size,
-			MimeType:      file.MimeType,
-			IsImage:       file.IsImage,
-			DownloadURL:   file.URL,
+			BoardID:     boardID,
+			PostID:      postID,
+			UserID:      userID,
+			FileName:    file.OriginalName,
+			FilePath:    file.Path,
+			StorageName: file.StorageName,
+			FileSize:    file.Size,
+			MimeType:    file.MimeType,
+			IsImage:     file.IsImage,
+			// DownloadURL:   file.URL,
+			DownloadURL:   downloadURL,
 			DownloadCount: 0,
 		}
 

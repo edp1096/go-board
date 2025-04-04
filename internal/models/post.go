@@ -2,6 +2,8 @@
 package models
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,4 +34,14 @@ type DynamicPost struct {
 
 	// 원본 데이터 (내부 사용)
 	RawData map[string]any
+}
+
+// ThumbnailURL returns the thumbnail URL from raw data
+func (p *DynamicPost) ThumbnailURL() string {
+	if thumbnail, ok := p.RawData["ThumbnailURL"]; ok {
+		urlStr := fmt.Sprintf("%v", thumbnail)
+		// 백슬래시를 슬래시로 변환 (Windows 경로 문제 해결)
+		return strings.ReplaceAll(urlStr, "\\", "/")
+	}
+	return ""
 }

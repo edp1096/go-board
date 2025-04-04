@@ -119,7 +119,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 	fieldCount, _ := strconv.Atoi(c.FormValue("field_count", "0"))
 	fields := make([]*models.BoardField, 0, fieldCount)
 
-	for i := 0; i < fieldCount; i++ {
+	for i := range fieldCount {
 		fieldName := c.FormValue(fmt.Sprintf("field_name_%d", i))
 		displayName := c.FormValue(fmt.Sprintf("display_name_%d", i))
 		fieldTypeStr := c.FormValue(fmt.Sprintf("field_type_%d", i))
@@ -151,6 +151,40 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 		}
 
 		fields = append(fields, field)
+	}
+
+	// 갤러리 타입일 경우 자동으로 파일 업로드 필드 추가
+	var galleryImagesField *models.BoardField = nil
+
+	if boardType == models.BoardTypeGallery {
+		// 갤러리 게시판을 위한 이미지 필드가 있는지 확인
+		for _, field := range fields {
+			if field.FieldType == models.FieldTypeFile {
+				galleryImagesField = field
+				// 기존 파일 필드를 갤러리 이미지 필드로 수정
+				field.Name = "gallery_images"
+				field.DisplayName = "이미지"
+				field.ColumnName = "gallery_images"
+				field.Required = true
+				break
+			}
+		}
+
+		// 이미지 필드가 없으면 추가
+		if galleryImagesField == nil {
+			galleryImagesField = &models.BoardField{
+				Name:        "gallery_images",
+				DisplayName: "이미지",
+				ColumnName:  "gallery_images",
+				FieldType:   models.FieldTypeFile,
+				Required:    true,
+				Sortable:    false,
+				Searchable:  false,
+				Options:     "",
+				SortOrder:   len(fields) + 1,
+			}
+			fields = append(fields, galleryImagesField)
+		}
 	}
 
 	// 트랜잭션 처리가 필요하지만 간단히 처리

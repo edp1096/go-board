@@ -9,6 +9,7 @@ import (
 	"go-board/internal/models"
 	"go-board/internal/repository"
 	"go-board/internal/utils"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -42,6 +43,9 @@ type BoardService interface {
 	DeletePost(ctx context.Context, boardID int64, postID int64) error
 	ListPosts(ctx context.Context, boardID int64, page, pageSize int, sortField, sortDir string) ([]*models.DynamicPost, int, error)
 	SearchPosts(ctx context.Context, boardID int64, query string, page, pageSize int) ([]*models.DynamicPost, int, error)
+
+	// 썸네일 관련
+	GetPostThumbnails(ctx context.Context, boardID int64, postIDs []int64) (map[int64]string, error)
 }
 
 type boardService struct {
@@ -608,4 +612,39 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 	}
 
 	return validPosts, count, nil
+}
+
+// 썸네일 관련
+func (s *boardService) GetPostThumbnails(ctx context.Context, boardID int64, postIDs []int64) (map[int64]string, error) {
+	thumbnails := make(map[int64]string)
+
+	// 첨부 파일 조회를 위한 쿼리
+	query := s.db.NewSelect().
+		Model((*models.Attachment)(nil)).
+		Where("board_id = ?", boardID).
+		Where("post_id IN (?)", bun.In(postIDs)).
+		Where("is_image = ?", true).
+		Order("created_at ASC")
+
+	var attachments []*models.Attachment
+	err := query.Scan(ctx, &attachments)
+	if err != nil {
+		return nil, err
+	}
+
+	// 각 게시물마다 첫 번째 이미지를 썸네일로 선택
+	for _, attachment := range attachments {
+		// 해당 게시물의 첫 번째 이미지만 저장 (이미 썸네일이 있는 경우 건너뜀)
+		if _, exists := thumbnails[attachment.PostID]; !exists {
+			// 모든 경로를 URL 형식으로 변환 (슬래시 사용)
+			thumbnails[attachment.PostID] = filepath.ToSlash(attachment.DownloadURL)
+
+			// URL이 /attachments로 시작하지 않으면 첨부파일 다운로드 URL 사용
+			if !strings.HasPrefix(thumbnails[attachment.PostID], "/attachments") {
+				thumbnails[attachment.PostID] = fmt.Sprintf("/attachments/%d/download", attachment.ID)
+			}
+		}
+	}
+
+	return thumbnails, nil
 }

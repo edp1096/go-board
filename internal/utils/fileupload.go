@@ -135,14 +135,18 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 	// 결과 반환
 	isImage := AllowedImageTypes[mimeType]
 
+	// URL 경로 생성 - 항상 슬래시(/)를 사용하도록 수정
+	urlPath := filepath.ToSlash(filepath.Join("/uploads", storageName))
+
 	return &UploadedFile{
 		OriginalName: originalName,
 		StorageName:  storageName,
 		Path:         fullPath,
 		Size:         file.Size,
 		MimeType:     mimeType,
-		URL:          filepath.Join("/uploads", storageName),
-		IsImage:      isImage,
+		// URL:          filepath.Join("/uploads", storageName),
+		URL:     urlPath,
+		IsImage: isImage,
 	}, nil
 }
 
@@ -184,6 +188,33 @@ func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize i
 		BasePath:       normalizedPath,
 		MaxSize:        maxSize,
 		AllowedTypes:   AllowedFileTypes,
+		UniqueFilename: true,
+	}
+
+	return UploadFiles(files, config)
+}
+
+// 갤러리용 파일 업로드 헬퍼 함수 (이미지와 파일 타입 모두 허용)
+func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize int64) ([]*UploadedFile, error) {
+	normalizedPath := norm.NFC.String(basePath)
+
+	// 이미지와 파일 타입을 합친 허용 타입 맵 생성
+	combinedTypes := make(map[string]bool)
+
+	// 이미지 타입 복사
+	for mimeType, allowed := range AllowedImageTypes {
+		combinedTypes[mimeType] = allowed
+	}
+
+	// 파일 타입 복사
+	for mimeType, allowed := range AllowedFileTypes {
+		combinedTypes[mimeType] = allowed
+	}
+
+	config := UploadConfig{
+		BasePath:       normalizedPath,
+		MaxSize:        maxSize,
+		AllowedTypes:   combinedTypes,
 		UniqueFilename: true,
 	}
 
