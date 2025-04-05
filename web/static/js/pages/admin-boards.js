@@ -3,11 +3,14 @@ function boardManagement() {
         csrf: '{{$.csrf}}', // CSRF 토큰, 필요에 따라 다른 방법으로 설정할 수 있습니다.
         deleteBoard(id) {
             if (!confirm('정말 삭제하시겠습니까? 관련된 모든 게시물이 삭제됩니다.')) return;
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
             fetch(`/admin/boards/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-Token': this.csrf
+                    'X-CSRF-Token': csrfToken,
                 }
             })
             .then(res => {

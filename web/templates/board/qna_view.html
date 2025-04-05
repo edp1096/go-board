@@ -321,7 +321,8 @@
     {{if .user}}
     <div class="mt-8">
         <h3 class="text-lg font-medium mb-4">답변 작성</h3>
-        <form id="answerForm" x-data="{ content: '', submitting: false }" @submit.prevent="submitAnswer">
+        <!-- <form id="answerForm" x-data="{ content: '', submitting: false }" @submit.prevent="submitAnswer"> -->
+        <form id="answerForm" x-data="answerManager()" @submit.prevent="submitAnswer">
             <div class="mb-4">
                 <label for="answerContent" class="sr-only">답변 내용</label>
                 <textarea id="answerContent" name="content" rows="6" x-model="content" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="답변을 작성해주세요..." required></textarea>
@@ -428,6 +429,8 @@
             answers: [],
             loading: true,
             error: null,
+            content: '',
+            submitting: false,
 
             init() {
                 this.loadAnswers();
@@ -438,185 +441,177 @@
                 const postId = document.getElementById('postId').value;
 
                 // 베스트 답변 ID 가져오기
-                const bestAnswerId = {{ if .post.Fields.best_answer_id
-        }}{{ .post.Fields.best_answer_id.Value }}{{ else }}0{{ end }};
+                const bestAnswerId = JSON.parse('{{ if .post.Fields.best_answer_id }}{{ .post.Fields.best_answer_id.Value | json }}{{ else }}0{{ end }}');
 
-    fetch(`/api/boards/${boardId}/posts/${postId}/answers`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                // 베스트 답변 플래그 추가
-                this.answers = data.answers.map(answer => ({
-                    ...answer,
-                    isBestAnswer: answer.id === bestAnswerId
-                }));
+                fetch(`/api/boards/${boardId}/posts/${postId}/answers`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 답변 배열이 null이거나 undefined인 경우 빈 배열로 처리
+                            this.answers = (data.answers || []).map(answer => ({
+                                ...answer,
+                                isBestAnswer: answer.id === bestAnswerId
+                            }));
 
-                // 베스트 답변이 있으면 맨 위로 정렬
-                if (bestAnswerId > 0) {
-                    this.answers.sort((a, b) => {
-                        if (a.isBestAnswer) return -1;
-                        if (b.isBestAnswer) return 1;
-                        return 0;
+                        } else {
+                            // API에서 오류 메시지 반환한 경우
+                            this.error = data.message || '답변을 불러오는데 실패했습니다.';
+                        }
+                        this.loading = false;
+                    })
+                    .catch(err => {
+                        console.error('답변 로딩 중 오류:', err);
+                        this.error = '답변을 불러오는 중 오류가 발생했습니다.';
+                        this.loading = false;
                     });
-                }
-            } else {
-                this.error = data.message;
+            },
+
+            submitAnswer() {
+                const boardId = document.getElementById('boardId').value;
+                const postId = document.getElementById('postId').value;
+                const csrfToken = document.getElementById('csrfToken').value;
+                const content = document.getElementById('answerContent').value;
+
+                this.submitting = true;
+
+                fetch(`/api/boards/${boardId}/posts/${postId}/answers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ content: content })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 페이지 새로고침하여 새 답변 표시
+                            window.location.reload();
+                        } else {
+                            alert('답변 등록 실패: ' + data.message);
+                            this.submitting = false;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('답변 등록 중 오류:', error);
+                        alert('답변 등록 중 오류가 발생했습니다.');
+                        this.submitting = false;
+                    });
+            },
+
+            editAnswer(answerId) {
+                // 해당 답변 찾기
+                const answer = this.answers.find(a => a.id === answerId);
+                if (!answer) return;
+
+                // 새 내용 입력 받기
+                const newContent = prompt('답변을 수정합니다:', answer.content);
+                if (newContent === null || newContent === answer.content) return;
+
+                const csrfToken = document.getElementById('csrfToken').value;
+
+                fetch(`/api/answers/${answerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ content: newContent })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 페이지 새로고침하여 수정된 답변 표시
+                            window.location.reload();
+                        } else {
+                            alert('답변 수정 실패: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('답변 수정 중 오류:', error);
+                        alert('답변 수정 중 오류가 발생했습니다.');
+                    });
+            },
+
+            deleteAnswer(answerId) {
+                if (!confirm('답변을 삭제하시겠습니까?')) return;
+
+                const csrfToken = document.getElementById('csrfToken').value;
+
+                fetch(`/api/answers/${answerId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 페이지 새로고침하여 삭제된 답변 반영
+                            window.location.reload();
+                        } else {
+                            alert('답변 삭제 실패: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('답변 삭제 중 오류:', error);
+                        alert('답변 삭제 중 오류가 발생했습니다.');
+                    });
+            },
+
+            voteAnswer(answerId, direction) {
+                const csrfToken = document.getElementById('csrfToken').value;
+
+                fetch(`/api/answers/${answerId}/vote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ direction: direction })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 페이지 새로고침하여 투표 결과 반영
+                            window.location.reload();
+                        } else {
+                            alert('투표 실패: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('투표 처리 중 오류:', error);
+                        alert('투표 처리 중 오류가 발생했습니다.');
+                    });
+            },
+
+            selectBestAnswer(answerId) {
+                const boardId = document.getElementById('boardId').value;
+                const postId = document.getElementById('postId').value;
+                const csrfToken = document.getElementById('csrfToken').value;
+
+                fetch(`/api/boards/${boardId}/posts/${postId}/best-answer`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ answerId: answerId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 페이지 새로고침하여 베스트 답변 반영
+                            window.location.reload();
+                        } else {
+                            alert('베스트 답변 선택 실패: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('베스트 답변 선택 중 오류:', error);
+                        alert('베스트 답변 선택 중 오류가 발생했습니다.');
+                    });
             }
-            this.loading = false;
-        })
-        .catch(err => {
-            console.error('답변 로딩 중 오류:', err);
-            this.error = '답변을 불러오는 중 오류가 발생했습니다.';
-            this.loading = false;
-        });
-            },
-
-    submitAnswer() {
-        const boardId = document.getElementById('boardId').value;
-        const postId = document.getElementById('postId').value;
-        const csrfToken = document.getElementById('csrfToken').value;
-        const content = document.getElementById('answerContent').value;
-
-        this.submitting = true;
-
-        fetch(`/api/boards/${boardId}/posts/${postId}/answers`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ content: content })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 페이지 새로고침하여 새 답변 표시
-                    window.location.reload();
-                } else {
-                    alert('답변 등록 실패: ' + data.message);
-                    this.submitting = false;
-                }
-            })
-            .catch(error => {
-                console.error('답변 등록 중 오류:', error);
-                alert('답변 등록 중 오류가 발생했습니다.');
-                this.submitting = false;
-            });
-    },
-
-    editAnswer(answerId) {
-        // 해당 답변 찾기
-        const answer = this.answers.find(a => a.id === answerId);
-        if (!answer) return;
-
-        // 새 내용 입력 받기
-        const newContent = prompt('답변을 수정합니다:', answer.content);
-        if (newContent === null || newContent === answer.content) return;
-
-        const csrfToken = document.getElementById('csrfToken').value;
-
-        fetch(`/api/answers/${answerId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ content: newContent })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 페이지 새로고침하여 수정된 답변 표시
-                    window.location.reload();
-                } else {
-                    alert('답변 수정 실패: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('답변 수정 중 오류:', error);
-                alert('답변 수정 중 오류가 발생했습니다.');
-            });
-    },
-
-    deleteAnswer(answerId) {
-        if (!confirm('답변을 삭제하시겠습니까?')) return;
-
-        const csrfToken = document.getElementById('csrfToken').value;
-
-        fetch(`/api/answers/${answerId}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-Token': csrfToken
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 페이지 새로고침하여 삭제된 답변 반영
-                    window.location.reload();
-                } else {
-                    alert('답변 삭제 실패: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('답변 삭제 중 오류:', error);
-                alert('답변 삭제 중 오류가 발생했습니다.');
-            });
-    },
-
-    voteAnswer(answerId, direction) {
-        const csrfToken = document.getElementById('csrfToken').value;
-
-        fetch(`/api/answers/${answerId}/vote`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ direction: direction })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 페이지 새로고침하여 투표 결과 반영
-                    window.location.reload();
-                } else {
-                    alert('투표 실패: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('투표 처리 중 오류:', error);
-                alert('투표 처리 중 오류가 발생했습니다.');
-            });
-    },
-
-    selectBestAnswer(answerId) {
-        const boardId = document.getElementById('boardId').value;
-        const postId = document.getElementById('postId').value;
-        const csrfToken = document.getElementById('csrfToken').value;
-
-        fetch(`/api/boards/${boardId}/posts/${postId}/best-answer`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ answerId: answerId })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 페이지 새로고침하여 베스트 답변 반영
-                    window.location.reload();
-                } else {
-                    alert('베스트 답변 선택 실패: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('베스트 답변 선택 중 오류:', error);
-                alert('베스트 답변 선택 중 오류가 발생했습니다.');
-            });
-    }
         }));
     });
 </script>

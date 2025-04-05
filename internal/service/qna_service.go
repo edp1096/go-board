@@ -90,7 +90,7 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 
 	// answer_count 필드 값 업데이트
 	answerCount := 1
-	if post.Fields["answer_count"] != nil && post.Fields["answer_count"].Value != nil {
+	if field, ok := post.Fields["answer_count"]; ok && field.Value != nil {
 		// 기존 값에 1 추가
 		var currentCount int
 		switch val := post.Fields["answer_count"].Value.(type) {
@@ -149,7 +149,7 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 
 	// 베스트 답변 ID 가져오기
 	var bestAnswerID int64 = 0
-	if post.Fields["best_answer_id"] != nil && post.Fields["best_answer_id"].Value != nil {
+	if field, ok := post.Fields["best_answer_id"]; ok && field.Value != nil {
 		switch val := post.Fields["best_answer_id"].Value.(type) {
 		case int:
 			bestAnswerID = int64(val)
@@ -166,7 +166,7 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 		Model(&answers).
 		Relation("User").
 		Where("board_id = ? AND question_id = ?", boardID, questionID).
-		Order("vote_count DESC, created_at ASC").
+		OrderExpr("vote_count DESC, created_at ASC").
 		Scan(ctx)
 	if err != nil {
 		return nil, err
@@ -260,7 +260,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 
 	// 베스트 답변인 경우 표시 삭제
 	var bestAnswerID int64 = 0
-	if post.Fields["best_answer_id"] != nil && post.Fields["best_answer_id"].Value != nil {
+	if field, ok := post.Fields["best_answer_id"]; ok && field.Value != nil {
 		switch val := post.Fields["best_answer_id"].Value.(type) {
 		case int:
 			bestAnswerID = int64(val)
@@ -304,7 +304,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 	// 질문의 답변 수 업데이트
 	// answer_count 필드 값 계산
 	answerCount := 0
-	if post.Fields["answer_count"] != nil && post.Fields["answer_count"].Value != nil {
+	if field, ok := post.Fields["answer_count"]; ok && field.Value != nil {
 		// 기존 값에서 1 감소
 		var currentCount int
 		switch val := post.Fields["answer_count"].Value.(type) {
@@ -436,7 +436,7 @@ func (s *qnaService) handleVote(ctx context.Context, boardID, targetID, userID i
 		}
 
 		// 현재 투표 수 가져오기
-		if post.Fields["vote_count"] != nil && post.Fields["vote_count"].Value != nil {
+		if field, ok := post.Fields["vote_count"]; ok && field.Value != nil {
 			switch val := post.Fields["vote_count"].Value.(type) {
 			case int:
 				currentCount = val
