@@ -27,7 +27,7 @@ type Answer struct {
 
 // Vote 모델 - 투표 정보 (질문, 답변 모두에 사용)
 type Vote struct {
-	bun.BaseModel `bun:"table:qna_votes,alias:v"`
+	bun.BaseModel `bun:"table:qna_answer_votes,alias:v"`
 
 	ID         int64     `bun:"id,pk,autoincrement" json:"id"`
 	UserID     int64     `bun:"user_id,notnull" json:"userId"`

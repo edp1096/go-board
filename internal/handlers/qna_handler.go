@@ -193,6 +193,7 @@ func (h *QnAHandler) DeleteAnswer(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"success": false,
 				"message": "답변을 찾을 수 없습니다",
+				"error":   err.Error(),
 			})
 		} else if err == service.ErrNoPermission {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -200,6 +201,7 @@ func (h *QnAHandler) DeleteAnswer(c *fiber.Ctx) error {
 				"message": "답변을 삭제할 권한이 없습니다",
 			})
 		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "답변 삭제에 실패했습니다: " + err.Error(),

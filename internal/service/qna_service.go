@@ -187,11 +187,13 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 // GetAnswerByID는 ID로 답변을 조회합니다.
 func (s *qnaService) GetAnswerByID(ctx context.Context, answerID int64) (*models.Answer, error) {
 	answer := new(models.Answer)
+
 	err := s.db.NewSelect().
 		Model(answer).
 		Relation("User").
-		Where("id = ?", answerID).
+		Where("a.id = ?", answerID).
 		Scan(ctx)
+
 	if err != nil {
 		return nil, ErrAnswerNotFound
 	}
@@ -278,7 +280,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 		_, err = tx.NewUpdate().
 			Table(board.TableName).
 			Set("best_answer_id = NULL").
-			Where("id = ?", answer.QuestionID).
+			Where("question_id = ?", answer.QuestionID).
 			Exec(ctx)
 		if err != nil {
 			return err
@@ -296,8 +298,8 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 
 	// 관련 투표 삭제
 	_, err = tx.NewDelete().
-		Model((*models.Vote)(nil)).
-		Where("target_id = ? AND target_type = ?", answerID, "answer").
+		Model((*models.AnswerVote)(nil)).
+		Where("answer_id = ?", answerID).
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -329,6 +331,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 		Set("answer_count = ?", answerCount).
 		Where("id = ?", answer.QuestionID).
 		Exec(ctx)
+
 	if err != nil {
 		return err
 	}

@@ -399,7 +399,7 @@
     function changeQuestionStatus(status) {
         const boardId = document.getElementById('boardId').value;
         const postId = document.getElementById('postId').value;
-        
+
         // CSRF 토큰 가져오기
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -427,59 +427,59 @@
     }
 
     // 1. 투표 수 조회 함수 추가
-        function getQuestionVoteCount() {
-            const boardId = document.getElementById('boardId').value;
-            const postId = document.getElementById('postId').value;
+    function getQuestionVoteCount() {
+        const boardId = document.getElementById('boardId').value;
+        const postId = document.getElementById('postId').value;
 
-            // API 엔드포인트 호출
-            fetch(`/api/boards/${boardId}/posts/${postId}/vote-count`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // 투표 수 업데이트
-                        document.getElementById('question-vote-count').textContent = data.voteCount;
-                    }
-                })
-                .catch(error => {
-                    console.error('투표 수 조회 오류:', error);
-                });
-        }
-
-        // 2. 페이지 로드 시 투표 수 조회
-        document.addEventListener('DOMContentLoaded', function () {
-            getQuestionVoteCount();
-        });
-
-        // 3. 질문 투표 함수 수정
-        function voteQuestion(direction) {
-            const boardId = document.getElementById('boardId').value;
-            const postId = document.getElementById('postId').value;
-
-            // CSRF 토큰 가져오기
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
-            fetch(`/api/boards/${boardId}/posts/${postId}/vote`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                body: JSON.stringify({ direction: direction })
+        // API 엔드포인트 호출
+        fetch(`/api/boards/${boardId}/posts/${postId}/vote-count`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 투표 수 업데이트
+                    document.getElementById('question-vote-count').textContent = data.voteCount;
+                }
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // 투표 수 업데이트
-                        document.getElementById('question-vote-count').textContent = data.voteCount;
-                    } else {
-                        alert('투표 실패: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('투표 처리 중 오류:', error);
-                    alert('투표 처리 중 오류가 발생했습니다.');
-                });
-        }
+            .catch(error => {
+                console.error('투표 수 조회 오류:', error);
+            });
+    }
+
+    // 2. 페이지 로드 시 투표 수 조회
+    document.addEventListener('DOMContentLoaded', function () {
+        getQuestionVoteCount();
+    });
+
+    // 3. 질문 투표 함수 수정
+    function voteQuestion(direction) {
+        const boardId = document.getElementById('boardId').value;
+        const postId = document.getElementById('postId').value;
+
+        // CSRF 토큰 가져오기
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        fetch(`/api/boards/${boardId}/posts/${postId}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ direction: direction })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침 대신 투표 수 표시 요소만 업데이트
+                    document.getElementById('question-vote-count').textContent = data.voteCount;
+                } else {
+                    alert('투표 실패: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('투표 처리 중 오류:', error);
+                alert('투표 처리 중 오류가 발생했습니다.');
+            });
+    }
 
     // 답변 관리 컴포넌트
     document.addEventListener('alpine:init', () => {
@@ -637,8 +637,11 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // 페이지 새로고침하여 투표 결과 반영
-                            window.location.reload();
+                            // 페이지 새로고침 대신, 현재 answers 배열에서 해당 답변 찾아 투표 수만 업데이트
+                            const answer = this.answers.find(a => a.id === answerId);
+                            if (answer) {
+                                answer.voteCount = data.voteCount;
+                            }
                         } else {
                             alert('투표 실패: ' + data.message);
                         }
