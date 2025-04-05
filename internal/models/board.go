@@ -34,14 +34,14 @@ type Board struct {
 	bun.BaseModel `bun:"table:boards,alias:b"`
 
 	ID              int64     `bun:"id,pk,autoincrement" json:"id"`
-	Name            string    `bun:"name,notnull" json:"name"`                   // 게시판 이름
-	Slug            string    `bun:"slug,unique,notnull" json:"slug"`            // URL용 슬러그
-	Description     string    `bun:"description" json:"description"`             // 게시판 설명
-	BoardType       BoardType `bun:"board_type,notnull" json:"boardType"`        // 게시판 유형
-	TableName       string    `bun:"table_name,notnull,unique" json:"tableName"` // 실제 DB 테이블 이름
-	Active          bool      `bun:"active,notnull,default:true" json:"active"`
-	CommentsEnabled bool      `bun:"comments_enabled,notnull,default:true" json:"commentsEnabled"` // 댓글 기능 활성화 여부
-	AllowAnonymous  bool      `bun:"allow_anonymous,notnull,default:false" json:"allowAnonymous"`  // 익명 사용자 접근 허용 여부
+	Name            string    `bun:"name,notnull" json:"name"`                        // 게시판 이름
+	Slug            string    `bun:"slug,unique,notnull" json:"slug"`                 // URL용 슬러그
+	Description     string    `bun:"description" json:"description"`                  // 게시판 설명
+	BoardType       BoardType `bun:"board_type,notnull" json:"boardType"`             // 게시판 유형
+	TableName       string    `bun:"table_name,notnull,unique" json:"tableName"`      // 실제 DB 테이블 이름
+	Active          bool      `bun:"active,notnull" json:"active"`                    // 게시판 활성화 여부
+	CommentsEnabled bool      `bun:"comments_enabled,notnull" json:"commentsEnabled"` // 댓글 기능 활성화 여부
+	AllowAnonymous  bool      `bun:"allow_anonymous,notnull" json:"allowAnonymous"`   // 익명 사용자 접근 허용 여부
 	CreatedAt       time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
 	UpdatedAt       time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
 

@@ -21,7 +21,7 @@ import (
 func main() {
 	// 명령행 인자 파싱
 	driver := flag.String("driver", "", "데이터베이스 드라이버 (mysql 또는 postgres)")
-	operation := flag.String("op", "up", "마이그레이션 작업 (up, down, reset, status, create, redo, version)")
+	operation := flag.String("op", "up", "마이그레이션 작업 (up, down, reset, status, create, redo, purge, version)")
 	newMigration := flag.String("name", "", "새 마이그레이션 이름 (create 명령에만 사용)")
 	flag.Parse()
 
@@ -260,6 +260,26 @@ func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration str
 	case "redo":
 		fmt.Println("마지막 마이그레이션 재실행 중...")
 		err = goose.Redo(db, migrationsDir)
+	case "purge":
+		// 새로 추가한 명령: 모든 테이블 삭제
+		fmt.Println("모든 테이블 삭제 중...")
+		dbName := os.Getenv("DB_NAME")
+		if dbName == "" {
+			dbName = "go_board" // 기본값
+		}
+		err = dropAllTables(db, driver, dbName)
+		if err == nil {
+			// 마이그레이션 기록도 삭제
+			_, err = db.Exec("DROP TABLE IF EXISTS goose_db_version;")
+			if err != nil {
+				fmt.Printf("마이그레이션 기록 테이블 삭제 실패: %v\n", err)
+			} else {
+				fmt.Println("마이그레이션 기록 테이블 삭제됨")
+			}
+			// 마이그레이션 다시 적용
+			fmt.Println("마이그레이션 다시 적용 중...")
+			err = goose.Up(db, migrationsDir)
+		}
 	case "version":
 		fmt.Println("현재 마이그레이션 버전 확인 중...")
 		err = goose.Version(db, migrationsDir)
@@ -272,5 +292,97 @@ func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration str
 	}
 
 	fmt.Printf("마이그레이션 작업 '%s'가 성공적으로 완료되었습니다\n", operation)
+	return nil
+}
+
+// cmd/migrate/main.go 파일에 추가할 함수
+func dropAllTables(sqlDB *sql.DB, driver string, dbName string) error {
+	var query string
+	var rows *sql.Rows
+	var err error
+
+	switch driver {
+	case "postgres":
+		// PostgreSQL에서 모든 테이블 목록 가져오기
+		query = `
+            SELECT tablename FROM pg_tables 
+            WHERE schemaname = 'public' AND 
+            tablename != 'goose_db_version';
+        `
+		rows, err = sqlDB.Query(query)
+		if err != nil {
+			return fmt.Errorf("테이블 목록 조회 실패: %w", err)
+		}
+		defer rows.Close()
+
+		// 외래 키 제약 조건 비활성화
+		_, err = sqlDB.Exec("SET session_replication_role = 'replica';")
+		if err != nil {
+			return fmt.Errorf("외래 키 제약 비활성화 실패: %w", err)
+		}
+
+		// 모든 테이블 삭제
+		for rows.Next() {
+			var tableName string
+			if err := rows.Scan(&tableName); err != nil {
+				return fmt.Errorf("테이블 이름 읽기 실패: %w", err)
+			}
+
+			if tableName != "goose_db_version" {
+				_, err = sqlDB.Exec(fmt.Sprintf("DROP TABLE IF EXISTS \"%s\" CASCADE;", tableName))
+				if err != nil {
+					return fmt.Errorf("테이블 삭제 실패 (%s): %w", tableName, err)
+				}
+				fmt.Printf("테이블 삭제: %s\n", tableName)
+			}
+		}
+
+		// 외래 키 제약 조건 다시 활성화
+		_, err = sqlDB.Exec("SET session_replication_role = 'origin';")
+		if err != nil {
+			return fmt.Errorf("외래 키 제약 재활성화 실패: %w", err)
+		}
+
+	case "mysql", "mariadb":
+		// MySQL/MariaDB에서 모든 테이블 목록 가져오기
+		query = fmt.Sprintf("SHOW TABLES FROM `%s` WHERE Tables_in_%s != 'goose_db_version'", dbName, dbName)
+		rows, err = sqlDB.Query(query)
+		if err != nil {
+			return fmt.Errorf("테이블 목록 조회 실패: %w", err)
+		}
+		defer rows.Close()
+
+		// 외래 키 제약 조건 비활성화
+		_, err = sqlDB.Exec("SET FOREIGN_KEY_CHECKS = 0;")
+		if err != nil {
+			return fmt.Errorf("외래 키 검사 비활성화 실패: %w", err)
+		}
+
+		// 모든 테이블 삭제
+		for rows.Next() {
+			var tableName string
+			if err := rows.Scan(&tableName); err != nil {
+				return fmt.Errorf("테이블 이름 읽기 실패: %w", err)
+			}
+
+			if tableName != "goose_db_version" {
+				_, err = sqlDB.Exec(fmt.Sprintf("DROP TABLE IF EXISTS `%s`;", tableName))
+				if err != nil {
+					return fmt.Errorf("테이블 삭제 실패 (%s): %w", tableName, err)
+				}
+				fmt.Printf("테이블 삭제: %s\n", tableName)
+			}
+		}
+
+		// 외래 키 제약 조건 다시 활성화
+		_, err = sqlDB.Exec("SET FOREIGN_KEY_CHECKS = 1;")
+		if err != nil {
+			return fmt.Errorf("외래 키 검사 재활성화 실패: %w", err)
+		}
+
+	default:
+		return fmt.Errorf("지원하지 않는 데이터베이스 드라이버: %s", driver)
+	}
+
 	return nil
 }

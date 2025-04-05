@@ -51,13 +51,13 @@ CREATE TABLE IF NOT EXISTS board_fields (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS board_fields;
+DROP TABLE IF EXISTS board_fields CASCADE;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-DROP TABLE IF EXISTS boards;
+DROP TABLE IF EXISTS boards CASCADE;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS users CASCADE;
 -- +goose StatementEnd
