@@ -78,12 +78,6 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 	}
 
 	// 질문의 답변 수 업데이트
-	// 게시판 정보 조회
-	board, err := s.boardRepo.GetByID(ctx, boardID)
-	if err != nil {
-		return nil, err
-	}
-
 	// 질문 가져오기
 	post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
 	if err != nil {
@@ -108,7 +102,13 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 
 	// 게시물 업데이트 쿼리
 	setClause := "answer_count = ?"
-	params := []interface{}{answerCount, questionID}
+	params := []any{answerCount, questionID}
+
+	// 게시판 정보 조회
+	board, err := s.boardRepo.GetByID(ctx, boardID)
+	if err != nil {
+		return nil, err
+	}
 
 	// 질문 답변 수 업데이트 쿼리 실행
 	_, err = tx.NewUpdate().
@@ -377,8 +377,7 @@ func (s *qnaService) VoteQuestion(ctx context.Context, boardID, questionID, user
 	var existingVote models.QuestionVote
 	err = tx.NewSelect().
 		Model(&existingVote).
-		Where("board_id = ? AND question_id = ? AND user_id = ?",
-			boardID, questionID, userID).
+		Where("board_id = ? AND question_id = ? AND user_id = ?", boardID, questionID, userID).
 		Scan(ctx)
 
 	// var voteChange int
@@ -438,6 +437,23 @@ func (s *qnaService) VoteQuestion(ctx context.Context, boardID, questionID, user
 		Scan(ctx, &voteSum)
 	if err != nil {
 		return 0, err
+	}
+
+	// 게시판 정보 조회
+	board, err := s.boardRepo.GetByID(ctx, boardID)
+	if err != nil {
+		return 0, ErrBoardNotFound
+	}
+
+	// 질문의 vote_count 필드 업데이트
+	_, err = s.db.NewUpdate().
+		Table(board.TableName).
+		Set("vote_count = ?", voteSum).
+		Where("id = ?", questionID).
+		Exec(ctx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("투표 수 업데이트 실패: %w", err)
 	}
 
 	// 트랜잭션 커밋
