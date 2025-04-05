@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go-board/internal/models"
 	"go-board/internal/repository"
+	"go-board/internal/utils"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -88,15 +89,7 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 	answerCount := 1
 	if field, ok := post.Fields["answer_count"]; ok && field.Value != nil {
 		// 기존 값에 1 추가
-		var currentCount int
-		switch val := post.Fields["answer_count"].Value.(type) {
-		case int:
-			currentCount = val
-		case float64:
-			currentCount = int(val)
-		case string:
-			// 문자열을 숫자로 변환 시도 (필요한 경우)
-		}
+		currentCount := utils.InterfaceToInt(field.Value)
 		answerCount = currentCount + 1
 	}
 
@@ -152,14 +145,7 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 	// 베스트 답변 ID 가져오기
 	var bestAnswerID int64 = 0
 	if field, ok := post.Fields["best_answer_id"]; ok && field.Value != nil {
-		switch val := post.Fields["best_answer_id"].Value.(type) {
-		case int:
-			bestAnswerID = int64(val)
-		case int64:
-			bestAnswerID = val
-		case float64:
-			bestAnswerID = int64(val)
-		}
+		bestAnswerID = utils.InterfaceToInt64(post.Fields["best_answer_id"].Value)
 	}
 
 	// 답변 목록 조회
@@ -265,14 +251,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 	// 베스트 답변인 경우 표시 삭제
 	var bestAnswerID int64 = 0
 	if field, ok := post.Fields["best_answer_id"]; ok && field.Value != nil {
-		switch val := post.Fields["best_answer_id"].Value.(type) {
-		case int:
-			bestAnswerID = int64(val)
-		case int64:
-			bestAnswerID = val
-		case float64:
-			bestAnswerID = int64(val)
-		}
+		bestAnswerID = utils.InterfaceToInt64(post.Fields["best_answer_id"].Value)
 	}
 
 	if bestAnswerID == answerID {
@@ -305,24 +284,12 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 		return err
 	}
 
-	// 질문의 답변 수 업데이트
-	// answer_count 필드 값 계산
+	// 질문의 답변 수 업데이트 - answer_count 필드 값 계산
 	answerCount := 0
 	if field, ok := post.Fields["answer_count"]; ok && field.Value != nil {
 		// 기존 값에서 1 감소
-		var currentCount int
-		switch val := post.Fields["answer_count"].Value.(type) {
-		case int:
-			currentCount = val
-		case float64:
-			currentCount = int(val)
-		case string:
-			// 문자열을 숫자로 변환 시도 (필요한 경우)
-		}
-		answerCount = currentCount - 1
-		if answerCount < 0 {
-			answerCount = 0
-		}
+		currentCount := utils.InterfaceToInt(post.Fields["answer_count"].Value)
+		answerCount = max(currentCount-1, 0)
 	}
 
 	// 질문 답변 수 업데이트 쿼리 실행

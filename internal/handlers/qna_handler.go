@@ -106,10 +106,7 @@ func (h *QnAHandler) CreateAnswer(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"success": true,
-		"answer":  answer,
-	})
+	return c.JSON(fiber.Map{"success": true, "answer": answer})
 }
 
 // UpdateAnswer - 답변 수정 API
