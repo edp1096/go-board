@@ -604,6 +604,13 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		}
 	}
 
+	// 파일 업로드 확인
+	form, err := c.MultipartForm()
+	var hasNewFiles bool
+	if err == nil && form != nil && len(form.File["files"]) > 0 {
+		hasNewFiles = true
+	}
+
 	// 갤러리 게시판인 경우 기존 첨부 파일 확인
 	var hasExistingAttachments bool
 	var existingAttachments []*models.Attachment
@@ -636,8 +643,8 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 
 		// 갤러리 이미지 필드인 경우 특별 처리
 		if board.BoardType == models.BoardTypeGallery && field.FieldType == models.FieldTypeFile && field.Required {
-			// 기존 이미지가 있고 모두 삭제되지 않는 경우, 필수 검증 건너뛰기
-			if hasExistingAttachments {
+			// 새 파일이 업로드되었거나, 기존 이미지가 있고 모두 삭제되지 않는 경우 - 필수 검증 건너뛰기
+			if hasNewFiles || hasExistingAttachments {
 				// 값만 설정하고 필수 검증 건너뛰기
 				var fieldValue any = value
 				post.Fields[field.Name] = models.DynamicField{
@@ -713,8 +720,7 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	}
 
 	// 파일 첨부 처리
-	form, err := c.MultipartForm()
-	if err == nil && form != nil && len(form.File["files"]) > 0 {
+	if hasNewFiles && form != nil {
 		files := form.File["files"]
 
 		// 업로드 경로 생성
