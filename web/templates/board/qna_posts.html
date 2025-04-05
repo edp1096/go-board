@@ -53,21 +53,13 @@
                     <div class="mr-4 flex items-center space-x-4">
                         <div class="flex flex-col items-center">
                             <span class="text-lg font-medium text-gray-900">
-                                {{with index .Fields "vote_count"}}
-                                {{ or .Value 0 }}
-                                {{else}}
-                                0
-                                {{end}}
+                                {{with index .Fields "vote_count"}} {{or .Value 0}} {{else}} 0 {{end}}
                             </span>
                             <span class="text-xs text-gray-500">투표</span>
                         </div>
                         <div class="flex flex-col items-center">
                             <span class="text-lg font-medium text-gray-900">
-                                {{with index .Fields "answer_count"}}
-                                {{ or .Value 0 }}
-                                {{else}}
-                                0
-                                {{end}}
+                                {{with index .Fields "answer_count"}} {{or .Value 0}} {{else}} 0 {{end}}
                             </span>
                             <span class="text-xs text-gray-500">답변</span>
                         </div>
