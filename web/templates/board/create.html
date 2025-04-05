@@ -56,31 +56,31 @@
                         
                             <!-- 기존 첨부 파일 목록 -->
                             <div class="mt-4" x-data="{ 
-                                                        attachments: [], 
-                                                        deletedFiles: [], // 삭제된 파일들의 전체 정보 저장
-                                                        markForDeletion(file) {
-                                                            this.deletedFiles.push(file);
-                                                            this.attachments = this.attachments.filter(f => f.id !== file.id);
-                                                        },
-                                                        restoreFile(fileId) {
-                                                            // 삭제 목록에서 파일 찾기
-                                                            const fileToRestore = this.deletedFiles.find(file => file.id === fileId);
-                                                            if (fileToRestore) {
-                                                                // 원래 목록에 복원
-                                                                this.attachments.push(fileToRestore);
-                                                                // 정렬 (필요시)
-                                                                this.attachments.sort((a, b) => a.id - b.id);
-                                                                // 삭제 목록에서 제거
-                                                                this.deletedFiles = this.deletedFiles.filter(file => file.id !== fileId);
-                                                            }
-                                                        }
-                                                    }" x-init="
-                                                        fetch('/api/boards/{{$.board.ID}}/posts/{{$.post.ID}}/attachments')
-                                                            .then(res => res.json())
-                                                            .then(data => {
-                                                                if (data.success) attachments = data.attachments || [];
-                                                            })
-                                                    ">
+                                attachments: [], 
+                                deletedFiles: [], // 삭제된 파일들의 전체 정보 저장
+                                markForDeletion(file) {
+                                    this.deletedFiles.push(file);
+                                    this.attachments = this.attachments.filter(f => f.id !== file.id);
+                                },
+                                restoreFile(fileId) {
+                                    // 삭제 목록에서 파일 찾기
+                                    const fileToRestore = this.deletedFiles.find(file => file.id === fileId);
+                                    if (fileToRestore) {
+                                        // 원래 목록에 복원
+                                        this.attachments.push(fileToRestore);
+                                        // 정렬 (필요시)
+                                        this.attachments.sort((a, b) => a.id - b.id);
+                                        // 삭제 목록에서 제거
+                                        this.deletedFiles = this.deletedFiles.filter(file => file.id !== fileId);
+                                    }
+                                }
+                            }" x-init="
+                                fetch('/api/boards/{{$.board.ID}}/posts/{{$.post.ID}}/attachments')
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.success) attachments = data.attachments || [];
+                                    })
+                            ">
                         
                                 <!-- 선택된 새 파일 목록 표시 -->
                                 <div class="mt-4" x-show="fileNames.length > 0">
