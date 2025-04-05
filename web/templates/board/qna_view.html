@@ -1,0 +1,622 @@
+<!-- web/templates/board/qna_view.html -->
+<input type="hidden" id="boardId" value="{{.board.ID}}">
+<input type="hidden" id="postId" value="{{.post.ID}}">
+<input type="hidden" id="csrfToken" value="{{.csrf}}">
+
+<div>
+    <div class="mb-4">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <div>
+                        <a href="/boards" class="text-gray-400 hover:text-gray-500">게시판 목록</a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <svg class="flex-shrink-0 h-5 w-5 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                        </svg>
+                        <a href="/boards/{{.board.ID}}/posts" class="ml-4 text-gray-400 hover:text-gray-500">{{.board.Name}}</a>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <!-- 게시물 헤더 -->
+        <div class="border-b border-gray-200 px-6 py-4">
+            <div class="flex justify-between items-start">
+                <h1 class="text-2xl font-bold text-gray-900">{{.post.Title}}</h1>
+
+                <!-- 질문 상태 표시 -->
+                <div>
+                    {{$status := ""}}
+                    {{if .post.Fields.status}}
+                    {{$status = .post.Fields.status.Value}}
+                    {{end}}
+
+                    {{if eq $status "solved"}}
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        해결됨
+                    </span>
+                    {{else}}
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        미해결
+                    </span>
+                    {{end}}
+                </div>
+            </div>
+
+            <div class="mt-2 flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="text-sm text-gray-500">
+                        <span>{{.post.Username}}</span>
+                        <span class="mx-1">·</span>
+                        <span>{{.post.CreatedAt.Format "2006-01-02 15:04"}}</span>
+                        {{if ne .post.UpdatedAt .post.CreatedAt}}
+                        <span class="mx-1">·</span>
+                        <span>수정됨: {{.post.UpdatedAt.Format "2006-01-02 15:04"}}</span>
+                        {{end}}
+                    </div>
+                </div>
+                <div class="text-sm text-gray-500">
+                    <span>조회수 {{.post.ViewCount}}</span>
+                </div>
+            </div>
+
+            <!-- 태그 표시 -->
+            {{if .post.Fields.tags}}
+            {{$tagsStr := .post.Fields.tags.Value}}
+            {{if $tagsStr}}
+            <div class="mt-2 flex flex-wrap gap-2">
+                {{$tags := split $tagsStr ","}}
+                {{range $tag := $tags}}
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                    {{$tag}}
+                </span>
+                {{end}}
+            </div>
+            {{end}}
+            {{end}}
+        </div>
+
+        <!-- 질문 내용 -->
+        <div class="px-6 py-4">
+            <!-- 투표 및 내용 구조 -->
+            <div class="flex gap-6">
+                <!-- 투표 부분 -->
+                <div class="flex flex-col items-center w-10">
+                    {{if .user}}
+                    <button type="button" onclick="voteQuestion('up')" class="text-gray-500 hover:text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                    </button>
+                    {{end}}
+
+                    <span class="my-2 text-xl font-semibold">
+                        {{if .post.Fields.vote_count}}{{.post.Fields.vote_count.Value}}{{else}}0{{end}}
+                    </span>
+
+                    {{if .user}}
+                    <button type="button" onclick="voteQuestion('down')" class="text-gray-500 hover:text-red-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    {{end}}
+                </div>
+
+                <!-- 본문 -->
+                <div class="flex-1">
+                    <div class="prose max-w-none">
+                        <!-- HTML 태그를 그대로 렌더링하기 위해 안전한 방식으로 출력 -->
+                        <div id="post-content"></div>
+                        <script>
+                            // 서버에서 받은 HTML 내용을 안전하게 설정
+                            document.getElementById('post-content').innerHTML = `{{.post.Content}}`;
+                        </script>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 첨부 파일 목록 -->
+            <div class="mt-4" x-data="{ attachments: [] }" x-init="
+                fetch('/api/boards/{{$.board.ID}}/posts/{{$.post.ID}}/attachments')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) attachments = data.attachments || [];
+                    })
+            ">
+                <div x-show="attachments.length > 0">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">첨부 파일</h4>
+                    <ul class="border border-gray-200 rounded-md divide-y divide-gray-200">
+                        <template x-for="file in attachments" :key="file.id">
+                            <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
+                                <div class="flex items-center">
+                                    <svg class="flex-shrink-0 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    </svg>
+                                    <span class="ml-2 flex-1 truncate" x-text="file.fileName"></span>
+                                    <span class="ml-2 flex-shrink-0 text-gray-400" x-text="formatFileSize(file.fileSize)"></span>
+                                </div>
+                                <div class="ml-4 flex-shrink-0">
+                                    <a :href="'/attachments/' + file.id + '/download'" class="font-medium text-blue-600 hover:text-blue-500">
+                                        다운로드
+                                    </a>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 질문 푸터 - 작성자 또는 관리자만 볼 수 있는 기능 -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div class="flex justify-between">
+                <div>
+                    <a href="/boards/{{.board.ID}}/posts" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        목록
+                    </a>
+                </div>
+
+                {{if .user}}
+                {{if or (eq .user.ID .post.UserID) (eq .user.Role "admin")}}
+                <div class="flex space-x-2">
+                    <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        수정
+                    </a>
+                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                        삭제
+                    </button>
+
+                    <!-- 상태 변경 버튼 (질문 작성자만) -->
+                    {{if eq .user.ID .post.UserID}}
+                    <div class="dropdown" x-data="{ open: false }">
+                        <button @click="open = !open" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            상태 변경
+                            <svg class="ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                            <div class="py-1">
+                                <a href="#" onclick="changeQuestionStatus('solved')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">해결됨으로 표시</a>
+                                <a href="#" onclick="changeQuestionStatus('unsolved')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">미해결로 표시</a>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+                {{end}}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 답변 섹션 -->
+<div class="mt-8" id="answers">
+    <h2 class="text-xl font-bold mb-4">
+        답변
+        <span class="text-gray-500 text-lg">
+            {{if .post.Fields.answer_count}}{{.post.Fields.answer_count.Value}}{{else}}0{{end}}개
+        </span>
+    </h2>
+
+    <!-- 답변 목록 -->
+    <div x-data="answerManager()" class="space-y-6">
+        <!-- 로딩 표시 -->
+        <div x-show="loading" class="text-center py-4">
+            <svg class="animate-spin h-5 w-5 text-gray-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2 text-sm text-gray-500">답변을 불러오는 중...</p>
+        </div>
+
+        <!-- 오류 메시지 -->
+        <div x-show="error" class="bg-red-50 p-4 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700" x-text="error"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 답변 없음 메시지 -->
+        <div x-show="!loading && !error && answers.length === 0" class="text-center py-8">
+            <p class="text-gray-500">아직 답변이 없습니다. 첫 답변을 작성해보세요!</p>
+        </div>
+
+        <!-- 답변 표시 -->
+        <template x-for="answer in answers" :key="answer.id">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden" :class="{ 'border-2 border-green-500': answer.isBestAnswer }">
+                <!-- 답변 정보 -->
+                <div class="relative p-6">
+                    <!-- 베스트 답변 표시 -->
+                    <div x-show="answer.isBestAnswer" class="absolute top-0 right-0 mt-2 mr-2">
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                            베스트 답변
+                        </span>
+                    </div>
+
+                    <div class="flex gap-6">
+                        <!-- 투표 부분 -->
+                        <div class="flex flex-col items-center w-10">
+                            {{if .user}}
+                            <button type="button" @click="voteAnswer(answer.id, 'up')" class="text-gray-500 hover:text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {{end}}
+
+                            <span class="my-2 text-xl font-semibold" x-text="answer.voteCount || 0"></span>
+
+                            {{if .user}}
+                            <button type="button" @click="voteAnswer(answer.id, 'down')" class="text-gray-500 hover:text-red-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            {{end}}
+                        </div>
+
+                        <!-- 답변 내용 부분 -->
+                        <div class="flex-1">
+                            <div class="flex space-x-3">
+                                <div class="flex-shrink-0">
+                                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                        <span class="text-sm font-medium text-gray-500" x-text="answer.username ? answer.username.charAt(0) : '?'"></span>
+                                    </div>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-medium text-gray-900" x-text="answer.username"></div>
+                                    <div class="mt-1 text-sm text-gray-500" x-text="formatDate(answer.createdAt)"></div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 prose max-w-none" x-html="answer.content"></div>
+                        </div>
+                    </div>
+
+                    <!-- 답변 액션 버튼 -->
+                    <div class="mt-4 flex justify-end">
+                        <!-- 베스트 답변 선택 버튼 (질문 작성자만) -->
+                        {{if eq .user.ID .post.UserID}}
+                        <template x-if="!answer.isBestAnswer">
+                            <button @click="selectBestAnswer(answer.id)" class="mr-2 inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200">
+                                베스트 답변으로 선택
+                            </button>
+                        </template>
+                        {{end}}
+
+                        <!-- 수정/삭제 버튼 (답변 작성자 또는 관리자만) -->
+                        <template x-if="answer.userId == {{.user.ID}} || {{if eq .user.Role " admin"}}true{{else}}false{{end}}">
+                            <div class="flex items-center space-x-2">
+                                <button @click="editAnswer(answer.id)" class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200">
+                                    수정
+                                </button>
+                                <button @click="deleteAnswer(answer.id)" class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200">
+                                    삭제
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- 답변 작성 폼 -->
+    {{if .user}}
+    <div class="mt-8">
+        <h3 class="text-lg font-medium mb-4">답변 작성</h3>
+        <form id="answerForm" x-data="{ content: '', submitting: false }" @submit.prevent="submitAnswer">
+            <div class="mb-4">
+                <label for="answerContent" class="sr-only">답변 내용</label>
+                <textarea id="answerContent" name="content" rows="6" x-model="content" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="답변을 작성해주세요..." required></textarea>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                    <span x-show="!submitting">답변 등록</span>
+                    <span x-show="submitting" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        등록 중...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+    {{else}}
+    <div class="mt-8 bg-gray-50 p-4 rounded-md text-center">
+        <p class="text-gray-600">답변을 작성하려면 <a href="/auth/login?redirect=/boards/{{.board.ID}}/posts/{{.post.ID}}#answers" class="text-blue-600 hover:text-blue-500">로그인</a>이 필요합니다.</p>
+    </div>
+    {{end}}
+</div>
+
+<!-- Q&A 게시판용 스크립트 -->
+<script>
+    // 파일 크기 포맷팅 함수
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // 날짜 포맷팅 함수
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString();
+    }
+
+    // 질문 투표 함수
+    function voteQuestion(direction) {
+        const boardId = document.getElementById('boardId').value;
+        const postId = document.getElementById('postId').value;
+        const csrfToken = document.getElementById('csrfToken').value;
+
+        fetch(`/api/boards/${boardId}/posts/${postId}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ direction: direction })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침하여 투표 결과 반영
+                    window.location.reload();
+                } else {
+                    alert('투표 실패: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('투표 처리 중 오류:', error);
+                alert('투표 처리 중 오류가 발생했습니다.');
+            });
+    }
+
+    // 질문 상태 변경 함수
+    function changeQuestionStatus(status) {
+        const boardId = document.getElementById('boardId').value;
+        const postId = document.getElementById('postId').value;
+        const csrfToken = document.getElementById('csrfToken').value;
+
+        fetch(`/api/boards/${boardId}/posts/${postId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ status: status })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침하여 상태 변경 반영
+                    window.location.reload();
+                } else {
+                    alert('상태 변경 실패: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('상태 변경 중 오류:', error);
+                alert('상태 변경 중 오류가 발생했습니다.');
+            });
+    }
+
+    // 답변 관리 컴포넌트
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('answerManager', () => ({
+            answers: [],
+            loading: true,
+            error: null,
+
+            init() {
+                this.loadAnswers();
+            },
+
+            loadAnswers() {
+                const boardId = document.getElementById('boardId').value;
+                const postId = document.getElementById('postId').value;
+
+                // 베스트 답변 ID 가져오기
+                const bestAnswerId = {{ if .post.Fields.best_answer_id
+        }}{{ .post.Fields.best_answer_id.Value }}{{ else }}0{{ end }};
+
+    fetch(`/api/boards/${boardId}/posts/${postId}/answers`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // 베스트 답변 플래그 추가
+                this.answers = data.answers.map(answer => ({
+                    ...answer,
+                    isBestAnswer: answer.id === bestAnswerId
+                }));
+
+                // 베스트 답변이 있으면 맨 위로 정렬
+                if (bestAnswerId > 0) {
+                    this.answers.sort((a, b) => {
+                        if (a.isBestAnswer) return -1;
+                        if (b.isBestAnswer) return 1;
+                        return 0;
+                    });
+                }
+            } else {
+                this.error = data.message;
+            }
+            this.loading = false;
+        })
+        .catch(err => {
+            console.error('답변 로딩 중 오류:', err);
+            this.error = '답변을 불러오는 중 오류가 발생했습니다.';
+            this.loading = false;
+        });
+            },
+
+    submitAnswer() {
+        const boardId = document.getElementById('boardId').value;
+        const postId = document.getElementById('postId').value;
+        const csrfToken = document.getElementById('csrfToken').value;
+        const content = document.getElementById('answerContent').value;
+
+        this.submitting = true;
+
+        fetch(`/api/boards/${boardId}/posts/${postId}/answers`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ content: content })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침하여 새 답변 표시
+                    window.location.reload();
+                } else {
+                    alert('답변 등록 실패: ' + data.message);
+                    this.submitting = false;
+                }
+            })
+            .catch(error => {
+                console.error('답변 등록 중 오류:', error);
+                alert('답변 등록 중 오류가 발생했습니다.');
+                this.submitting = false;
+            });
+    },
+
+    editAnswer(answerId) {
+        // 해당 답변 찾기
+        const answer = this.answers.find(a => a.id === answerId);
+        if (!answer) return;
+
+        // 새 내용 입력 받기
+        const newContent = prompt('답변을 수정합니다:', answer.content);
+        if (newContent === null || newContent === answer.content) return;
+
+        const csrfToken = document.getElementById('csrfToken').value;
+
+        fetch(`/api/answers/${answerId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ content: newContent })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침하여 수정된 답변 표시
+                    window.location.reload();
+                } else {
+                    alert('답변 수정 실패: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('답변 수정 중 오류:', error);
+                alert('답변 수정 중 오류가 발생했습니다.');
+            });
+    },
+
+    deleteAnswer(answerId) {
+        if (!confirm('답변을 삭제하시겠습니까?')) return;
+
+        const csrfToken = document.getElementById('csrfToken').value;
+
+        fetch(`/api/answers/${answerId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-Token': csrfToken
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침하여 삭제된 답변 반영
+                    window.location.reload();
+                } else {
+                    alert('답변 삭제 실패: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('답변 삭제 중 오류:', error);
+                alert('답변 삭제 중 오류가 발생했습니다.');
+            });
+    },
+
+    voteAnswer(answerId, direction) {
+        const csrfToken = document.getElementById('csrfToken').value;
+
+        fetch(`/api/answers/${answerId}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ direction: direction })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침하여 투표 결과 반영
+                    window.location.reload();
+                } else {
+                    alert('투표 실패: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('투표 처리 중 오류:', error);
+                alert('투표 처리 중 오류가 발생했습니다.');
+            });
+    },
+
+    selectBestAnswer(answerId) {
+        const boardId = document.getElementById('boardId').value;
+        const postId = document.getElementById('postId').value;
+        const csrfToken = document.getElementById('csrfToken').value;
+
+        fetch(`/api/boards/${boardId}/posts/${postId}/best-answer`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ answerId: answerId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 페이지 새로고침하여 베스트 답변 반영
+                    window.location.reload();
+                } else {
+                    alert('베스트 답변 선택 실패: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('베스트 답변 선택 중 오류:', error);
+                alert('베스트 답변 선택 중 오류가 발생했습니다.');
+            });
+    }
+        }));
+    });
+</script>

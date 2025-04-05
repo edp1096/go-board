@@ -70,13 +70,18 @@ func main() {
 	// 공통 설정
 	engine.Reload(cfg.Debug)
 
-	// 템플릿 함수 등록
+	// 템플릿 함수
 	engine.AddFunc("json", func(v any) string {
 		jsonBytes, err := json.Marshal(v)
 		if err != nil {
 			return "Error: Could not marshal JSON"
 		}
 		return string(jsonBytes)
+	})
+
+	// 문자열 분할 함수
+	engine.AddFunc("split", func(s, sep string) []string {
+		return utils.Split(s, sep)
 	})
 
 	// 바이트 배열을 문자열로 변환하는 도우미 함수 추가
@@ -158,14 +163,16 @@ func main() {
 	boardService := service.NewBoardService(boardRepo, db)
 	dynamicBoardService := service.NewDynamicBoardService(db)
 	commentService := service.NewCommentService(commentRepo, boardRepo)
+	qnaService := service.NewQnAService(db, boardRepo, boardService)
 	uploadService := service.NewUploadService(attachmentRepo)
 
 	// 핸들러 초기화
 	authHandler := handlers.NewAuthHandler(authService)
 	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService)
-	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 	commentHandler := handlers.NewCommentHandler(commentService)
+	qnaHandler := handlers.NewQnAHandler(boardService, qnaService)
 	uploadHandler := handlers.NewUploadHandler(uploadService, boardService)
+	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 
 	// 인증 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
@@ -203,8 +210,9 @@ func main() {
 		app,
 		authHandler,
 		boardHandler,
-		uploadHandler,
 		commentHandler,
+		qnaHandler,
+		uploadHandler,
 		adminHandler,
 		authMiddleware,
 		boardAccessMiddleware,
@@ -311,8 +319,9 @@ func setupRoutes(
 	app *fiber.App,
 	authHandler *handlers.AuthHandler,
 	boardHandler *handlers.BoardHandler,
-	uploadHandler *handlers.UploadHandler,
 	commentHandler *handlers.CommentHandler,
+	qnaHandler *handlers.QnAHandler,
+	uploadHandler *handlers.UploadHandler,
 	adminHandler *handlers.AdminHandler,
 	authMiddleware middleware.AuthMiddleware,
 	boardAccessMiddleware middleware.BoardAccessMiddleware,
@@ -391,6 +400,20 @@ func setupRoutes(
 	commentActions := api.Group("/comments/:commentID", authMiddleware.RequireAuth)
 	commentActions.Put("/", commentHandler.UpdateComment)
 	commentActions.Delete("/", commentHandler.DeleteComment)
+
+	// Q&A 관련 API 라우트
+	qnaAPI := api.Group("/boards/:boardID/posts/:postID")
+	qnaAPI.Get("/answers", qnaHandler.GetAnswers)
+	qnaAPI.Post("/answers", authMiddleware.RequireAuth, qnaHandler.CreateAnswer)
+	qnaAPI.Put("/status", authMiddleware.RequireAuth, qnaHandler.UpdateQuestionStatus)
+	qnaAPI.Put("/best-answer", authMiddleware.RequireAuth, qnaHandler.SetBestAnswer)
+	qnaAPI.Post("/vote", authMiddleware.RequireAuth, qnaHandler.VoteQuestion)
+
+	// 답변 관련 API 라우트
+	answerAPI := api.Group("/answers/:answerID")
+	answerAPI.Put("/", authMiddleware.RequireAuth, qnaHandler.UpdateAnswer)
+	answerAPI.Delete("/", authMiddleware.RequireAuth, qnaHandler.DeleteAnswer)
+	answerAPI.Post("/vote", authMiddleware.RequireAuth, qnaHandler.VoteAnswer)
 
 	// 첨부파일 다운로드
 	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)

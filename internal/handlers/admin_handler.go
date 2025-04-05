@@ -185,6 +185,77 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 			}
 			fields = append(fields, galleryImagesField)
 		}
+	} else if boardType == models.BoardTypeQnA {
+		// Q&A 게시판을 위한 필드 추가
+		// 1. 상태 필드
+		statusField := &models.BoardField{
+			Name:        "status",
+			DisplayName: "상태",
+			ColumnName:  "status",
+			FieldType:   models.FieldTypeSelect,
+			Required:    true,
+			Sortable:    true,
+			Searchable:  true,
+			Options:     `[{"value":"unsolved","label":"미해결"},{"value":"solved","label":"해결됨"}]`,
+			SortOrder:   len(fields) + 1,
+		}
+		fields = append(fields, statusField)
+
+		// 2. 태그 필드
+		tagsField := &models.BoardField{
+			Name:        "tags",
+			DisplayName: "태그",
+			ColumnName:  "tags",
+			FieldType:   models.FieldTypeText,
+			Required:    false,
+			Sortable:    false,
+			Searchable:  true,
+			Options:     "",
+			SortOrder:   len(fields) + 2,
+		}
+		fields = append(fields, tagsField)
+
+		// 3. 답변 수 필드 (시스템이 자동 관리)
+		answerCountField := &models.BoardField{
+			Name:        "answer_count",
+			DisplayName: "답변 수",
+			ColumnName:  "answer_count",
+			FieldType:   models.FieldTypeNumber,
+			Required:    false,
+			Sortable:    true,
+			Searchable:  false,
+			Options:     "",
+			SortOrder:   len(fields) + 3,
+		}
+		fields = append(fields, answerCountField)
+
+		// 4. 투표 수 필드 (시스템이 자동 관리)
+		voteCountField := &models.BoardField{
+			Name:        "vote_count",
+			DisplayName: "투표 수",
+			ColumnName:  "vote_count",
+			FieldType:   models.FieldTypeNumber,
+			Required:    false,
+			Sortable:    true,
+			Searchable:  false,
+			Options:     "",
+			SortOrder:   len(fields) + 4,
+		}
+		fields = append(fields, voteCountField)
+
+		// 5. 베스트 답변 ID 필드 (시스템이 자동 관리)
+		bestAnswerField := &models.BoardField{
+			Name:        "best_answer_id",
+			DisplayName: "베스트 답변 ID",
+			ColumnName:  "best_answer_id",
+			FieldType:   models.FieldTypeNumber,
+			Required:    false,
+			Sortable:    false,
+			Searchable:  false,
+			Options:     "",
+			SortOrder:   len(fields) + 5,
+		}
+		fields = append(fields, bestAnswerField)
 	}
 
 	// 트랜잭션 처리가 필요하지만 간단히 처리

@@ -85,9 +85,6 @@ func (h *BoardHandler) GetBoard(c *fiber.Ctx) error {
 }
 
 // ListPosts 게시물 목록 조회
-// internal/handlers/board_handler.go의 ListPosts 메서드 수정
-
-// ListPosts 게시물 목록 조회
 func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
 	if err != nil {
@@ -126,12 +123,20 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	// 검색 파라미터
 	query := c.Query("q")
 
+	// Q&A 게시판 필터 파라미터
+	status := c.Query("status")
+
 	var posts []*models.DynamicPost
 	var total int
 
 	// 검색 또는 일반 목록 조회
-	if query != "" {
-		posts, total, err = h.boardService.SearchPosts(c.Context(), boardID, query, page, pageSize)
+	if query != "" || (board.BoardType == models.BoardTypeQnA && status != "") {
+		// Q&A 게시판인 경우 status 필터를 추가
+		if board.BoardType == models.BoardTypeQnA && status != "" {
+			posts, total, err = h.boardService.SearchPostsWithStatus(c.Context(), boardID, query, status, page, pageSize)
+		} else {
+			posts, total, err = h.boardService.SearchPosts(c.Context(), boardID, query, page, pageSize)
+		}
 	} else {
 		posts, total, err = h.boardService.ListPosts(c.Context(), boardID, page, pageSize, sortField, sortDir)
 	}
@@ -190,6 +195,7 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 		"sortField":  sortField,
 		"sortDir":    sortDir,
 		"query":      query,
+		"status":     status,
 	})
 }
 
@@ -233,7 +239,13 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		})
 	}
 
-	return utils.RenderWithUser(c, "board/view", fiber.Map{
+	// 템플릿 선택
+	templateName := "board/view"
+	if board.BoardType == models.BoardTypeQnA {
+		templateName = "board/qna_view"
+	}
+
+	return utils.RenderWithUser(c, templateName, fiber.Map{
 		"title":          post.Title,
 		"board":          board,
 		"post":           post,

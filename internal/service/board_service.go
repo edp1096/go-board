@@ -46,6 +46,9 @@ type BoardService interface {
 
 	// 썸네일 관련
 	GetPostThumbnails(ctx context.Context, boardID int64, postIDs []int64) (map[int64]string, error)
+
+	// Q&A 관련
+	SearchPostsWithStatus(ctx context.Context, boardID int64, query, status string, page, pageSize int) ([]*models.DynamicPost, int, error)
 }
 
 type boardService struct {
@@ -647,4 +650,183 @@ func (s *boardService) GetPostThumbnails(ctx context.Context, boardID int64, pos
 	}
 
 	return thumbnails, nil
+}
+
+// 메서드 구현
+func (s *boardService) SearchPostsWithStatus(ctx context.Context, boardID int64, query, status string, page, pageSize int) ([]*models.DynamicPost, int, error) {
+	// 게시판 정보 조회
+	board, err := s.boardRepo.GetByID(ctx, boardID)
+	if err != nil {
+		return nil, 0, ErrBoardNotFound
+	}
+
+	// 검색 가능한 필드 조회
+	var searchableFields []*models.BoardField
+	err = s.db.NewSelect().
+		Model(&searchableFields).
+		Where("board_id = ? AND searchable = ?", boardID, true).
+		Order("sort_order ASC").
+		Scan(ctx)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 카운트 쿼리용 조건 (별칭 없음)
+	var countConditions []string
+	var countParams []any
+
+	// 선택 쿼리용 조건 (p. 별칭 포함)
+	var selectConditions []string
+	var selectParams []any
+
+	// 검색어가 있는 경우 검색 조건 추가
+	if query != "" {
+		// 제목 및 내용 검색
+		countConditions = append(countConditions, "title LIKE ?", "content LIKE ?")
+		selectConditions = append(selectConditions, "p.title LIKE ?", "p.content LIKE ?")
+
+		// 검색 패턴 생성
+		searchPattern := "%" + query + "%"
+		countParams = append(countParams, searchPattern, searchPattern)
+		selectParams = append(selectParams, searchPattern, searchPattern)
+
+		// 동적 필드에 대한 검색 조건 추가
+		for _, field := range searchableFields {
+			if field.Name != "status" { // 상태는 별도로 처리
+				countConditions = append(countConditions, fmt.Sprintf("%s LIKE ?", field.ColumnName))
+				selectConditions = append(selectConditions, fmt.Sprintf("p.%s LIKE ?", field.ColumnName))
+				countParams = append(countParams, searchPattern)
+				selectParams = append(selectParams, searchPattern)
+			}
+		}
+	}
+
+	// 상태 필터 추가
+	if status != "" {
+		countConditions = append(countConditions, "status = ?")
+		selectConditions = append(selectConditions, "p.status = ?")
+		countParams = append(countParams, status)
+		selectParams = append(selectParams, status)
+	}
+
+	// 각각의 WHERE 절 생성
+	var countWhereClause string
+	var selectWhereClause string
+
+	if len(countConditions) > 0 {
+		if query != "" && status != "" {
+			// 검색어와 상태 모두 있는 경우
+			countWhereClause = "(" + strings.Join(countConditions[:len(countConditions)-1], " OR ") + ") AND " + countConditions[len(countConditions)-1]
+			selectWhereClause = "(" + strings.Join(selectConditions[:len(selectConditions)-1], " OR ") + ") AND " + selectConditions[len(selectConditions)-1]
+		} else {
+			// 검색어나 상태 중 하나만 있는 경우
+			countWhereClause = strings.Join(countConditions, " OR ")
+			selectWhereClause = strings.Join(selectConditions, " OR ")
+		}
+	}
+
+	// 페이지네이션 계산
+	offset := (page - 1) * pageSize
+
+	// 총 게시물 수 조회
+	var countQuery *bun.SelectQuery
+	tableName := board.TableName
+
+	countQuery = s.db.NewSelect().
+		Table(tableName).
+		ColumnExpr("COUNT(*) AS count")
+
+	if countWhereClause != "" {
+		countQuery = countQuery.Where(countWhereClause, countParams...)
+	}
+
+	var count int
+	err = countQuery.Scan(ctx, &count)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 게시물 목록 조회
+	var selectQuery *bun.SelectQuery
+	var tableExpr string
+
+	if s.isPostgres() {
+		tableExpr = fmt.Sprintf("%s AS p", board.TableName)
+	} else {
+		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
+	}
+
+	selectQuery = s.db.NewSelect().
+		TableExpr(tableExpr).
+		Column("p.*").
+		ColumnExpr("u.username").
+		Join("LEFT JOIN users AS u ON u.id = p.user_id")
+
+	if selectWhereClause != "" {
+		selectQuery = selectQuery.Where(selectWhereClause, selectParams...)
+	}
+
+	selectQuery = selectQuery.
+		OrderExpr("p.created_at DESC").
+		Limit(pageSize).
+		Offset(offset)
+
+	// 쿼리 실행 및 결과 처리
+	var rows []map[string]any
+	err = selectQuery.Scan(ctx, &rows)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 게시판 필드 정보 조회
+	fields, err := s.boardRepo.GetFieldsByBoardID(ctx, boardID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 결과 변환
+	validPosts := make([]*models.DynamicPost, 0, len(rows))
+	for _, row := range rows {
+		// ID 값 확인
+		if row["id"] == nil {
+			continue
+		}
+
+		// 타입 변환에 유틸리티 함수 사용
+		postID := utils.InterfaceToInt64(row["id"])
+		if postID == 0 {
+			continue
+		}
+
+		post := &models.DynamicPost{
+			ID:        postID,
+			Title:     utils.InterfaceToString(row["title"]),
+			Content:   utils.InterfaceToString(row["content"]),
+			UserID:    utils.InterfaceToInt64(row["user_id"]),
+			Username:  utils.InterfaceToString(row["username"]),
+			ViewCount: utils.InterfaceToInt(row["view_count"]),
+			CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
+			UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
+			Fields:    make(map[string]models.DynamicField),
+			RawData:   row,
+		}
+
+		// 동적 필드 처리
+		for _, field := range fields {
+			if val, ok := row[field.ColumnName]; ok {
+				post.Fields[field.Name] = models.DynamicField{
+					Name:       field.Name,
+					ColumnName: field.ColumnName,
+					Value:      val,
+					FieldType:  field.FieldType,
+					Required:   field.Required,
+				}
+			}
+		}
+
+		validPosts = append(validPosts, post)
+	}
+
+	return validPosts, count, nil
 }
