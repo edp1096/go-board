@@ -9,7 +9,6 @@ import (
 	"go-board/internal/models"
 	"go-board/internal/repository"
 	"go-board/internal/utils"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -405,8 +404,6 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 		OrderExpr(fmt.Sprintf("p.%s %s", sortField, sortDir)).
 		Limit(pageSize).
 		Offset(offset)
-
-	log.Println(query)
 
 	// 쿼리 실행
 	var rows []map[string]any

@@ -181,7 +181,7 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	if board.BoardType == models.BoardTypeGallery {
 		templateName = "board/gallery_posts"
 	} else if board.BoardType == models.BoardTypeQnA {
-		templateName = "board/qna_posts" // 아직 구현되지 않음
+		templateName = "board/qna_posts"
 	}
 
 	return utils.RenderWithUser(c, templateName, fiber.Map{
