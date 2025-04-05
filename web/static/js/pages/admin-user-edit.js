@@ -34,13 +34,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (password) {
             data.password = password;
         }
+
+        // CSRF 토큰 가져오기
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         
         try {
             const response = await fetch(`/admin/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': formData.get('csrf'),
+                    'X-CSRF-Token': csrfToken,
                 },
                 body: JSON.stringify(data)
             });

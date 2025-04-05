@@ -1,7 +1,6 @@
 <!-- web/templates/board/view.html -->
 <input type="hidden" id="boardId" value="{{.board.ID}}">
 <input type="hidden" id="postId" value="{{.post.ID}}">
-<input type="hidden" id="csrfToken" value="{{.csrf}}">
 
 <div>
     <div class="mb-4">
@@ -148,10 +147,13 @@
             function deleteAttachment(id) {
                 if (!confirm('첨부 파일을 삭제하시겠습니까?')) return;
 
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
                 fetch(`/api/attachments/${id}`, {
                     method: 'DELETE',
                     headers: {
-                        'X-CSRF-Token': document.getElementById('csrfToken').value
+                        'X-CSRF-Token': csrfToken,
                     }
                 })
                     .then(res => res.json())

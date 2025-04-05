@@ -143,7 +143,7 @@ document.addEventListener('alpine:init', () => {
             const actionUrl = form.getAttribute('action');
 
             // CSRF 토큰 가져오기
-            const csrfToken = formData.get('csrf_token');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
             // 서버에 데이터 전송
             fetch(actionUrl, {

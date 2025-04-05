@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', function() {
             role: formData.get('role'),
             active: active
         };
+
+        // CSRF 토큰 가져오기
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         
         try {
             // 서버에 데이터 전송
@@ -40,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': formData.get('csrf'),
+                    'X-CSRF-Token': csrfToken,
                 },
                 body: JSON.stringify(data)
             });

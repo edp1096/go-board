@@ -41,7 +41,9 @@ document.addEventListener('alpine:init', () => {
             submitComment() {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
-                const csrfToken = document.getElementById('csrfToken').value;
+
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 fetch(`/api/boards/${boardId}/posts/${postId}/comments`, {
                     method: 'POST',
@@ -84,7 +86,8 @@ document.addEventListener('alpine:init', () => {
             },
 
             editComment(commentId, content) {
-                const csrfToken = document.getElementById('csrfToken').value;
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
                 const newContent = prompt('댓글을 수정합니다:', content);
 
                 if (newContent && newContent !== content) {
@@ -127,7 +130,8 @@ document.addEventListener('alpine:init', () => {
             },
 
             deleteComment(commentId, isReply = false, parentId = null) {
-                const csrfToken = document.getElementById('csrfToken').value;
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 if (confirm('댓글을 삭제하시겠습니까?')) {
                     fetch(`/api/comments/${commentId}`, {

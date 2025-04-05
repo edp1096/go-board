@@ -1,7 +1,7 @@
 -- migrations/mysql/004_answers_votes.sql
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE answers (
+CREATE TABLE qna_answers (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     board_id INT NOT NULL,
     question_id INT NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE answers (
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE TABLE votes (
+CREATE TABLE qna_votes (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     board_id INT NOT NULL,
@@ -32,14 +32,14 @@ CREATE TABLE votes (
 
 -- Indexes for performance optimization
 -- +goose StatementBegin
-CREATE INDEX idx_votes_target ON votes(target_id, target_type);
+CREATE INDEX idx_votes_target ON qna_votes(target_id, target_type);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS votes;
+DROP TABLE IF EXISTS qna_votes;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-DROP TABLE IF EXISTS answers;
+DROP TABLE IF EXISTS qna_answers;
 -- +goose StatementEnd

@@ -9,7 +9,7 @@ import (
 
 // Answer 모델 - Q&A 게시판의 답변 정보
 type Answer struct {
-	bun.BaseModel `bun:"table:answers,alias:a"`
+	bun.BaseModel `bun:"table:qna_answers,alias:a"`
 
 	ID           int64     `bun:"id,pk,autoincrement" json:"id"`
 	BoardID      int64     `bun:"board_id,notnull" json:"boardId"`
@@ -27,7 +27,7 @@ type Answer struct {
 
 // Vote 모델 - 투표 정보 (질문, 답변 모두에 사용)
 type Vote struct {
-	bun.BaseModel `bun:"table:votes,alias:v"`
+	bun.BaseModel `bun:"table:qna_votes,alias:v"`
 
 	ID         int64     `bun:"id,pk,autoincrement" json:"id"`
 	UserID     int64     `bun:"user_id,notnull" json:"userId"`

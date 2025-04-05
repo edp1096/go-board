@@ -1,7 +1,6 @@
 <!-- web/templates/board/qna_view.html -->
 <input type="hidden" id="boardId" value="{{.board.ID}}">
 <input type="hidden" id="postId" value="{{.post.ID}}">
-<input type="hidden" id="csrfToken" value="{{.csrf}}">
 
 <div>
     <div class="mb-4">
@@ -369,7 +368,9 @@
     function voteQuestion(direction) {
         const boardId = document.getElementById('boardId').value;
         const postId = document.getElementById('postId').value;
-        const csrfToken = document.getElementById('csrfToken').value;
+
+        // CSRF 토큰 가져오기
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
         fetch(`/api/boards/${boardId}/posts/${postId}/vote`, {
             method: 'POST',
@@ -398,7 +399,9 @@
     function changeQuestionStatus(status) {
         const boardId = document.getElementById('boardId').value;
         const postId = document.getElementById('postId').value;
-        const csrfToken = document.getElementById('csrfToken').value;
+        
+        // CSRF 토큰 가져오기
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
         fetch(`/api/boards/${boardId}/posts/${postId}/status`, {
             method: 'PUT',
@@ -469,8 +472,10 @@
             submitAnswer() {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
-                const csrfToken = document.getElementById('csrfToken').value;
                 const content = document.getElementById('answerContent').value;
+
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 this.submitting = true;
 
@@ -508,7 +513,8 @@
                 const newContent = prompt('답변을 수정합니다:', answer.content);
                 if (newContent === null || newContent === answer.content) return;
 
-                const csrfToken = document.getElementById('csrfToken').value;
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 fetch(`/api/answers/${answerId}`, {
                     method: 'PUT',
@@ -536,7 +542,8 @@
             deleteAnswer(answerId) {
                 if (!confirm('답변을 삭제하시겠습니까?')) return;
 
-                const csrfToken = document.getElementById('csrfToken').value;
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 fetch(`/api/answers/${answerId}`, {
                     method: 'DELETE',
@@ -560,7 +567,8 @@
             },
 
             voteAnswer(answerId, direction) {
-                const csrfToken = document.getElementById('csrfToken').value;
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 fetch(`/api/answers/${answerId}/vote`, {
                     method: 'POST',
@@ -588,7 +596,9 @@
             selectBestAnswer(answerId) {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
-                const csrfToken = document.getElementById('csrfToken').value;
+
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 fetch(`/api/boards/${boardId}/posts/${postId}/best-answer`, {
                     method: 'PUT',

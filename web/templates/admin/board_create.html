@@ -4,8 +4,6 @@
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
         <form id="board-create-form" action="/admin/boards" method="POST" x-data="boardCreateForm">
-            <input type="hidden" name="csrf_token" value="{{.csrf}}">
-
             <div class="p-6">
                 <div class="mb-6">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">기본 정보</h2>

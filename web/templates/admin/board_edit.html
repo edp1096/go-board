@@ -4,9 +4,6 @@
 
     <div class="bg-white shadow rounded-lg overflow-hidden">
         <form id="board-edit-form" action="/admin/boards/{{.board.ID}}" method="POST" x-data="boardEditForm">
-            <input type="hidden" name="csrf_token" value="{{.csrf}}">
-            <input type="hidden" name="_method" value="PUT">
-
             <!-- 초기 필드 데이터 설정을 위한 스크립트 -->
             <script id="initial-field-data" type="application/json">
                 {{.board.Fields | json}}
