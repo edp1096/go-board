@@ -1,31 +1,6 @@
 /* web/static/js/alpine-init.js */
 // Alpine.js 초기화 및 전역 컴포넌트 정의
 
-// // 모든 컴포넌트 로드
-// document.addEventListener('DOMContentLoaded', function () {
-//     // 컴포넌트 스크립트 동적 로드
-//     const components = [
-//         // 'auth-forms.js',
-//         // 'board-create-form.js',
-//         // 'board-edit-form.js',
-//         // 'board-field-manager.js',
-//         // 'board-list-manager.js',
-//         // 'comments-manager.js',
-//         // 'form-validator.js',
-//         // 'post-editor.js',
-//         // 'post-manager.js',
-//         // // 'prosemirror-editor.js',
-//         // 'user-manager.js',
-//     ];
-
-//     components.forEach(component => {
-//         const script = document.createElement('script');
-//         script.src = `/static/js/alpine-components/${component}`;
-//         script.async = true;
-//         document.head.appendChild(script);
-//     });
-// });
-
 document.addEventListener('alpine:init', () => {
     // Notification 컴포넌트
     Alpine.data('notification', (message = '', type = 'info', autoClose = true) => ({
