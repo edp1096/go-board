@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go-board/internal/models"
 	"go-board/internal/repository"
 	"time"
@@ -25,6 +26,7 @@ type QnAService interface {
 	DeleteAnswer(ctx context.Context, answerID, userID int64, isAdmin bool) error
 
 	// 투표 관련 메서드
+	GetQuestionVoteCount(ctx context.Context, boardID, questionID int64) (int, error)
 	VoteQuestion(ctx context.Context, boardID, questionID, userID int64, value int) (int, error)
 	VoteAnswer(ctx context.Context, answerID, userID int64, value int) (int, error)
 
@@ -335,9 +337,112 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 	return tx.Commit()
 }
 
+// GetQuestionVoteCount는 질문의 현재 투표 수를 조회합니다.
+func (s *qnaService) GetQuestionVoteCount(ctx context.Context, boardID, questionID int64) (int, error) {
+	// 투표 수 계산
+	var voteSum int
+	err := s.db.NewSelect().
+		Model((*models.QuestionVote)(nil)).
+		ColumnExpr("COALESCE(SUM(value), 0) AS vote_sum").
+		Where("question_id = ?", questionID).
+		Scan(ctx, &voteSum)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return voteSum, nil
+}
+
 // VoteQuestion은 질문에 투표합니다.
 func (s *qnaService) VoteQuestion(ctx context.Context, boardID, questionID, userID int64, value int) (int, error) {
-	return s.handleVote(ctx, boardID, questionID, userID, "question", value)
+	// 질문 존재 여부 확인
+	// post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
+	_, err := s.boardSvc.GetPost(ctx, boardID, questionID)
+	if err != nil {
+		return 0, fmt.Errorf("질문 조회 실패: %w", err)
+	}
+
+	// 트랜잭션 시작
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	// 이전 투표 기록 확인
+	var existingVote models.QuestionVote
+	err = tx.NewSelect().
+		Model(&existingVote).
+		Where("board_id = ? AND question_id = ? AND user_id = ?",
+			boardID, questionID, userID).
+		Scan(ctx)
+
+	// var voteChange int
+	if err == nil {
+		// 이전 투표가 있는 경우
+		if existingVote.Value == value {
+			// 동일한 투표 취소
+			_, err = tx.NewDelete().
+				Model((*models.QuestionVote)(nil)).
+				Where("id = ?", existingVote.ID).
+				Exec(ctx)
+			if err != nil {
+				return 0, err
+			}
+			// voteChange = -value
+		} else {
+			// 다른 방향으로 투표 변경
+			existingVote.Value = value
+			existingVote.UpdatedAt = time.Now()
+
+			_, err = tx.NewUpdate().
+				Model(&existingVote).
+				Column("value", "updated_at").
+				Where("id = ?", existingVote.ID).
+				Exec(ctx)
+			if err != nil {
+				return 0, err
+			}
+			// voteChange = value * 2 // 기존 값의 반대로 변경 (-1 → 1 또는 1 → -1)
+		}
+	} else {
+		// 새 투표 생성
+		vote := &models.QuestionVote{
+			UserID:     userID,
+			BoardID:    boardID,
+			QuestionID: questionID,
+			Value:      value,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}
+
+		_, err = tx.NewInsert().
+			Model(vote).
+			Exec(ctx)
+		if err != nil {
+			return 0, err
+		}
+		// voteChange = value
+	}
+
+	// 질문 투표 수 계산
+	var voteSum int
+	err = tx.NewSelect().
+		Model((*models.QuestionVote)(nil)).
+		ColumnExpr("COALESCE(SUM(value), 0) AS vote_sum").
+		Where("question_id = ?", questionID).
+		Scan(ctx, &voteSum)
+	if err != nil {
+		return 0, err
+	}
+
+	// 트랜잭션 커밋
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return voteSum, nil
 }
 
 // VoteAnswer는 답변에 투표합니다.
@@ -348,11 +453,6 @@ func (s *qnaService) VoteAnswer(ctx context.Context, answerID, userID int64, val
 		return 0, err
 	}
 
-	return s.handleVote(ctx, answer.BoardID, answerID, userID, "answer", value)
-}
-
-// handleVote는 투표 처리를 담당하는 공통 함수입니다.
-func (s *qnaService) handleVote(ctx context.Context, boardID, targetID, userID int64, targetType string, value int) (int, error) {
 	// 트랜잭션 시작
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -361,11 +461,11 @@ func (s *qnaService) handleVote(ctx context.Context, boardID, targetID, userID i
 	defer tx.Rollback()
 
 	// 이전 투표 기록 확인
-	var existingVote models.Vote
+	var existingVote models.AnswerVote
 	err = tx.NewSelect().
 		Model(&existingVote).
-		Where("board_id = ? AND target_id = ? AND target_type = ? AND user_id = ?",
-			boardID, targetID, targetType, userID).
+		Where("answer_id = ? AND user_id = ?",
+			answerID, userID).
 		Scan(ctx)
 
 	var voteChange int
@@ -374,7 +474,7 @@ func (s *qnaService) handleVote(ctx context.Context, boardID, targetID, userID i
 		if existingVote.Value == value {
 			// 동일한 투표 취소
 			_, err = tx.NewDelete().
-				Model((*models.Vote)(nil)).
+				Model((*models.AnswerVote)(nil)).
 				Where("id = ?", existingVote.ID).
 				Exec(ctx)
 			if err != nil {
@@ -398,14 +498,13 @@ func (s *qnaService) handleVote(ctx context.Context, boardID, targetID, userID i
 		}
 	} else {
 		// 새 투표 생성
-		vote := &models.Vote{
-			UserID:     userID,
-			BoardID:    boardID,
-			TargetID:   targetID,
-			TargetType: targetType,
-			Value:      value,
-			CreatedAt:  time.Now(),
-			UpdatedAt:  time.Now(),
+		vote := &models.AnswerVote{
+			UserID:    userID,
+			BoardID:   answer.BoardID,
+			AnswerID:  answerID,
+			Value:     value,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
 
 		_, err = tx.NewInsert().
@@ -417,71 +516,13 @@ func (s *qnaService) handleVote(ctx context.Context, boardID, targetID, userID i
 		voteChange = value
 	}
 
-	// 대상 투표 수 업데이트
-	var currentCount int
-	var newCount int
-	var updateQuery *bun.UpdateQuery
-
-	if targetType == "question" {
-		// 게시판 정보 조회
-		board, err := s.boardRepo.GetByID(ctx, boardID)
-		if err != nil {
-			return 0, err
-		}
-
-		// 질문 조회
-		post, err := s.boardSvc.GetPost(ctx, boardID, targetID)
-		if err != nil {
-			return 0, err
-		}
-
-		// 현재 투표 수 가져오기
-		if field, ok := post.Fields["vote_count"]; ok && field.Value != nil {
-			switch val := post.Fields["vote_count"].Value.(type) {
-			case int:
-				currentCount = val
-			case int64:
-				currentCount = int(val)
-			case float64:
-				currentCount = int(val)
-			}
-		}
-
-		// 새 투표 수 계산
-		newCount = currentCount + voteChange
-
-		// 업데이트 쿼리 생성
-		updateQuery = tx.NewUpdate().
-			Table(board.TableName).
-			Set("vote_count = ?", newCount).
-			Where("id = ?", targetID)
-	} else {
-		// 답변에 대한 투표 수 업데이트
-		var answer models.Answer
-		err = tx.NewSelect().
-			Model(&answer).
-			Column("vote_count").
-			Where("id = ?", targetID).
-			Scan(ctx)
-		if err != nil {
-			return 0, err
-		}
-
-		// 현재 투표 수 가져오기
-		currentCount = answer.VoteCount
-
-		// 새 투표 수 계산
-		newCount = currentCount + voteChange
-
-		// 업데이트 쿼리 생성
-		updateQuery = tx.NewUpdate().
-			Model((*models.Answer)(nil)).
-			Set("vote_count = ?", newCount).
-			Where("id = ?", targetID)
-	}
-
-	// 업데이트 쿼리 실행
-	_, err = updateQuery.Exec(ctx)
+	// 답변 투표 수 업데이트
+	newVoteCount := answer.VoteCount + voteChange
+	_, err = tx.NewUpdate().
+		Model((*models.Answer)(nil)).
+		Set("vote_count = ?", newVoteCount).
+		Where("id = ?", answerID).
+		Exec(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -491,7 +532,7 @@ func (s *qnaService) handleVote(ctx context.Context, boardID, targetID, userID i
 		return 0, err
 	}
 
-	return newCount, nil
+	return newVoteCount, nil
 }
 
 // UpdateQuestionStatus는 질문의 상태를 업데이트합니다.

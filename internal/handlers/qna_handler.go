@@ -212,6 +212,39 @@ func (h *QnAHandler) DeleteAnswer(c *fiber.Ctx) error {
 	})
 }
 
+// GetQuestionVoteCount는 질문의 투표 수를 조회하는 API입니다.
+func (h *QnAHandler) GetQuestionVoteCount(c *fiber.Ctx) error {
+	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 게시판 ID입니다",
+		})
+	}
+
+	postID, err := strconv.ParseInt(c.Params("postID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 게시물 ID입니다",
+		})
+	}
+
+	// 투표 수 조회
+	voteCount, err := h.qnaService.GetQuestionVoteCount(c.Context(), boardID, postID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "투표 수 조회에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success":   true,
+		"voteCount": voteCount,
+	})
+}
+
 // VoteQuestion - 질문 투표 API
 func (h *QnAHandler) VoteQuestion(c *fiber.Ctx) error {
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)

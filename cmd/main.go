@@ -408,6 +408,7 @@ func setupRoutes(
 	qnaAPI.Put("/status", authMiddleware.RequireAuth, qnaHandler.UpdateQuestionStatus)
 	qnaAPI.Put("/best-answer", authMiddleware.RequireAuth, qnaHandler.SetBestAnswer)
 	qnaAPI.Post("/vote", authMiddleware.RequireAuth, qnaHandler.VoteQuestion)
+	qnaAPI.Get("/vote-count", qnaHandler.GetQuestionVoteCount)
 
 	// 답변 관련 API 라우트
 	answerAPI := api.Group("/answers/:answerID")
