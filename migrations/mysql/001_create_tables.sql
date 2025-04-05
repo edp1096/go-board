@@ -1,4 +1,4 @@
--- migrations/001_create_tables.sql
+-- migrations/mysql/001_create_tables.sql
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users (
@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS boards (
     board_type VARCHAR(20) NOT NULL,
     table_name VARCHAR(50) NOT NULL UNIQUE,
     active BOOLEAN NOT NULL DEFAULT TRUE,
+    comments_enabled BOOLEAN NOT NULL DEFAULT true,
+    allow_anonymous BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
