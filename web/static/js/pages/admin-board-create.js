@@ -4,11 +4,26 @@ document.addEventListener('alpine:init', () => {
         submitting: false,
         fields: [],
         fieldCount: 0,
+        board_type: 'normal',
+        previousCommentCheckbox: false,
 
         init() {
             // fields 배열의 변경을 감시
             this.$watch('fields', value => {
                 this.fieldCount = value.length;
+            });
+
+            // board_type의 변경을 감시
+            this.$watch('board_type', value => {
+                const commentsCheckbox = document.getElementById('comments_enabled');
+                if (value === 'qna') {
+                    this.previousCommentCheckbox = commentsCheckbox.checked;
+                    commentsCheckbox.checked = true;
+                    commentsCheckbox.disabled = true;
+                } else {
+                    commentsCheckbox.checked = this.previousCommentCheckbox;
+                    commentsCheckbox.disabled = false;
+                }
             });
         },
 
@@ -37,9 +52,19 @@ document.addEventListener('alpine:init', () => {
             // 폼 요소를 ID로 가져오기
             const form = document.getElementById('board-create-form');
 
+            const commentsCheckbox = document.getElementById('comments_enabled');
+            const wasDisabled = commentsCheckbox.disabled;
+            if (wasDisabled) {
+                commentsCheckbox.disabled = false;
+            }
+
             // FormData 객체 생성
             const formData = new FormData(form);
             formData.append('field_count', this.fields.length);
+
+            if (wasDisabled) {
+                commentsCheckbox.disabled = true;
+            }
 
             // CSRF 토큰 가져오기
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;

@@ -32,7 +32,7 @@
 
                         <div>
                             <label for="board_type" class="block text-sm font-medium text-gray-700">게시판 유형 <span class="text-red-500">*</span></label>
-                            <select name="board_type" id="board_type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <select name="board_type" id="board_type" required x-model="board_type" disabled class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-100">
                                 {{range .boardTypes}}
                                 <option value="{{.}}" {{if eq . $.board.BoardType}}selected{{end}}>
                                     {{if eq . "normal"}}일반 게시판
@@ -42,6 +42,9 @@
                                 </option>
                                 {{end}}
                             </select>
+                            <p class="mt-1 text-xs text-gray-500">게시판 유형은 생성 후 변경할 수 없습니다.</p>
+                            <!-- 실제 서버에 전송될 값을 hidden으로 유지 -->
+                            <input type="hidden" name="board_type" value="{{$.board.BoardType}}">
                         </div>
 
                         <div>
@@ -61,6 +64,7 @@
                                 </label>
                             </div>
                             <p class="mt-1 text-xs text-gray-500">이 게시판에 댓글 작성 기능을 활성화합니다.</p>
+                            <p class="mt-1 text-xs text-red-500" x-show="board_type === 'qna'">질문/답변 게시판에서는 댓글 기능이 자동으로 활성화됩니다.</p>
                         </div>
 
                         <div>

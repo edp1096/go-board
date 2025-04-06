@@ -5,8 +5,25 @@ document.addEventListener('alpine:init', () => {
         fields: [],
         fieldCount: 0,
         nextId: -1,
+        isQnaBoard: false,
+        board_type: document.getElementById('board_type').value || 'normal',
 
         init() {
+            // 게시판 유형이 QnA인지 확인
+            const boardTypeSelect = document.getElementById('board_type');
+            if (boardTypeSelect) {
+                this.isQnaBoard = boardTypeSelect.value === 'qna';
+            }
+
+            // QnA 게시판이면 댓글 기능 체크박스 해제 및 비활성화
+            if (this.isQnaBoard) {
+                const commentsCheckbox = document.getElementById('comments_enabled');
+                if (commentsCheckbox) {
+                    commentsCheckbox.checked = document.getElementById('comments_enabled').checked ? true : false;
+                    commentsCheckbox.disabled = true;
+                }
+            }
+
             // 스크립트 태그에서 필드 데이터 초기화
             try {
                 const initialFieldsScript = document.getElementById('initial-field-data');
@@ -85,9 +102,19 @@ document.addEventListener('alpine:init', () => {
             // 폼 요소 가져오기
             const form = document.getElementById('board-edit-form');
 
+            const commentsCheckbox = document.getElementById('comments_enabled');
+            const wasDisabled = commentsCheckbox.disabled;
+            if (wasDisabled) {
+                commentsCheckbox.disabled = false;
+            }
+
             // FormData 객체 생성
             const formData = new FormData(form);
             formData.append('field_count', this.fields.length);
+
+            if (wasDisabled) {
+                commentsCheckbox.disabled = true;
+            }
 
             // 필드 데이터 디버깅용 객체
             const debugFields = {};

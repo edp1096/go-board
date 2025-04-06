@@ -27,7 +27,7 @@
 
                         <div>
                             <label for="board_type" class="block text-sm font-medium text-gray-700">게시판 유형 <span class="text-red-500">*</span></label>
-                            <select name="board_type" id="board_type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <select name="board_type" id="board_type" required x-model="board_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                                 {{range .boardTypes}}
                                 <option value="{{.}}">
                                     {{if eq . "normal"}}일반 게시판
@@ -49,6 +49,7 @@
                         </label>
                     </div>
                     <p class="mt-1 text-xs text-gray-500">이 게시판에 댓글 작성 기능을 활성화합니다.</p>
+                    <p class="mt-1 text-xs text-red-500" x-show="board_type === 'qna'">질문/답변 게시판에서는 댓글 기능이 자동으로 활성화됩니다.</p>
                 </div>
 
                 <div>
