@@ -43,65 +43,10 @@ dev:
 	@echo "Running in development mode..."
 	@go run ./cmd/main.go
 
-# 마이그레이션 적용
-migrate-up: build-migrate ## 데이터베이스 마이그레이션 적용
-	@echo "Applying migrations..."
-ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
-	@$(MIGRATE_RUN) -driver postgres -op up
-else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
-	@$(MIGRATE_RUN) -driver mysql -op up
-else
-	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op up
-endif
-
-# 마이그레이션 롤백
-migrate-down: build-migrate ## 데이터베이스 마이그레이션 롤백
-	@echo "Rolling back migrations..."
-ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
-	@$(MIGRATE_RUN) -driver postgres -op down
-else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
-	@$(MIGRATE_RUN) -driver mysql -op down
-else
-	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op down
-endif
-
-# 마이그레이션 상태
-migrate-status: build-migrate ## 데이터베이스 마이그레이션 상태 확인
-	@echo "Checking migration status..."
-ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
-	@$(MIGRATE_RUN) -driver postgres -op status
-else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
-	@$(MIGRATE_RUN) -driver mysql -op status
-else
-	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op status
-endif
-
-# 새 마이그레이션 생성
-migrate-create: build-migrate ## 새 마이그레이션 생성
-	@echo "Creating new migration..."
-	@[ "${name}" ] || ( echo "Error: name parameter is required. Use: make migrate-create name=your_migration_name"; exit 1 )
-ifeq ($(filter postgres,$(MAKECMDGOALS)),postgres)
-	@$(MIGRATE_RUN) -driver postgres -op create -name $(name)
-else ifeq ($(filter mysql,$(MAKECMDGOALS)),mysql)
-	@$(MIGRATE_RUN) -driver mysql -op create -name $(name)
-else
-	@$(MIGRATE_RUN) -driver $(DB_DRIVER) -op create -name $(name)
-endif
-
-# 더미 타겟
-postgres mysql:
-	@:
-
 # 테스트
 test:
 	@echo "Running tests..."
 	@go test ./...
-
-# 의존성 설치
-setup:
-	@echo "Setting up project..."
-	@go mod download
-	@echo "Setup complete!"
 
 # 정리
 clean:
