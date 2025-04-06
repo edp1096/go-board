@@ -30,6 +30,7 @@ type Config struct {
 	DBUser         string
 	DBPassword     string
 	DBName         string
+	DBPath         string // SQLite 파일 경로
 	JWTSecret      string
 	SessionSecret  string
 	CookieSecure   bool
@@ -72,8 +73,16 @@ func Load() (*Config, error) {
 	}
 
 	// 지원하는 드라이버 확인
-	if dbDriver != "postgres" && dbDriver != "mysql" {
-		return nil, fmt.Errorf("지원하지 않는 데이터베이스 드라이버: %s (지원: postgres, mysql)", dbDriver)
+	if dbDriver != "postgres" && dbDriver != "mysql" && dbDriver != "sqlite" {
+		return nil, fmt.Errorf("지원하지 않는 데이터베이스 드라이버: %s (지원: postgres, mysql, sqlite)", dbDriver)
+	}
+
+	// SQLite 데이터베이스 경로 설정
+	dbPath := os.Getenv("DB_PATH")
+	if dbDriver == "sqlite" && dbPath == "" {
+		// 기본 파일 위치 - data 디렉토리 만들기
+		dbPath = "./data/go_board.db"
+		os.MkdirAll("./data", 0755)
 	}
 
 	// JWT 시크릿 키 확인
@@ -130,6 +139,7 @@ func Load() (*Config, error) {
 		DBUser:         getEnvWithDefault("DB_USER", "postgres"),
 		DBPassword:     os.Getenv("DB_PASSWORD"),
 		DBName:         getEnvWithDefault("DB_NAME", "go_board"),
+		DBPath:         dbPath,
 		JWTSecret:      jwtSecret,
 		SessionSecret:  sessionSecret,
 		CookieSecure:   os.Getenv("COOKIE_SECURE") == "true" || env == EnvProduction,

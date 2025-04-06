@@ -69,6 +69,12 @@ func (s *boardService) isPostgres() bool {
 	return dialectName.String() == "pg" || dialectName.String() == "postgres"
 }
 
+// 데이터베이스가 SQLite인지 확인
+func (s *boardService) isSQLite() bool {
+	dialectName := s.db.Dialect().Name()
+	return dialectName.String() == "sqlite" || dialectName.String() == "sqlite3"
+}
+
 func (s *boardService) CreateBoard(ctx context.Context, board *models.Board) error {
 	// 슬러그가 없으면 생성
 	if board.Slug == "" {

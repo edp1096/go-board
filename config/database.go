@@ -5,6 +5,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -12,7 +14,9 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/mysqldialect"
 	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	_ "modernc.org/sqlite"
 )
 
 // Database는 데이터베이스 연결 관련 설정을 관리하는 구조체
@@ -41,6 +45,30 @@ func ConnectDatabase(cfg *Config) (*bun.DB, error) {
 		if err != nil {
 			return nil, fmt.Errorf("MySQL 연결 실패: %w", err)
 		}
+
+	case "sqlite":
+		// SQLite 연결 설정
+		if cfg.DBPath == "" {
+			return nil, fmt.Errorf("SQLite 데이터베이스 경로가 설정되지 않았습니다")
+		}
+
+		// 디렉토리 존재 확인 및 생성
+		dir := filepath.Dir(cfg.DBPath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("SQLite 데이터베이스 디렉토리 생성 실패: %w", err)
+		}
+
+		// SQLite 연결
+		sqldb, err = sql.Open("sqlite", cfg.DBPath)
+		if err != nil {
+			return nil, fmt.Errorf("SQLite 연결 실패: %w", err)
+		}
+
+		// SQLite 성능 최적화 설정
+		if _, err := sqldb.Exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;"); err != nil {
+			return nil, fmt.Errorf("SQLite PRAGMA 설정 실패: %w", err)
+		}
+
 	default:
 		return nil, fmt.Errorf("지원하지 않는 데이터베이스 드라이버: %s", cfg.DBDriver)
 	}
@@ -62,6 +90,8 @@ func ConnectDatabase(cfg *Config) (*bun.DB, error) {
 	var db *bun.DB
 	if cfg.DBDriver == "postgres" {
 		db = bun.NewDB(sqldb, pgdialect.New())
+	} else if cfg.DBDriver == "sqlite" {
+		db = bun.NewDB(sqldb, sqlitedialect.New())
 	} else {
 		db = bun.NewDB(sqldb, mysqldialect.New())
 	}
@@ -98,4 +128,9 @@ func (d *Database) IsPostgres() bool {
 // IsMySQLOrMariaDB는 현재 드라이버가 MySQL/MariaDB인지 확인
 func (d *Database) IsMySQLOrMariaDB() bool {
 	return d.Config.DBDriver == "mysql" || d.Config.DBDriver == "mariadb"
+}
+
+// IsSQLite는 현재 드라이버가 SQLite인지 확인
+func (d *Database) IsSQLite() bool {
+	return d.Config.DBDriver == "sqlite"
 }

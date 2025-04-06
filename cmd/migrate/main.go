@@ -16,11 +16,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
+	_ "modernc.org/sqlite" // SQLite 드라이버 추가
 )
 
 func main() {
 	// 명령행 인자 파싱
-	driver := flag.String("driver", "", "데이터베이스 드라이버 (mysql 또는 postgres)")
+	driver := flag.String("driver", "", "데이터베이스 드라이버 (mysql, postgres, sqlite)")
 	operation := flag.String("op", "up", "마이그레이션 작업 (up, down, reset, status, create, redo, purge, version)")
 	newMigration := flag.String("name", "", "새 마이그레이션 이름 (create 명령에만 사용)")
 	flag.Parse()
@@ -36,9 +37,18 @@ func main() {
 		cfg.DBDriver = *driver
 	}
 
-	// 데이터베이스 존재 여부 확인 및 없으면 생성
-	if err := ensureDatabaseExists(cfg); err != nil {
-		log.Fatalf("데이터베이스 생성 실패: %v", err)
+	// SQLite가 아닌 경우에만 데이터베이스 존재 여부 확인
+	if cfg.DBDriver != "sqlite" {
+		// 데이터베이스 존재 여부 확인 및 없으면 생성
+		if err := ensureDatabaseExists(cfg); err != nil {
+			log.Fatalf("데이터베이스 생성 실패: %v", err)
+		}
+	} else {
+		// SQLite인 경우 디렉토리 확인
+		dir := filepath.Dir(cfg.DBPath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			log.Fatalf("SQLite 데이터베이스 디렉토리 생성 실패: %v", err)
+		}
 	}
 
 	// 데이터베이스 연결
@@ -64,7 +74,9 @@ func main() {
 	// 임베디드 마이그레이션 파일 시스템 가져오기
 	var migrationFS fs.FS
 	var migrationsDir string
-	if cfg.DBDriver == "postgres" {
+
+	switch cfg.DBDriver {
+	case "postgres":
 		// PostgreSQL 마이그레이션 설정
 		subFS, err := fs.Sub(goboard.PostgresMigrationsFS, "migrations/postgres")
 		if err != nil {
@@ -72,7 +84,15 @@ func main() {
 		}
 		migrationFS = subFS
 		migrationsDir = "."
-	} else {
+	case "sqlite":
+		// SQLite 마이그레이션 설정
+		subFS, err := fs.Sub(goboard.SQLiteMigrationsFS, "migrations/sqlite")
+		if err != nil {
+			log.Fatalf("SQLite 마이그레이션 파일 접근 실패: %v", err)
+		}
+		migrationFS = subFS
+		migrationsDir = "."
+	default:
 		// MySQL 마이그레이션 설정
 		subFS, err := fs.Sub(goboard.MysqlMigrationsFS, "migrations/mysql")
 		if err != nil {
@@ -165,6 +185,10 @@ func ensureDatabaseExists(cfg *config.Config) error {
 			log.Printf("데이터베이스 '%s'가 성공적으로 생성되었습니다", cfg.DBName)
 		}
 
+	case "sqlite":
+		// SQLite는 파일 기반이므로 별도의 생성 과정 불필요
+		return nil
+
 	default:
 		return fmt.Errorf("지원하지 않는 데이터베이스 드라이버: %s", cfg.DBDriver)
 	}
@@ -235,9 +259,12 @@ func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration str
 
 		// 마이그레이션 디렉토리 확인 및 생성
 		var targetDir string
-		if driver == "postgres" {
+		switch driver {
+		case "postgres":
 			targetDir = "migrations/postgres"
-		} else {
+		case "sqlite":
+			targetDir = "migrations/sqlite"
+		default:
 			targetDir = "migrations/mysql"
 		}
 
@@ -378,6 +405,43 @@ func dropAllTables(sqlDB *sql.DB, driver string, dbName string) error {
 		_, err = sqlDB.Exec("SET FOREIGN_KEY_CHECKS = 1;")
 		if err != nil {
 			return fmt.Errorf("외래 키 검사 재활성화 실패: %w", err)
+		}
+
+	case "sqlite":
+		// SQLite에서 모든 테이블 목록 가져오기
+		query = "SELECT name FROM sqlite_master WHERE type='table' AND name != 'goose_db_version';"
+		rows, err = sqlDB.Query(query)
+		if err != nil {
+			return fmt.Errorf("테이블 목록 조회 실패: %w", err)
+		}
+		defer rows.Close()
+
+		// 외래 키 제약 조건 비활성화
+		_, err = sqlDB.Exec("PRAGMA foreign_keys = OFF;")
+		if err != nil {
+			return fmt.Errorf("외래 키 제약 비활성화 실패: %w", err)
+		}
+
+		// 모든 테이블 삭제
+		for rows.Next() {
+			var tableName string
+			if err := rows.Scan(&tableName); err != nil {
+				return fmt.Errorf("테이블 이름 읽기 실패: %w", err)
+			}
+
+			if tableName != "goose_db_version" && !strings.HasPrefix(tableName, "sqlite_") {
+				_, err = sqlDB.Exec(fmt.Sprintf("DROP TABLE IF EXISTS \"%s\";", tableName))
+				if err != nil {
+					return fmt.Errorf("테이블 삭제 실패 (%s): %w", tableName, err)
+				}
+				fmt.Printf("테이블 삭제: %s\n", tableName)
+			}
+		}
+
+		// 외래 키 제약 조건 다시 활성화
+		_, err = sqlDB.Exec("PRAGMA foreign_keys = ON;")
+		if err != nil {
+			return fmt.Errorf("외래 키 제약 재활성화 실패: %w", err)
 		}
 
 	default:

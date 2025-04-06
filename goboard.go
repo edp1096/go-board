@@ -19,6 +19,9 @@ var MysqlMigrationsFS embed.FS
 //go:embed migrations/postgres
 var PostgresMigrationsFS embed.FS
 
+//go:embed migrations/sqlite
+var SQLiteMigrationsFS embed.FS
+
 // GetTemplatesFS는 템플릿 파일시스템을 반환합니다
 func GetTemplatesFS() http.FileSystem {
 	// 임베디드된 templates 디렉토리 경로 접근
