@@ -63,6 +63,62 @@
                 </div>
 
                 <div class="mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">게시판 매니저</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="manager_search" class="block text-sm font-medium text-gray-700">사용자 검색</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input type="text" name="manager_search" id="manager_search" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="사용자명 또는 이메일 입력">
+                                <button type="button" @click="searchUsers" class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">
+                                    검색
+                                </button>
+                            </div>
+                        </div>
+                
+                        <div class="border rounded-md p-4" x-show="showSearchResults">
+                            <h3 class="font-medium mb-2">검색 결과</h3>
+                            <ul class="divide-y divide-gray-200 max-h-40 overflow-y-auto">
+                                <template x-for="user in searchResults" :key="user.id">
+                                    <li class="py-2 flex justify-between">
+                                        <div>
+                                            <span x-text="user.username"></span>
+                                            (<span x-text="user.email"></span>)
+                                        </div>
+                                        <button type="button" @click="addManager(user)" class="text-blue-600 hover:text-blue-800">
+                                            추가
+                                        </button>
+                                    </li>
+                                </template>
+                            </ul>
+                            <div x-show="searchResults.length === 0" class="py-2 text-gray-500 text-center">
+                                검색 결과가 없습니다
+                            </div>
+                        </div>
+                
+                        <div>
+                            <h3 class="font-medium mb-2">선택된 매니저</h3>
+                            <ul class="divide-y divide-gray-200 border rounded-md p-4">
+                                <template x-for="(manager, index) in managers" :key="manager.id">
+                                    <li class="py-2 flex justify-between">
+                                        <div>
+                                            <span x-text="manager.username"></span>
+                                            (<span x-text="manager.email"></span>)
+                                            <input type="hidden" :name="'manager_ids[]'" :value="manager.id">
+                                        </div>
+                                        <button type="button" @click="removeManager(index)" class="text-red-600 hover:text-red-800">
+                                            삭제
+                                        </button>
+                                    </li>
+                                </template>
+                                <li x-show="managers.length === 0" class="py-2 text-gray-500 text-center">
+                                    선택된 매니저가 없습니다
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-medium text-gray-900">필드 정보</h2>
                         <button type="button" @click="addField" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">

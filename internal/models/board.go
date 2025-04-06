@@ -46,7 +46,8 @@ type Board struct {
 	UpdatedAt       time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
 
 	// 관계
-	Fields []*BoardField `bun:"rel:has-many,join:id=board_id" json:"fields"`
+	Fields   []*BoardField   `bun:"rel:has-many,join:id=board_id" json:"fields"`
+	Managers []*BoardManager `bun:"rel:has-many,join:id=board_id" json:"managers,omitempty"`
 }
 
 // BoardField 모델 - 게시판 각 필드 정의

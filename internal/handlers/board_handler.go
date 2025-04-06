@@ -239,7 +239,17 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		})
 	}
 
-	// 템플릿 선택
+	// 현재 로그인한 사용자 정보
+	user := c.Locals("user")
+	isManager := false
+
+	// 사용자가 로그인한 경우 매니저 여부 확인
+	if user != nil {
+		userObj := user.(*models.User)
+		isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
+	}
+
+	// 템플릿 선택 - gallery_view는 없음
 	templateName := "board/view"
 	if board.BoardType == models.BoardTypeQnA {
 		templateName = "board/qna_view"
@@ -249,6 +259,7 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		"title":          post.Title,
 		"board":          board,
 		"post":           post,
+		"isManager":      isManager,
 		"pageScriptPath": "/static/js/pages/board-view.js",
 	})
 }
@@ -306,20 +317,10 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 	// 폼 데이터 출력
 	form, err := c.MultipartForm()
 	if err != nil {
-		fmt.Println("MultipartForm 오류:", err)
-	} else {
-		fmt.Println("폼 필드:")
-		for key, values := range form.Value {
-			fmt.Printf("  %s: %v\n", key, values)
-		}
-
-		fmt.Println("파일 필드:")
-		for key, files := range form.File {
-			fmt.Printf("  %s: %d개 파일\n", key, len(files))
-			for i, file := range files {
-				fmt.Printf("    파일 %d: %s (%d bytes, %s)\n", i+1, file.Filename, file.Size, file.Header.Get("Content-Type"))
-			}
-		}
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "폼 데이터를 찾을 수 없습니다",
+		})
 	}
 
 	// 기본 필드 가져오기
@@ -423,12 +424,10 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 
 	// 파일 첨부가 있는 경우 처리
 	if form != nil && len(form.File["files"]) > 0 {
-		fmt.Println("첨부 파일 업로드 시작")
 		files := form.File["files"]
 
 		// 업로드 경로 생성
 		uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "attachments")
-		fmt.Println("업로드 경로:", uploadPath)
 
 		var uploadedFiles []*utils.UploadedFile
 		var err error
@@ -443,18 +442,16 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		}
 
 		if err != nil {
-			fmt.Println("파일 업로드 실패:", err)
 			// 실패해도 게시물은 생성되므로 계속 진행
+			// fmt.Println("파일 업로드 실패:", err)
 		} else if h.uploadService != nil {
 			// 데이터베이스에 첨부 파일 정보 저장
 			_, err := h.uploadService.SaveAttachments(c.Context(), boardID, post.ID, user.ID, uploadedFiles)
 			if err != nil {
-				fmt.Println("첨부 파일 정보 저장 실패:", err)
-			} else {
-				fmt.Println("첨부 파일 저장 성공")
+				// fmt.Println("첨부 파일 저장 실패:", err)
 			}
 		} else {
-			fmt.Println("uploadService가 nil임")
+			// fmt.Println("uploadService가 nil임")
 		}
 	}
 
@@ -514,8 +511,24 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 	// 현재 로그인한 사용자 가져오기
 	user := c.Locals("user").(*models.User)
 
-	// 본인 게시물 또는 관리자만 수정 가능
-	if user.ID != post.UserID && user.Role != models.RoleAdmin {
+	// 권한 확인 (작성자, 관리자 또는 게시판 매니저만 수정 가능)
+	hasPermission := false
+
+	// 1. 작성자인 경우
+	if user.ID == post.UserID {
+		hasPermission = true
+	} else if user.Role == models.RoleAdmin {
+		// 2. 전체 관리자인 경우
+		hasPermission = true
+	} else {
+		// 3. 게시판 매니저인지 확인
+		isManager, err := h.boardService.IsBoardManager(c.Context(), boardID, user.ID)
+		if err == nil && isManager {
+			hasPermission = true
+		}
+	}
+
+	if !hasPermission {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
 			"message": "게시물을 수정할 권한이 없습니다",
@@ -569,8 +582,24 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	// 현재 로그인한 사용자 가져오기
 	user := c.Locals("user").(*models.User)
 
-	// 본인 게시물 또는 관리자만 수정 가능
-	if user.ID != post.UserID && user.Role != models.RoleAdmin {
+	// 권한 확인 (작성자, 관리자 또는 게시판 매니저만 수정 가능)
+	hasPermission := false
+
+	// 1. 작성자인 경우
+	if user.ID == post.UserID {
+		hasPermission = true
+	} else if user.Role == models.RoleAdmin {
+		// 2. 전체 관리자인 경우
+		hasPermission = true
+	} else {
+		// 3. 게시판 매니저인지 확인
+		isManager, err := h.boardService.IsBoardManager(c.Context(), boardID, user.ID)
+		if err == nil && isManager {
+			hasPermission = true
+		}
+	}
+
+	if !hasPermission {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"success": false,
 			"message": "게시물을 수정할 권한이 없습니다",
@@ -602,8 +631,8 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	var deleteAttachmentIDs []int64
 	if deleteAttachments != "" {
 		// 쉼표로 구분된 값으로 가정
-		attachmentIDStrings := strings.Split(deleteAttachments, ",")
-		for _, idStr := range attachmentIDStrings {
+		attachmentIDStrings := strings.SplitSeq(deleteAttachments, ",")
+		for idStr := range attachmentIDStrings {
 			idStr = strings.TrimSpace(idStr)
 			if idStr == "" {
 				continue
@@ -805,8 +834,24 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 	// 현재 로그인한 사용자 가져오기
 	user := c.Locals("user").(*models.User)
 
-	// 본인 게시물 또는 관리자만 삭제 가능
-	if user.ID != post.UserID && user.Role != models.RoleAdmin {
+	// 권한 확인 (작성자, 관리자 또는 게시판 매니저만 삭제 가능)
+	hasPermission := false
+
+	// 1. 작성자인 경우
+	if user.ID == post.UserID {
+		hasPermission = true
+	} else if user.Role == models.RoleAdmin {
+		// 2. 전체 관리자인 경우
+		hasPermission = true
+	} else {
+		// 3. 게시판 매니저인지 확인
+		isManager, err := h.boardService.IsBoardManager(c.Context(), boardID, user.ID)
+		if err == nil && isManager {
+			hasPermission = true
+		}
+	}
+
+	if !hasPermission {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"success": false,
 			"message": "게시물을 삭제할 권한이 없습니다",

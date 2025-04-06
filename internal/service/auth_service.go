@@ -36,6 +36,7 @@ type AuthService interface {
 	AdminChangePassword(ctx context.Context, id int64, newPassword string) error
 	DeleteUser(ctx context.Context, id int64) error
 	ListUsers(ctx context.Context, offset, limit int, search string) ([]*models.User, int, error)
+	SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error)
 }
 
 type authService struct {
@@ -287,6 +288,11 @@ func (s *authService) ListUsers(ctx context.Context, offset, limit int, search s
 
 	// 검색어가 없는 경우 기본 목록 조회
 	return s.userRepo.List(ctx, offset, limit)
+}
+
+// SearchUsers 사용자 검색
+func (s *authService) SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error) {
+	return s.userRepo.SearchUsers(ctx, query, offset, limit)
 }
 
 // JWT 토큰 생성 헬퍼 함수

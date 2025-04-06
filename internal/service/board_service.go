@@ -31,6 +31,13 @@ type BoardService interface {
 	DeleteBoard(ctx context.Context, id int64) error
 	ListBoards(ctx context.Context, onlyActive bool) ([]*models.Board, error)
 
+	// 매니저 관련 메서드
+	GetBoardManagers(ctx context.Context, boardID int64) ([]*models.User, error)
+	AddBoardManager(ctx context.Context, boardID, userID int64) error
+	RemoveBoardManager(ctx context.Context, boardID, userID int64) error
+	RemoveAllBoardManagers(ctx context.Context, boardID int64) error
+	IsBoardManager(ctx context.Context, boardID, userID int64) (bool, error)
+
 	// 게시판 필드 관련
 	AddBoardField(ctx context.Context, boardID int64, field *models.BoardField) error
 	UpdateBoardField(ctx context.Context, field *models.BoardField) error
@@ -114,6 +121,60 @@ func (s *boardService) DeleteBoard(ctx context.Context, id int64) error {
 
 func (s *boardService) ListBoards(ctx context.Context, onlyActive bool) ([]*models.Board, error) {
 	return s.boardRepo.List(ctx, onlyActive)
+}
+
+// 매니저 관련
+func (s *boardService) GetBoardManagers(ctx context.Context, boardID int64) ([]*models.User, error) {
+	var managers []*models.User
+	err := s.db.NewSelect().
+		Model(&managers).
+		Join("JOIN board_managers AS bm ON bm.user_id = u.id").
+		Where("bm.board_id = ?", boardID).
+		Scan(ctx)
+
+	return managers, err
+}
+
+func (s *boardService) AddBoardManager(ctx context.Context, boardID, userID int64) error {
+	manager := &models.BoardManager{
+		BoardID:   boardID,
+		UserID:    userID,
+		CreatedAt: time.Now(),
+	}
+
+	_, err := s.db.NewInsert().
+		Model(manager).
+		Exec(ctx)
+
+	return err
+}
+
+func (s *boardService) RemoveBoardManager(ctx context.Context, boardID, userID int64) error {
+	_, err := s.db.NewDelete().
+		Model((*models.BoardManager)(nil)).
+		Where("board_id = ? AND user_id = ?", boardID, userID).
+		Exec(ctx)
+
+	return err
+}
+
+// BoardService 인터페이스에 메서드 추가
+func (s *boardService) RemoveAllBoardManagers(ctx context.Context, boardID int64) error {
+	_, err := s.db.NewDelete().
+		Model((*models.BoardManager)(nil)).
+		Where("board_id = ?", boardID).
+		Exec(ctx)
+
+	return err
+}
+
+func (s *boardService) IsBoardManager(ctx context.Context, boardID, userID int64) (bool, error) {
+	exists, err := s.db.NewSelect().
+		Model((*models.BoardManager)(nil)).
+		Where("board_id = ? AND user_id = ?", boardID, userID).
+		Exists(ctx)
+
+	return exists, err
 }
 
 // 게시판 필드 관련

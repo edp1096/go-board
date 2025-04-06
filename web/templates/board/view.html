@@ -182,7 +182,7 @@
                 </div>
 
                 {{if .user}}
-                {{if or (eq .user.ID .post.UserID) (eq .user.Role "admin")}}
+                {{if or (eq .post.UserID .user.ID) (eq .user.Role "admin") .isManager}}
                 <div class="flex space-x-2">
                     <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         수정

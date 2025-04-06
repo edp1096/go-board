@@ -379,7 +379,6 @@ func setupRoutes(
 	admin.Put("/users/:userID", adminHandler.UpdateUser)
 	admin.Delete("/users/:userID", adminHandler.DeleteUser)
 	admin.Put("/users/:userID/role", adminHandler.UpdateUserRole)
-	admin.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
 
 	// API 라우트 (댓글 기능)
 	api := app.Group("/api")
@@ -415,6 +414,10 @@ func setupRoutes(
 	answerAPI.Put("/", authMiddleware.RequireAuth, qnaHandler.UpdateAnswer)
 	answerAPI.Delete("/", authMiddleware.RequireAuth, qnaHandler.DeleteAnswer)
 	answerAPI.Post("/vote", authMiddleware.RequireAuth, qnaHandler.VoteAnswer)
+
+	adminAPI := api.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
+	adminAPI.Get("/users/search", adminHandler.SearchUsers)
+	adminAPI.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
 
 	// 첨부파일 다운로드
 	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)

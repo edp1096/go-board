@@ -8,6 +8,7 @@ import (
 	"go-board/internal/service"
 	"go-board/internal/utils" // utils 패키지 임포트 추가
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -291,6 +292,21 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 		}
 	}
 
+	// 매니저 ID 처리
+	managerIDs := c.FormValue("manager_ids[]")
+	if managerIDs != "" {
+		managerIDList := strings.SplitSeq(managerIDs, ",")
+		for idStr := range managerIDList {
+			managerID, err := strconv.ParseInt(idStr, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			// 매니저 추가
+			h.boardService.AddBoardManager(c.Context(), board.ID, managerID)
+		}
+	}
+
 	// 폼이 fetch를 통해 제출되었으므로 항상 JSON 응답을 반환
 	c.Set("Content-Type", "application/json")
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -321,9 +337,17 @@ func (h *AdminHandler) EditBoardPage(c *fiber.Ctx) error {
 		})
 	}
 
+	// 게시판 정보와 함께 매니저 정보도 조회
+	managers, err := h.boardService.GetBoardManagers(c.Context(), boardID)
+	if err != nil {
+		// 오류 처리하지만 계속 진행
+		managers = []*models.User{}
+	}
+
 	return utils.RenderWithUser(c, "admin/board_edit", fiber.Map{
-		"title": "게시판 수정",
-		"board": board,
+		"title":    "게시판 수정",
+		"board":    board,
+		"managers": managers,
 		"boardTypes": []models.BoardType{
 			models.BoardTypeNormal,
 			models.BoardTypeGallery,
@@ -745,6 +769,21 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 				"success": false,
 				"message": "게시판 필드 삭제에 실패했습니다: " + err.Error(),
 			})
+		}
+	}
+
+	// 매니저 처리
+	h.boardService.RemoveAllBoardManagers(c.Context(), boardID) // 기존 매니저 목록 제거
+	managerIDs := c.FormValue("manager_ids")
+	if managerIDs != "" {
+		managerIDList := strings.SplitSeq(managerIDs, ",") // 새 매니저 추가
+		for idStr := range managerIDList {
+			managerID, err := strconv.ParseInt(idStr, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			h.boardService.AddBoardManager(c.Context(), boardID, managerID)
 		}
 	}
 
@@ -1211,5 +1250,30 @@ func (h *AdminHandler) DeleteUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "사용자가 성공적으로 삭제되었습니다",
+	})
+}
+
+// SearchUsers 사용자 검색
+func (h *AdminHandler) SearchUsers(c *fiber.Ctx) error {
+	query := c.Query("q")
+	if query == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "검색어를 입력해주세요",
+		})
+	}
+
+	// 사용자 검색
+	users, err := h.authService.SearchUsers(c.Context(), query, 0, 10)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 검색에 실패했습니다",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"users":   users,
 	})
 }

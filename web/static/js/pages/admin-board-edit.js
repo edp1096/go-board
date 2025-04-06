@@ -8,6 +8,11 @@ document.addEventListener('alpine:init', () => {
         isQnaBoard: false,
         board_type: document.getElementById('board_type').value || 'normal',
 
+        // 매니저 관련 속성 추가
+        managers: [],
+        searchResults: [],
+        showSearchResults: false,
+
         init() {
             // 게시판 유형이 QnA인지 확인
             const boardTypeSelect = document.getElementById('board_type');
@@ -65,6 +70,32 @@ document.addEventListener('alpine:init', () => {
                 this.fields = [];
             }
 
+            // 매니저 데이터 초기화
+            try {
+                const initialManagersScript = document.getElementById('initial-managers-data');
+                if (initialManagersScript && initialManagersScript.textContent) {
+                    const content = initialManagersScript.textContent.trim();
+
+                    // JSON 파싱
+                    if (content.startsWith('"') && content.endsWith('"')) {
+                        const unescapedContent = content.slice(1, -1).replace(/\\"/g, '"');
+                        this.managers = JSON.parse(unescapedContent) || [];
+                    } else {
+                        this.managers = JSON.parse(content) || [];
+                    }
+
+                    // 배열이 아닌 경우 처리
+                    if (!Array.isArray(this.managers)) {
+                        this.managers = [];
+                    }
+                } else {
+                    this.managers = [];
+                }
+            } catch (e) {
+                console.error('매니저 데이터 파싱 오류:', e);
+                this.managers = [];
+            }
+
             // 다음 ID 설정 (새 필드용)
             this.nextId = -1;
 
@@ -95,6 +126,54 @@ document.addEventListener('alpine:init', () => {
             this.fields.splice(index, 1);
         },
 
+        // 사용자 검색 메서드 추가
+        async searchUsers() {
+            const searchTerm = document.getElementById('manager_search').value;
+            if (!searchTerm || searchTerm.length < 2) {
+                alert('검색어는 2글자 이상 입력해주세요.');
+                return;
+            }
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const response = await fetch(`/api/admin/users/search?q=${encodeURIComponent(searchTerm)}`, {
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.searchResults = data.users || [];
+                    this.showSearchResults = true;
+                } else {
+                    alert('사용자 검색 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('사용자 검색 오류:', error);
+                alert('사용자 검색 중 오류가 발생했습니다.');
+            }
+        },
+
+        // 매니저 추가 메서드 추가
+        addManager(user) {
+            // 이미 추가된 매니저인지 확인
+            const exists = this.managers.some(m => m.id === user.id);
+            if (exists) {
+                alert('이미 매니저로 추가된 사용자입니다.');
+                return;
+            }
+
+            this.managers.push(user);
+            this.showSearchResults = false;
+            document.getElementById('manager_search').value = '';
+        },
+
+        // 매니저 제거 메서드 추가
+        removeManager(index) {
+            this.managers.splice(index, 1);
+        },
+
         // 폼 제출 메소드
         submitForm() {
             this.submitting = true;
@@ -114,6 +193,12 @@ document.addEventListener('alpine:init', () => {
 
             if (wasDisabled) {
                 commentsCheckbox.disabled = true;
+            }
+
+            // 매니저 ID를 폼에 추가
+            const managerIds = this.managers.map(m => m.id).join(',');
+            if (managerIds) {
+                formData.append('manager_ids', managerIds);
             }
 
             // 필드 데이터 디버깅용 객체

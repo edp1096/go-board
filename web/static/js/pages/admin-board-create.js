@@ -1,4 +1,4 @@
-/* web/static/js/alpine-components/board-create-form.js */
+/* web/static/js/pages/admin-board-create.js */
 document.addEventListener('alpine:init', () => {
     Alpine.data('boardCreateForm', () => ({
         submitting: false,
@@ -6,6 +6,11 @@ document.addEventListener('alpine:init', () => {
         fieldCount: 0,
         board_type: 'normal',
         previousCommentCheckbox: false,
+
+        // 매니저 관련 속성 추가
+        managers: [],
+        searchResults: [],
+        showSearchResults: false,
 
         init() {
             // fields 배열의 변경을 감시
@@ -45,6 +50,54 @@ document.addEventListener('alpine:init', () => {
             this.fields.splice(index, 1);
         },
 
+        // 사용자 검색 메서드 추가
+        async searchUsers() {
+            const searchTerm = document.getElementById('manager_search').value;
+            if (!searchTerm || searchTerm.length < 2) {
+                alert('검색어는 2글자 이상 입력해주세요.');
+                return;
+            }
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const response = await fetch(`/api/admin/users/search?q=${encodeURIComponent(searchTerm)}`, {
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.searchResults = data.users || [];
+                    this.showSearchResults = true;
+                } else {
+                    alert('사용자 검색 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('사용자 검색 오류:', error);
+                alert('사용자 검색 중 오류가 발생했습니다.');
+            }
+        },
+
+        // 매니저 추가 메서드 추가
+        addManager(user) {
+            // 이미 추가된 매니저인지 확인
+            const exists = this.managers.some(m => m.id === user.id);
+            if (exists) {
+                alert('이미 매니저로 추가된 사용자입니다.');
+                return;
+            }
+
+            this.managers.push(user);
+            this.showSearchResults = false;
+            document.getElementById('manager_search').value = '';
+        },
+
+        // 매니저 제거 메서드 추가
+        removeManager(index) {
+            this.managers.splice(index, 1);
+        },
+
         // 폼 제출 메소드
         submitForm() {
             this.submitting = true;
@@ -64,6 +117,12 @@ document.addEventListener('alpine:init', () => {
 
             if (wasDisabled) {
                 commentsCheckbox.disabled = true;
+            }
+
+            // 매니저 ID를 폼에 추가
+            const managerIds = this.managers.map(m => m.id).join(',');
+            if (managerIds) {
+                formData.append('manager_ids', managerIds);
             }
 
             // CSRF 토큰 가져오기

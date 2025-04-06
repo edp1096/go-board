@@ -18,6 +18,7 @@ type UserRepository interface {
 	UpdateActiveStatus(ctx context.Context, id int64, active bool) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*models.User, int, error)
+	SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error)
 }
 
 type userRepository struct {
@@ -88,4 +89,25 @@ func (r *userRepository) List(ctx context.Context, offset, limit int) ([]*models
 		return nil, 0, err
 	}
 	return users, count, nil
+}
+
+// SearchUsers - 사용자 검색
+func (r *userRepository) SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// 쿼리 작성 - 사용자명, 이메일, 이름에서 검색
+	selectQuery := r.db.NewSelect().
+		Model((*models.User)(nil)).
+		Where("username LIKE ? OR email LIKE ? OR full_name LIKE ?",
+						"%"+query+"%", "%"+query+"%", "%"+query+"%").
+		Where("active = ?", true). // 활성 사용자만 검색
+		Limit(limit).
+		Offset(offset)
+
+	var users []*models.User
+	err := selectQuery.Scan(ctx, &users)
+
+	return users, err
 }
