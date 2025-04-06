@@ -399,6 +399,25 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	// 제출된 필드 ID 목록
 	submittedFieldIDs := make(map[int64]bool)
 
+	// Q&A 게시판 특수 필드 이름들
+	qnaSpecialFields := map[string]bool{
+		"status":         true,
+		"tags":           true,
+		"answer_count":   true,
+		"vote_count":     true,
+		"best_answer_id": true,
+	}
+
+	// 기존 특수 필드 정보 저장용 맵
+	existingQnaFields := make(map[string]*models.BoardField)
+	if board.BoardType == models.BoardTypeQnA {
+		for _, field := range board.Fields {
+			if qnaSpecialFields[field.Name] {
+				existingQnaFields[field.Name] = field
+			}
+		}
+	}
+
 	for i := range fieldCount {
 		fieldIDStr := c.FormValue(fmt.Sprintf("field_id_%d", i))
 		fieldID, _ := strconv.ParseInt(fieldIDStr, 10, 64)
@@ -478,15 +497,202 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 
 	for id := range existingFieldIDs {
 		if !submittedFieldIDs[id] {
-			// 삭제할 필드 찾기
+			// Q&A 게시판인 경우 특수 필드는 삭제 목록에서 제외
+			var isQnaSpecialField bool = false
+
 			for _, field := range board.Fields {
-				if field.ID == id {
-					dropFieldIDs = append(dropFieldIDs, id)
-					dropFieldColumns = append(dropFieldColumns, field.ColumnName)
-					break
+				if field.ID == id && board.BoardType == models.BoardTypeQnA {
+					if qnaSpecialFields[field.Name] {
+						isQnaSpecialField = true
+						break
+					}
+				}
+			}
+
+			if !isQnaSpecialField {
+				// 삭제할 필드 찾기
+				for _, field := range board.Fields {
+					if field.ID == id {
+						dropFieldIDs = append(dropFieldIDs, id)
+						dropFieldColumns = append(dropFieldColumns, field.ColumnName)
+						break
+					}
 				}
 			}
 		}
+	}
+
+	// Q&A 게시판인 경우 특수 필드 재추가 (사용자가 지웠거나 없는 경우)
+	if board.BoardType == models.BoardTypeQnA {
+		// 제출된 필드에서 특수 필드 이름들 확인
+		submittedSpecialFields := make(map[string]bool)
+		for _, field := range modifyFields {
+			if qnaSpecialFields[field.Name] {
+				submittedSpecialFields[field.Name] = true
+			}
+		}
+		for _, field := range addFields {
+			if qnaSpecialFields[field.Name] {
+				submittedSpecialFields[field.Name] = true
+			}
+		}
+
+		// 누락된 특수 필드 다시 추가
+		nextSortOrder := len(modifyFields) + len(addFields) + 1
+
+		// 1. 상태 필드
+		if !submittedSpecialFields["status"] {
+			field := existingQnaFields["status"]
+			if field == nil {
+				// 기존에 없었으면 새로 생성
+				field = &models.BoardField{
+					BoardID:     boardID,
+					Name:        "status",
+					ColumnName:  "status",
+					DisplayName: "상태",
+					FieldType:   models.FieldTypeSelect,
+					Required:    true,
+					Sortable:    true,
+					Searchable:  true,
+					Options:     `[{"value":"unsolved","label":"미해결"},{"value":"solved","label":"해결됨"}]`,
+					SortOrder:   nextSortOrder,
+				}
+				nextSortOrder++
+				addFields = append(addFields, field)
+			} else {
+				// 기존 필드 유지
+				field.SortOrder = nextSortOrder
+				nextSortOrder++
+				modifyFields = append(modifyFields, field)
+				submittedFieldIDs[field.ID] = true // 삭제 목록에서 제외하기 위해
+			}
+		}
+
+		// 2. 태그 필드
+		if !submittedSpecialFields["tags"] {
+			field := existingQnaFields["tags"]
+			if field == nil {
+				field = &models.BoardField{
+					BoardID:     boardID,
+					Name:        "tags",
+					ColumnName:  "tags",
+					DisplayName: "태그",
+					FieldType:   models.FieldTypeText,
+					Required:    false,
+					Sortable:    false,
+					Searchable:  true,
+					Options:     "",
+					SortOrder:   nextSortOrder,
+				}
+				nextSortOrder++
+				addFields = append(addFields, field)
+			} else {
+				field.SortOrder = nextSortOrder
+				nextSortOrder++
+				modifyFields = append(modifyFields, field)
+				submittedFieldIDs[field.ID] = true
+			}
+		}
+
+		// 3. 답변 수 필드
+		if !submittedSpecialFields["answer_count"] {
+			field := existingQnaFields["answer_count"]
+			if field == nil {
+				field = &models.BoardField{
+					BoardID:     boardID,
+					Name:        "answer_count",
+					ColumnName:  "answer_count",
+					DisplayName: "답변 수",
+					FieldType:   models.FieldTypeNumber,
+					Required:    false,
+					Sortable:    true,
+					Searchable:  false,
+					Options:     "",
+					SortOrder:   nextSortOrder,
+				}
+				nextSortOrder++
+				addFields = append(addFields, field)
+			} else {
+				field.SortOrder = nextSortOrder
+				nextSortOrder++
+				modifyFields = append(modifyFields, field)
+				submittedFieldIDs[field.ID] = true
+			}
+		}
+
+		// 4. 투표 수 필드
+		if !submittedSpecialFields["vote_count"] {
+			field := existingQnaFields["vote_count"]
+			if field == nil {
+				field = &models.BoardField{
+					BoardID:     boardID,
+					Name:        "vote_count",
+					ColumnName:  "vote_count",
+					DisplayName: "투표 수",
+					FieldType:   models.FieldTypeNumber,
+					Required:    false,
+					Sortable:    true,
+					Searchable:  false,
+					Options:     "",
+					SortOrder:   nextSortOrder,
+				}
+				nextSortOrder++
+				addFields = append(addFields, field)
+			} else {
+				field.SortOrder = nextSortOrder
+				nextSortOrder++
+				modifyFields = append(modifyFields, field)
+				submittedFieldIDs[field.ID] = true
+			}
+		}
+
+		// 5. 베스트 답변 ID 필드
+		if !submittedSpecialFields["best_answer_id"] {
+			field := existingQnaFields["best_answer_id"]
+			if field == nil {
+				field = &models.BoardField{
+					BoardID:     boardID,
+					Name:        "best_answer_id",
+					ColumnName:  "best_answer_id",
+					DisplayName: "베스트 답변 ID",
+					FieldType:   models.FieldTypeNumber,
+					Required:    false,
+					Sortable:    false,
+					Searchable:  false,
+					Options:     "",
+					SortOrder:   nextSortOrder,
+				}
+				nextSortOrder++
+				addFields = append(addFields, field)
+			} else {
+				field.SortOrder = nextSortOrder
+				nextSortOrder++
+				modifyFields = append(modifyFields, field)
+				submittedFieldIDs[field.ID] = true
+			}
+		}
+
+		// dropFieldIDs와 dropFieldColumns 재구성 (특수 필드 제외)
+		newDropFieldIDs := make([]int64, 0)
+		newDropFieldColumns := make([]string, 0)
+
+		for i, id := range dropFieldIDs {
+			var isQnaSpecialField bool = false
+			for _, field := range board.Fields {
+				if field.ID == id && qnaSpecialFields[field.Name] {
+					isQnaSpecialField = true
+					break
+				}
+			}
+
+			if !isQnaSpecialField {
+				newDropFieldIDs = append(newDropFieldIDs, id)
+				newDropFieldColumns = append(newDropFieldColumns, dropFieldColumns[i])
+			}
+		}
+
+		dropFieldIDs = newDropFieldIDs
+		dropFieldColumns = newDropFieldColumns
 	}
 
 	// 트랜잭션 처리가 필요하지만 간단히 처리

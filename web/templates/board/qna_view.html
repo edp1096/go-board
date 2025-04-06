@@ -202,7 +202,12 @@
     <h2 class="text-xl font-bold mb-4">
         답변
         <span class="text-gray-500 text-lg">
-            {{if .post.Fields.answer_count}}{{.post.Fields.answer_count.Value}}{{else}}0{{end}}개
+            {{if .post.Fields.answer_count}}
+            {{or .post.Fields.answer_count.Value 0}}
+            {{else}}
+            0
+            {{end}}
+            개
         </span>
     </h2>
 
