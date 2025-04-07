@@ -99,7 +99,7 @@ func (s *dynamicBoardService) getBaseColumns() []string {
 }
 
 // 테이블 이름 유효성 검사를 위한 정규식
-var tableNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+var tableNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 // 컬럼 이름 유효성 검사를 위한 정규식
 var columnNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)

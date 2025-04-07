@@ -91,7 +91,8 @@ func (s *boardService) CreateBoard(ctx context.Context, board *models.Board) err
 	// 테이블명이 없으면 생성
 	if board.TableName == "" {
 		// 테이블명 생성 (알파벳+숫자만 포함)
-		board.TableName = fmt.Sprintf("board_%s", slug.Make(board.Name))
+		// board.TableName = fmt.Sprintf("board_%s", slug.Make(board.Name))
+		board.TableName = fmt.Sprintf("board_%s", board.Slug)
 	}
 
 	// 생성 시간 설정
@@ -283,7 +284,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 	var query *bun.SelectQuery
 	if s.isPostgres() {
 		query = s.db.NewSelect().
-			TableExpr(fmt.Sprintf("%s AS p", board.TableName)).
+			TableExpr(fmt.Sprintf("\"%s\" AS p", board.TableName)).
 			Column("p.*").
 			ColumnExpr("u.username").
 			Join("LEFT JOIN users AS u ON u.id = p.user_id").
@@ -458,7 +459,7 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 	var tableExpr string
 
 	if s.isPostgres() {
-		tableExpr = fmt.Sprintf("%s AS p", board.TableName)
+		tableExpr = fmt.Sprintf("\"%s\" AS p", board.TableName)
 	} else {
 		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
 	}
@@ -610,7 +611,7 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 	var tableExpr string
 
 	if s.isPostgres() {
-		tableExpr = fmt.Sprintf("%s AS p", board.TableName)
+		tableExpr = fmt.Sprintf("\"%s\" AS p", board.TableName)
 	} else {
 		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
 	}
@@ -819,7 +820,7 @@ func (s *boardService) SearchPostsWithStatus(ctx context.Context, boardID int64,
 	var tableExpr string
 
 	if s.isPostgres() {
-		tableExpr = fmt.Sprintf("%s AS p", board.TableName)
+		tableExpr = fmt.Sprintf("\"%s\" AS p", board.TableName)
 	} else {
 		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
 	}

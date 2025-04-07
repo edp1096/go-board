@@ -24,6 +24,11 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 
 // LoginPage 로그인 페이지 렌더링
 func (h *AuthHandler) LoginPage(c *fiber.Ctx) error {
+	// 이미 로그인된 사용자는 메인 페이지로 리다이렉트
+	if c.Locals("user") != nil {
+		return c.Redirect("/")
+	}
+
 	return utils.RenderWithUser(c, "auth/login", fiber.Map{
 		"title":    "로그인",
 		"redirect": c.Query("redirect", "/"),
@@ -68,6 +73,11 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 // RegisterPage 회원가입 페이지 렌더링
 func (h *AuthHandler) RegisterPage(c *fiber.Ctx) error {
+	// 이미 로그인된 사용자는 메인 페이지로 리다이렉트
+	if c.Locals("user") != nil {
+		return c.Redirect("/")
+	}
+
 	return utils.RenderWithUser(c, "auth/register", fiber.Map{
 		"title": "회원가입",
 	})
