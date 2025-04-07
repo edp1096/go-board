@@ -286,10 +286,6 @@ func setupMiddleware(
 		AllowMethods: "GET,POST,PUT,DELETE",
 	}))
 
-	if cfg.RequireSetup {
-		app.Use(middleware.SetupMiddleware(setupService))
-	}
-
 	// // 로거 설정
 	// app.Use(flogger.New(flogger.Config{
 	// 	Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
@@ -312,6 +308,10 @@ func setupMiddleware(
 
 	// 전역 인증 미들웨어 (모든 요청에서 인증 정보 확인)
 	app.Use(middleware.GlobalAuth(authService))
+
+	if cfg.RequireSetup {
+		app.Use(middleware.SetupMiddleware(setupService))
+	}
 
 	// MIME 타입
 	app.Use("/uploads/*", func(c *fiber.Ctx) error {
@@ -340,6 +340,10 @@ func setupRoutes(
 	boardAccessMiddleware middleware.BoardAccessMiddleware,
 	adminMiddleware middleware.AdminMiddleware,
 ) {
+	// 초기 설정 라우트
+	app.Get("/admin/setup", setupHandler.SetupPage)
+	app.Post("/admin/setup", setupHandler.SetupAdmin)
+
 	// 인증 관련 라우트
 	auth := app.Group("/auth")
 	auth.Get("/login", authHandler.LoginPage)
@@ -375,10 +379,6 @@ func setupRoutes(
 	// 관리자 라우트 (관리자 권한 필요)
 	admin := app.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
 	admin.Get("/", adminHandler.Dashboard)
-
-	// 초기 설정 라우트
-	admin.Get("/setup", setupHandler.SetupPage)
-	admin.Post("/setup", setupHandler.SetupAdmin)
 
 	// 게시판 관리 라우트
 	admin.Get("/boards", adminHandler.ListBoards)

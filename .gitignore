@@ -5,3 +5,4 @@
 /pgdata
 /pglog
 /node_modules
+/test/front/node_modules
