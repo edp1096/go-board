@@ -248,7 +248,7 @@
                             <div class="mt-2 text-xs text-gray-500 flex items-center space-x-2">
                                 <span x-text="new Date(comment.createdAt).toLocaleString()"></span>
                                 {{if .user}}
-                                <button class="text-blue-600 hover:text-blue-800" @click="replyToId = comment.id; replyToUser = comment.user ? comment.user.username : '알 수 없음'; document.getElementById('comment').focus();">
+                                <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.username : '알 수 없음')">
                                     답글
                                 </button>
                                 <template x-if="{{.user.ID}} === comment.userId || {{if eq .user.Role " admin"}}true{{else}}false{{end}}">
@@ -280,13 +280,15 @@
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-sm font-medium text-gray-900" x-text="reply.user ? reply.user.username : '알 수 없음'"></div>
-                                        <div class="mt-1 text-sm text-gray-700" x-html="reply.content.replace(/\n/g, '<br>')"></div>
+                                        <!-- <div class="mt-1 text-sm text-gray-700" x-html="reply.content.replace(/\n/g, '<br>')"></div> -->
+                                        <div class="mt-1 text-sm text-gray-700 prose prose-sm max-w-none" x-html="reply.content.replace(/\n/g, '<br>')"></div>
                                         <div class="mt-2 text-xs text-gray-500 flex items-center space-x-2">
                                             <span x-text="new Date(reply.createdAt).toLocaleString()"></span>
+                                            {{$admin := eq .user.Role "admin"}}
                                             {{if .user}}
-                                            <template x-if="{{.user.ID}} === reply.userId || {{if eq .user.Role " admin"}}true{{else}}false{{end}}">
+                                            <template x-if="{{.user.ID}} === reply.userId || {{if $admin}} true {{else}} false {{end}}">
                                                 <div class="flex items-center space-x-2">
-                                                    <button class="text-blue-600 hover:text-blue-800" @click="replyToId = comment.id; replyToUser = comment.user ? comment.user.username : '알 수 없음'; document.getElementById('comment').focus();">
+                                                    <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.username : '알 수 없음')">
                                                         답글
                                                     </button>
                                                     <button class="text-gray-600 hover:text-gray-800" @click="editComment(reply.id, reply.content)">
@@ -311,7 +313,7 @@
 
     <!-- 댓글 작성 폼 -->
     {{if .user}}
-    <div class="mt-4">
+    <div class="mt-4 comment-form-area">
         <div class="flex space-x-3">
             <div class="flex-shrink-0">
                 <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -321,8 +323,17 @@
             <div class="min-w-0 flex-1">
                 <form @submit.prevent="submitComment()">
                     <div>
-                        <label for="comment" class="sr-only">댓글 내용</label>
-                        <textarea id="comment" name="comment" rows="3" x-model="commentContent" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" :placeholder="replyToId ? `${replyToUser}님에게 답글 작성...` : '댓글을 입력하세요...'" required></textarea>
+                        <label for="comment-content" class="sr-only">댓글 내용</label>
+                        <input type="hidden" id="comment-content" x-model="commentContent">
+                        <div x-show="replyToUser" class="mb-2 p-2 bg-blue-50 rounded text-sm">
+                            <span class="font-medium">@<span x-text="replyToUser"></span></span>님에게 답글 작성 중...
+                            <button type="button" @click="cancelReply()" class="text-gray-500 hover:text-gray-700 ml-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <editor-comment id="comment-editor" data-idx="comment"></editor-comment>
                     </div>
                     <div class="mt-3 flex items-center justify-between">
                         <div>
@@ -332,8 +343,15 @@
                                 </button>
                             </template>
                         </div>
-                        <button type="submit" class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                            댓글 등록
+                        <button type="submit" class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                            <span x-show="!submitting">댓글 등록</span>
+                            <span x-show="submitting" class="flex items-center">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                등록 중...
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -345,4 +363,116 @@
         <p class="text-gray-600">댓글을 작성하려면 <a href="/auth/login?redirect=/boards/{{.board.ID}}/posts/{{.post.ID}}" class="text-blue-600 hover:text-blue-500">로그인</a>이 필요합니다.</p>
     </div>
     {{end}}
+
+    <!-- 댓글 수정 모달 - 에디터 인스턴스 재사용 -->
+    <div x-show="showEditModal" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- 배경 오버레이 -->
+            <div x-show="showEditModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 transition-opacity" aria-hidden="true" @click="closeEditModal()">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <!-- 모달 내용 -->
+            <div x-show="showEditModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full" @click.stop>
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900">
+                                    댓글 수정
+                                </h3>
+                                <button type="button" @click="closeEditModal()" class="text-gray-400 hover:text-gray-500">
+                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <input type="hidden" id="edit-comment-content" x-model="editCommentContent">
+                                <editor-edit-comment id="edit-comment-editor" data-idx="edit-comment"></editor-edit-comment>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="submitEditComment()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        저장
+                    </button>
+                    <button type="button" @click="closeEditModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+
+
+<link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+<script src="/static/vendor/myeditor/myeditor.js"></script>
+
+<!-- 댓글 쓰기 에디터 -->
+<template id="comment-editor-template">
+    <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+
+    <style>
+        #comment-editor-container {
+            resize: vertical;
+            overflow: hidden;
+            height: 25vh;
+            min-height: 100px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+        }
+    </style>
+
+    <div class="comment-editor-container">
+        <div id="comment-editor-container"></div>
+    </div>
+</template>
+
+<script>
+    class CommentEditorElement extends HTMLElement {
+        constructor() {
+            super()
+            const templateContent = document.querySelector("#comment-editor-template").content
+            const shadowRoot = this.attachShadow({ mode: "open" })
+            shadowRoot.appendChild(templateContent.cloneNode(true))
+        }
+    }
+    customElements.define("editor-comment", CommentEditorElement)
+</script>
+
+<!-- 댓글 수정 에디터 -->
+<template id="edit-comment-editor-template">
+    <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+
+    <style>
+        #edit-comment-editor-container {
+            resize: vertical;
+            overflow: hidden;
+            height: 25vh;
+            min-height: 100px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+        }
+    </style>
+
+    <div class="edit-comment-editor-container">
+        <div id="edit-comment-editor-container"></div>
+    </div>
+</template>
+
+<script>
+    // 수정 에디터용 별도의 커스텀 엘리먼트 정의
+    class EditCommentEditorElement extends HTMLElement {
+        constructor() {
+            super()
+            const templateContent = document.querySelector("#edit-comment-editor-template").content
+            const shadowRoot = this.attachShadow({ mode: "open" })
+            shadowRoot.appendChild(templateContent.cloneNode(true))
+        }
+    }
+    customElements.define("editor-edit-comment", EditCommentEditorElement)
+</script>
