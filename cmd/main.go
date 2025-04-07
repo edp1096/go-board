@@ -340,6 +340,11 @@ func setupRoutes(
 	boardAccessMiddleware middleware.BoardAccessMiddleware,
 	adminMiddleware middleware.AdminMiddleware,
 ) {
+	// favicon
+	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
+		return c.SendFile("web/static/favicon.ico")
+	})
+
 	// 초기 설정 라우트
 	app.Get("/admin/setup", setupHandler.SetupPage)
 	app.Post("/admin/setup", setupHandler.SetupAdmin)
