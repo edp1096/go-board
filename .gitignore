@@ -1,5 +1,6 @@
 .env
 /bin
+/data
 /mariadata
 /pgdata
 /pglog
