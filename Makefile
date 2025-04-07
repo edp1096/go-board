@@ -3,7 +3,6 @@
 # 설정 변수
 APP_NAME=go-board
 MIGRATE_NAME=migrate
-DB_DRIVER=mysql
 
 # 운영체제 확인
 ifeq ($(OS),Windows_NT)
