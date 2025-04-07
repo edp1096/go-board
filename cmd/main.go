@@ -159,6 +159,7 @@ func main() {
 	attachmentRepo := repository.NewAttachmentRepository(db)
 
 	// 서비스 초기화
+	setupService := service.NewSetupService(userRepo)
 	authService := service.NewAuthService(userRepo)
 	boardService := service.NewBoardService(boardRepo, db)
 	dynamicBoardService := service.NewDynamicBoardService(db)
@@ -167,6 +168,7 @@ func main() {
 	uploadService := service.NewUploadService(attachmentRepo)
 
 	// 핸들러 초기화
+	setupHandler := handlers.NewSetupHandler(authService, setupService)
 	authHandler := handlers.NewAuthHandler(authService)
 	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService)
 	commentHandler := handlers.NewCommentHandler(commentService)
@@ -180,7 +182,7 @@ func main() {
 	adminMiddleware := middleware.NewAdminMiddleware(authService)
 
 	// 미들웨어 설정
-	setupMiddleware(app, cfg, authService)
+	setupMiddleware(app, cfg, setupService, authService)
 
 	// 정적 파일 제공 - 단순화된 자동 감지 방식
 	var staticFS http.FileSystem
@@ -208,6 +210,7 @@ func main() {
 	// 라우트 설정
 	setupRoutes(
 		app,
+		setupHandler,
 		authHandler,
 		boardHandler,
 		commentHandler,
@@ -269,14 +272,23 @@ func printHelp() {
 	fmt.Println()
 }
 
-// setupMiddleware는 앱에 필요한 미들웨어를 설정합니다
-func setupMiddleware(app *fiber.App, cfg *config.Config, authService service.AuthService) {
+// setupMiddleware 앱에 필요한 미들웨어를 설정
+func setupMiddleware(
+	app *fiber.App,
+	cfg *config.Config,
+	setupService service.SetupService,
+	authService service.AuthService,
+) {
 	// 기본 미들웨어
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 		AllowMethods: "GET,POST,PUT,DELETE",
 	}))
+
+	if cfg.RequireSetup {
+		app.Use(middleware.SetupMiddleware(setupService))
+	}
 
 	// // 로거 설정
 	// app.Use(flogger.New(flogger.Config{
@@ -317,6 +329,7 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, authService service.Aut
 // setupRoutes는 앱의 라우트를 설정합니다
 func setupRoutes(
 	app *fiber.App,
+	setupHandler *handlers.SetupHandler,
 	authHandler *handlers.AuthHandler,
 	boardHandler *handlers.BoardHandler,
 	commentHandler *handlers.CommentHandler,
@@ -362,6 +375,10 @@ func setupRoutes(
 	// 관리자 라우트 (관리자 권한 필요)
 	admin := app.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
 	admin.Get("/", adminHandler.Dashboard)
+
+	// 초기 설정 라우트
+	admin.Get("/setup", setupHandler.SetupPage)
+	admin.Post("/setup", setupHandler.SetupAdmin)
 
 	// 게시판 관리 라우트
 	admin.Get("/boards", adminHandler.ListBoards)

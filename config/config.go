@@ -23,6 +23,7 @@ const (
 type Config struct {
 	Environment    Environment
 	Debug          bool
+	RequireSetup   bool
 	ServerAddress  string
 	DBDriver       string
 	DBHost         string
@@ -129,9 +130,17 @@ func Load() (*Config, error) {
 	// 	log.Printf("경고: 템플릿 디렉토리 또는 정적 파일 디렉토리가 존재하지 않습니다.")
 	// }
 
+	// 초기 설정 필요 여부 설정
+	requireSetup := os.Getenv("REQUIRE_SETUP") == "true"
+	// 환경 변수가 설정되어 있지 않으면 기본값은 true (자동 감지)
+	if os.Getenv("REQUIRE_SETUP") == "" {
+		requireSetup = true
+	}
+
 	return &Config{
 		Environment:    env,
 		Debug:          debug,
+		RequireSetup:   requireSetup,
 		ServerAddress:  serverAddress,
 		DBDriver:       dbDriver,
 		DBHost:         getEnvWithDefault("DB_HOST", "localhost"),
