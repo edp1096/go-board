@@ -58,28 +58,19 @@ function initEditCommentEditor() {
         uploadAccessURI: `/uploads/boards/${boardId}/images`,
         placeholder: '댓글을 수정하세요...',
         uploadCallback: function (response) {
-            console.log("댓글 이미지 업로드 완료:", response);
+            // console.log("댓글 이미지 업로드 완료:", response);
         }
     };
 
-    try {
-        // 에디터 초기화 (빈 내용으로)
-        editCommentEditor = new MyEditor("", editorEl, editorOptions);
-        isEditEditorInitialized = true;
-        console.log("수정 에디터가 초기화되었습니다.");
-    } catch (error) {
-        console.error("수정 에디터 초기화 중 오류:", error);
-    }
+    // 에디터 초기화 (빈 내용으로)
+    editCommentEditor = new MyEditor("", editorEl, editorOptions);
+    isEditEditorInitialized = true;
 }
 
 // 에디터 내용 업데이트 함수
 function updateEditCommentContent(content) {
     if (editCommentEditor && typeof editCommentEditor.setHTML === 'function') {
-        try {
-            editCommentEditor.setHTML(content);
-        } catch (error) {
-            console.error("에디터 내용 업데이트 중 오류:", error);
-        }
+        editCommentEditor.setHTML(content);
     }
 }
 

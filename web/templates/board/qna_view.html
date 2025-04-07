@@ -321,11 +321,11 @@
     {{if .user}}
     <div class="mt-8">
         <h3 class="text-lg font-medium mb-4">답변 작성</h3>
-        <!-- <form id="answerForm" x-data="{ content: '', submitting: false }" @submit.prevent="submitAnswer"> -->
         <form id="answerForm" x-data="answerManager()" @submit.prevent="submitAnswer">
             <div class="mb-4">
                 <label for="answerContent" class="sr-only">답변 내용</label>
-                <textarea id="answerContent" name="content" rows="6" x-model="content" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="답변을 작성해주세요..." required></textarea>
+                <input type="hidden" id="answerContent" name="content" x-model="content">
+                <editor-comment id="answer-editor" data-idx="answer"></editor-comment>
             </div>
             <div class="flex justify-end">
                 <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
@@ -347,6 +347,76 @@
     </div>
     {{end}}
 </div>
+
+
+
+<link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+<script src="/static/vendor/myeditor/myeditor.js"></script>
+
+<!-- 댓글 쓰기 에디터 템플릿 -->
+<template id="comment-editor-template">
+    <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+
+    <style>
+        #comment-editor-container {
+            resize: vertical;
+            overflow: hidden;
+            height: 25vh;
+            min-height: 100px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+        }
+    </style>
+
+    <div class="comment-editor-container">
+        <div id="comment-editor-container"></div>
+    </div>
+</template>
+
+<script>
+    class CommentEditorElement extends HTMLElement {
+        constructor() {
+            super()
+            const templateContent = document.querySelector("#comment-editor-template").content
+            const shadowRoot = this.attachShadow({ mode: "open" })
+            shadowRoot.appendChild(templateContent.cloneNode(true))
+        }
+    }
+    customElements.define("editor-comment", CommentEditorElement)
+</script>
+
+<!-- 댓글 수정 에디터 템플릿 -->
+<template id="edit-comment-editor-template">
+    <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+
+    <style>
+        #edit-comment-editor-container {
+            resize: vertical;
+            overflow: hidden;
+            height: 25vh;
+            min-height: 100px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+        }
+    </style>
+
+    <div class="edit-comment-editor-container">
+        <div id="edit-comment-editor-container"></div>
+    </div>
+</template>
+
+<script>
+    // 수정 에디터용 별도의 커스텀 엘리먼트 정의
+    class EditCommentEditorElement extends HTMLElement {
+        constructor() {
+            super()
+            const templateContent = document.querySelector("#edit-comment-editor-template").content
+            const shadowRoot = this.attachShadow({ mode: "open" })
+            shadowRoot.appendChild(templateContent.cloneNode(true))
+        }
+    }
+    customElements.define("editor-edit-comment", EditCommentEditorElement)
+</script>
 
 <!-- Q&A 게시판용 스크립트 -->
 <script>
@@ -482,6 +552,39 @@
             });
     }
 
+    // 답변 에디터 변수
+    let answerEditor;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initAnswerEditor(); // 답변 에디터 초기화
+    });
+
+    // 답변 에디터 초기화 함수
+    function initAnswerEditor() {
+        // 에디터 요소가 있는지 확인
+        const editorContainer = document.querySelector('editor-comment#answer-editor');
+        if (!editorContainer) return;
+
+        const shadowRoot = editorContainer.shadowRoot;
+        const editorEl = shadowRoot.querySelector("#comment-editor-container");
+
+        const boardId = document.getElementById('boardId').value;
+
+        // 에디터 옵션 설정
+        const editorOptions = {
+            uploadInputName: "upload-files[]",
+            uploadActionURI: `/api/boards/${boardId}/upload`,
+            uploadAccessURI: `/uploads/boards/${boardId}/images`,
+            placeholder: '답변을 입력하세요...',
+            uploadCallback: function (response) {
+                console.log("답변 이미지 업로드 완료:", response);
+            }
+        };
+
+        // 에디터 초기화
+        answerEditor = new MyEditor("", editorEl, editorOptions);
+    }
+
     // 답변 관리 컴포넌트
     document.addEventListener('alpine:init', () => {
         Alpine.data('answerManager', () => ({
@@ -529,7 +632,17 @@
             submitAnswer() {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
-                const content = document.getElementById('answerContent').value;
+
+                // 에디터에서 HTML 내용 가져오기
+                if (answerEditor) {
+                    this.content = answerEditor.getHTML();
+
+                    // 빈 답변 체크
+                    if (!this.content || this.content === '<p></p>' || this.content === '<p><br></p>') {
+                        alert('답변 내용을 입력해주세요.');
+                        return;
+                    }
+                }
 
                 // CSRF 토큰 가져오기
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -542,7 +655,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken
                     },
-                    body: JSON.stringify({ content: content })
+                    body: JSON.stringify({ content: this.content })
                 })
                     .then(response => response.json())
                     .then(data => {
