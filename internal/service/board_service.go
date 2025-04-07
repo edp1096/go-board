@@ -70,18 +70,6 @@ func NewBoardService(boardRepo repository.BoardRepository, db *bun.DB) BoardServ
 	}
 }
 
-// 데이터베이스가 PostgreSQL인지 확인
-func (s *boardService) isPostgres() bool {
-	dialectName := s.db.Dialect().Name()
-	return dialectName.String() == "pg" || dialectName.String() == "postgres"
-}
-
-// 데이터베이스가 SQLite인지 확인
-func (s *boardService) isSQLite() bool {
-	dialectName := s.db.Dialect().Name()
-	return dialectName.String() == "sqlite" || dialectName.String() == "sqlite3"
-}
-
 func (s *boardService) CreateBoard(ctx context.Context, board *models.Board) error {
 	// 슬러그가 없으면 생성
 	if board.Slug == "" {
@@ -227,7 +215,7 @@ func (s *boardService) CreatePost(ctx context.Context, boardID int64, post *mode
 
 	var insertErr error
 
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		// PostgreSQL에서는 RETURNING 구문 사용
 		var id int64
 		tableName := board.TableName
@@ -282,7 +270,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 	// 쿼리 빌더 초기화
 	// 테이블명을 적절한 구분자로 감싸고 별칭은 AS 키워드로 구분
 	var query *bun.SelectQuery
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		query = s.db.NewSelect().
 			TableExpr(fmt.Sprintf("\"%s\" AS p", board.TableName)).
 			Column("p.*").
@@ -306,7 +294,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 	}
 
 	// 조회수 증가
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		s.db.NewUpdate().
 			Table(board.TableName).
 			Set("view_count = view_count + 1").
@@ -458,7 +446,7 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 	var query *bun.SelectQuery
 	var tableExpr string
 
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		tableExpr = fmt.Sprintf("\"%s\" AS p", board.TableName)
 	} else {
 		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
@@ -610,7 +598,7 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 	var selectQuery *bun.SelectQuery
 	var tableExpr string
 
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		tableExpr = fmt.Sprintf("\"%s\" AS p", board.TableName)
 	} else {
 		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)
@@ -819,7 +807,7 @@ func (s *boardService) SearchPostsWithStatus(ctx context.Context, boardID int64,
 	var selectQuery *bun.SelectQuery
 	var tableExpr string
 
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		tableExpr = fmt.Sprintf("\"%s\" AS p", board.TableName)
 	} else {
 		tableExpr = fmt.Sprintf("`%s` AS p", board.TableName)

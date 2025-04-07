@@ -119,18 +119,3 @@ func (d *Database) Close() error {
 	}
 	return nil
 }
-
-// IsPostgres는 현재 드라이버가 PostgreSQL인지 확인
-func (d *Database) IsPostgres() bool {
-	return d.Config.DBDriver == "postgres"
-}
-
-// IsMySQLOrMariaDB는 현재 드라이버가 MySQL/MariaDB인지 확인
-func (d *Database) IsMySQLOrMariaDB() bool {
-	return d.Config.DBDriver == "mysql" || d.Config.DBDriver == "mariadb"
-}
-
-// IsSQLite는 현재 드라이버가 SQLite인지 확인
-func (d *Database) IsSQLite() bool {
-	return d.Config.DBDriver == "sqlite"
-}

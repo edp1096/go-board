@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"go-board/internal/models"
+	"go-board/internal/utils"
 	"regexp"
 	"strings"
 	"time"
@@ -73,16 +74,10 @@ func (s *dynamicBoardService) getColumnDefinition(field *models.BoardField) stri
 	return columnDef
 }
 
-// 데이터베이스가 PostgreSQL인지 확인
-func (s *dynamicBoardService) isPostgres() bool {
-	dialectName := s.db.Dialect().Name()
-	return dialectName.String() == "pg" || dialectName.String() == "postgres"
-}
-
 // 기본 테이블 컬럼 정의 반환
 func (s *dynamicBoardService) getBaseColumns() []string {
 	idType := "SERIAL PRIMARY KEY"
-	if !s.isPostgres() {
+	if !utils.IsPostgres(s.db) {
 		// MySQL/MariaDB용 자동 증가 기본 키
 		idType = "INT AUTO_INCREMENT PRIMARY KEY"
 	}
@@ -153,7 +148,7 @@ func (s *dynamicBoardService) CreateBoardTable(ctx context.Context, board *model
 
 	// CREATE TABLE 쿼리 생성
 	var query string
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		// PostgreSQL에서는 큰따옴표로 테이블 이름을 감싸서 예약어와의 충돌 방지
 		query = fmt.Sprintf(
 			"CREATE TABLE \"%s\" (%s);",
@@ -201,7 +196,7 @@ func (s *dynamicBoardService) AlterBoardTable(ctx context.Context, board *models
 
 		columnDef := s.getColumnDefinition(field)
 		var query string
-		if s.isPostgres() {
+		if utils.IsPostgres(s.db) {
 			query = fmt.Sprintf("ALTER TABLE \"%s\" ADD COLUMN %s;", board.TableName, columnDef)
 		} else {
 			query = fmt.Sprintf("ALTER TABLE `%s` ADD COLUMN %s;", board.TableName, columnDef)
@@ -223,7 +218,7 @@ func (s *dynamicBoardService) AlterBoardTable(ctx context.Context, board *models
 		var query string
 		columnType := s.getColumnType(field.FieldType)
 
-		if s.isPostgres() {
+		if utils.IsPostgres(s.db) {
 			// PostgreSQL용 ALTER COLUMN
 			query = fmt.Sprintf(
 				"ALTER TABLE \"%s\" ALTER COLUMN \"%s\" TYPE %s;",
@@ -274,7 +269,7 @@ func (s *dynamicBoardService) AlterBoardTable(ctx context.Context, board *models
 		}
 
 		var query string
-		if s.isPostgres() {
+		if utils.IsPostgres(s.db) {
 			query = fmt.Sprintf("ALTER TABLE \"%s\" DROP COLUMN \"%s\";", board.TableName, columnName)
 		} else {
 			query = fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN `%s`;", board.TableName, columnName)
@@ -310,7 +305,7 @@ func (s *dynamicBoardService) DropBoardTable(ctx context.Context, tableName stri
 	}
 
 	var query string
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		query = fmt.Sprintf("DROP TABLE IF EXISTS \"%s\";", tableName)
 	} else {
 		query = fmt.Sprintf("DROP TABLE IF EXISTS `%s`;", tableName)
@@ -340,7 +335,7 @@ func (s *dynamicBoardService) GetBoardTableSchema(ctx context.Context, tableName
 
 	// SQL 쿼리 생성 - parameterized query로 변경
 	var query string
-	if s.isPostgres() {
+	if utils.IsPostgres(s.db) {
 		query = `
 			SELECT 
 				column_name, 
