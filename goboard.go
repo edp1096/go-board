@@ -2,9 +2,12 @@ package goboard
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 //go:embed web/templates
@@ -21,6 +24,14 @@ var PostgresMigrationsFS embed.FS
 
 //go:embed migrations/sqlite
 var SQLiteMigrationsFS embed.FS
+
+// GetWebContentDirs는 웹 콘텐츠 디렉토리의 경로와 임베디드 파일 시스템을 반환합니다.
+func GetWebContentDirs() map[string]embed.FS {
+	return map[string]embed.FS{
+		"web/templates": templatesFS,
+		"web/static":    staticFS,
+	}
+}
 
 // GetTemplatesFS는 템플릿 파일시스템을 반환합니다
 func GetTemplatesFS() http.FileSystem {
@@ -63,4 +74,73 @@ func GetStaticFS() http.FileSystem {
 // GetTemplatesDir는 템플릿 디렉토리 경로를 반환합니다
 func GetTemplatesDir() string {
 	return "."
+}
+
+// exportWebContent는 embed 웹 콘텐츠를 지정된 경로로 내보냅니다
+func ExportWebContent(destPath string) error {
+	fmt.Printf("웹 콘텐츠를 %s 경로로 내보냅니다...\n", destPath)
+
+	// 웹 콘텐츠 디렉토리와 파일 시스템 가져오기
+	contentDirs := GetWebContentDirs()
+
+	// 각 콘텐츠 디렉토리 처리
+	for dirPath, embedFS := range contentDirs {
+		// 대상 디렉토리 경로 계산 (web/templates -> templates, web/static -> static)
+		relativePath := strings.TrimPrefix(dirPath, "web/")
+		targetPath := filepath.Join(destPath, relativePath)
+
+		fmt.Printf("%s 디렉토리를 %s로 내보냅니다...\n", dirPath, targetPath)
+
+		// 대상 디렉토리 생성
+		if err := os.MkdirAll(targetPath, 0755); err != nil {
+			return fmt.Errorf("디렉토리 생성 실패: %w", err)
+		}
+
+		// 디렉토리 내용 내보내기
+		err := fs.WalkDir(embedFS, dirPath, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			// 상대 경로 생성 (예: web/templates/layouts/base.html -> layouts/base.html)
+			relPath, err := filepath.Rel(dirPath, path)
+			if err != nil {
+				return fmt.Errorf("상대 경로 생성 실패: %w", err)
+			}
+
+			// 루트 디렉토리는 건너뛰기
+			if relPath == "." {
+				return nil
+			}
+
+			destFilePath := filepath.Join(targetPath, relPath)
+
+			if d.IsDir() {
+				// 디렉토리 생성
+				if err := os.MkdirAll(destFilePath, 0755); err != nil {
+					return fmt.Errorf("디렉토리 생성 실패(%s): %w", destFilePath, err)
+				}
+			} else {
+				// 파일 내용 읽기
+				data, err := embedFS.ReadFile(path)
+				if err != nil {
+					return fmt.Errorf("파일 읽기 실패(%s): %w", path, err)
+				}
+
+				// 파일 쓰기
+				if err := os.WriteFile(destFilePath, data, 0644); err != nil {
+					return fmt.Errorf("파일 쓰기 실패(%s): %w", destFilePath, err)
+				}
+				fmt.Printf("  파일 내보내기: %s/%s\n", relativePath, relPath)
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return fmt.Errorf("%s 디렉토리 내보내기 실패: %w", dirPath, err)
+		}
+	}
+
+	return nil
 }

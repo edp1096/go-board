@@ -236,6 +236,10 @@ func handleCommandLineArgs() (bool, error) {
 	// 도움말 표시 처리
 	helpCmd := flag.NewFlagSet("help", flag.ExitOnError)
 
+	// export-web 명령어 처리
+	exportWebCmd := flag.NewFlagSet("export-web", flag.ExitOnError)
+	exportPath := exportWebCmd.String("path", "./web", "웹 콘텐츠를 내보낼 경로")
+
 	// 명령행 인자가 없으면 정상 실행
 	if len(os.Args) < 2 {
 		return false, nil
@@ -250,6 +254,15 @@ func handleCommandLineArgs() (bool, error) {
 
 	case "version", "--version", "-v":
 		fmt.Println("Dynamic Board 버전 1.0.0")
+		return true, nil
+
+	case "export-web":
+		exportWebCmd.Parse(os.Args[2:])
+		if err := goboard.ExportWebContent(*exportPath); err != nil {
+			fmt.Fprintf(os.Stderr, "오류: %s\n", err)
+			return true, err
+		}
+		fmt.Printf("웹 콘텐츠가 %s 경로에 성공적으로 내보내졌습니다\n", *exportPath)
 		return true, nil
 
 	default:
@@ -267,6 +280,9 @@ func printHelp() {
 	fmt.Println("명령:")
 	fmt.Println("  help\t\t이 도움말을 표시합니다")
 	fmt.Println("  version\t버전 정보를 표시합니다")
+	fmt.Println("  export-web\t웹 콘텐츠를 내보냅니다")
+	fmt.Println("    옵션:")
+	fmt.Println("      -path string\t내보낼 경로를 지정합니다 (기본값: \"./web\")")
 	fmt.Println()
 }
 
@@ -301,7 +317,7 @@ func setupMiddleware(
 		return c.Next()
 	})
 
-	// CSRF 보호 미들웨어 추가
+	// CSRF 미들웨어
 	app.Use(middleware.CSRF())
 
 	// 전역 인증 미들웨어 (모든 요청에서 인증 정보 확인)
