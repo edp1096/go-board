@@ -4,6 +4,8 @@
 APP_NAME=go-board
 MIGRATE_NAME=migrate
 
+ORIGINAL_CGO_USAGE_SET := $(shell go env CGO_ENABLED)
+
 # 운영체제 확인
 ifeq ($(OS),Windows_NT)
     APP_NAME=go-board.exe
@@ -24,13 +26,17 @@ build: build-app build-migrate
 
 # 앱 빌드
 build-app:
+	@go env -w CGO_ENABLED=0
 	@echo "Building application..."
 	@go build -o ./bin/$(APP_NAME) ./cmd
+	@go env -w CGO_ENABLED=$(ORIGINAL_CGO_USAGE_SET)
 
 # 마이그레이터 빌드
 build-migrate:
+	@go env -w CGO_ENABLED=0
 	@echo "Building migrator..."
 	@go build -o ./bin/$(MIGRATE_NAME) ./cmd/migrate
+	@go env -w CGO_ENABLED=$(ORIGINAL_CGO_USAGE_SET)
 
 # 실행
 run: build

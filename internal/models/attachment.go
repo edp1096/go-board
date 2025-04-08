@@ -19,6 +19,7 @@ type Attachment struct {
 	MimeType      string    `bun:"mime_type,notnull" json:"mimeType"`
 	IsImage       bool      `bun:"is_image,notnull" json:"isImage"`
 	DownloadURL   string    `bun:"download_url,notnull" json:"downloadUrl"` // Not use
+	ThumbnailURL  string    `bun:"thumbnail_url" json:"thumbnailUrl"`
 	DownloadCount int       `bun:"download_count,notnull,default:0" json:"downloadCount"`
 	CreatedAt     time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
 }

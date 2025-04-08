@@ -178,11 +178,12 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 				DisplayName: "이미지",
 				ColumnName:  "gallery_images",
 				FieldType:   models.FieldTypeFile,
-				Required:    true,
-				Sortable:    false,
-				Searchable:  false,
-				Options:     "",
-				SortOrder:   len(fields) + 1,
+				// Required:    true,
+				Required:   false,
+				Sortable:   false,
+				Searchable: false,
+				Options:    "",
+				SortOrder:  len(fields) + 1,
 			}
 			fields = append(fields, galleryImagesField)
 		}

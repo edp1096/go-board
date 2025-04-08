@@ -41,6 +41,12 @@ func (s *uploadService) SaveAttachments(ctx context.Context, boardID, postID, us
 		// 경로에서 항상 슬래시(/)를 사용하도록 수정
 		downloadURL := filepath.ToSlash(file.URL)
 
+		// 썸네일 URL 처리
+		thumbnailURL := ""
+		if file.IsImage && file.ThumbnailURL != "" {
+			thumbnailURL = filepath.ToSlash(file.ThumbnailURL)
+		}
+
 		attachment := &models.Attachment{
 			BoardID:     boardID,
 			PostID:      postID,
@@ -53,6 +59,7 @@ func (s *uploadService) SaveAttachments(ctx context.Context, boardID, postID, us
 			IsImage:     file.IsImage,
 			// DownloadURL:   file.URL,
 			DownloadURL:   downloadURL,
+			ThumbnailURL:  thumbnailURL,
 			DownloadCount: 0,
 		}
 

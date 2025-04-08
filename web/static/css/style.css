@@ -252,7 +252,7 @@ body {
 p img {
     display: inline-block;
     max-width: 920px;
-    min-width: 640px;
+    min-width: 320px;
     height: auto;
     padding: 0.5rem;
 }
@@ -282,4 +282,63 @@ p iframe {
         height: auto;
         aspect-ratio: 16/9;
     }
+}
+
+
+/* 썸네일 */
+@media (max-width: 640px) {
+    p iframe {
+        max-width: unset;
+        min-width: unset;
+        min-height: unset;
+
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16/9;
+    }
+}
+
+/* 이미지 뷰어 스타일 */
+
+/* 포스트 내용 이미지 스타일 */
+p img {
+    max-width: 100%;
+    height: auto;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+p img:hover {
+    opacity: 0.9;
+}
+
+/* 이미지 뷰어 애니메이션 */
+.image-viewer-enter {
+    opacity: 0;
+}
+
+.image-viewer-enter-active {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.image-viewer-leave {
+    opacity: 1;
+}
+
+.image-viewer-leave-active {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* 썸네일 이미지 스타일 */
+.thumbnail-image {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.3s ease;
+}
+
+.thumbnail-container:hover .thumbnail-image {
+    transform: scale(1.05);
 }

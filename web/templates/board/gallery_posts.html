@@ -36,8 +36,8 @@
         {{range .posts}}
         <a href="/boards/{{$.board.ID}}/posts/{{.ID}}" class="block bg-white overflow-hidden rounded-lg shadow-md hover:shadow-lg transition duration-300">
             <div class="relative pb-[75%] bg-gray-100"> <!-- 4:3 비율 이미지 컨테이너 -->
-                {{if .ThumbnailURL}}
-                <img src="{{.ThumbnailURL}}" alt="{{toUTF8 .Title}}" class="absolute inset-0 w-full h-full object-cover">
+                {{if .RawData.ThumbnailURL}}
+                <img src="{{.RawData.ThumbnailURL}}" alt="{{toUTF8 .Title}}" class="absolute inset-0 w-full h-full object-cover">
                 {{else}}
                 <div class="absolute inset-0 flex items-center justify-center bg-gray-200">
                     <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

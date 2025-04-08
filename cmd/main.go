@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -136,6 +137,7 @@ func main() {
 		ReadBufferSize:        8192,
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
+		// Prefork:               true,
 		// EnablePrintRoutes:     true,
 		// Immutable:             true,
 	})
@@ -461,6 +463,45 @@ func setupRoutes(
 	// 업로드된 파일 정적 제공
 	app.Static("/uploads", "./uploads", fiber.Static{
 		Browse: false,
+	})
+
+	// 업로드된 파일 정적 제공
+	app.Static("/uploads", "./uploads", fiber.Static{
+		Browse: false,
+	})
+
+	// 썸네일 생성 미들웨어 - 요청된 썸네일이 없으면 자동 생성
+	app.Use("/uploads", func(c *fiber.Ctx) error {
+		// 요청 경로가 이미지 파일인지 확인
+		path := c.Path()
+
+		// 요청 경로에 '/thumbs/'가 포함되어 있는지 확인
+		if strings.Contains(path, "/thumbs/") {
+			// 서버 내 실제 파일 경로 계산
+			filePath := filepath.Join(".", path)
+
+			// thumbs 부분을 제거한 원본 이미지 경로 생성
+			originalPath := strings.Replace(filePath, "/thumbs/", "/", 1)
+
+			// 원본 이미지는 있지만 썸네일이 없는 경우 썸네일 생성
+			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+				if _, err := os.Stat(originalPath); err == nil {
+					// 이미지 파일인지 확인
+					if utils.IsImageFile(originalPath) {
+						thumbDir := filepath.Dir(filePath)
+						if err := os.MkdirAll(thumbDir, 0755); err == nil {
+							// 썸네일 생성
+							if err := utils.EnsureThumbnail(originalPath); err != nil {
+								fmt.Printf("자동 썸네일 생성 실패 (%s): %v\n", originalPath, err)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// 다음 미들웨어로 계속 진행
+		return c.Next()
 	})
 
 	// 루트 라우트

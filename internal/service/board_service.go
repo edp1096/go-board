@@ -695,12 +695,27 @@ func (s *boardService) GetPostThumbnails(ctx context.Context, boardID int64, pos
 	for _, attachment := range attachments {
 		// 해당 게시물의 첫 번째 이미지만 저장 (이미 썸네일이 있는 경우 건너뜀)
 		if _, exists := thumbnails[attachment.PostID]; !exists {
-			// 모든 경로를 URL 형식으로 변환 (슬래시 사용)
-			thumbnails[attachment.PostID] = filepath.ToSlash(attachment.DownloadURL)
+			// 저장된 썸네일 URL이 있는 경우 사용
+			if attachment.ThumbnailURL != "" {
+				thumbnailURL := filepath.ToSlash(attachment.ThumbnailURL)
 
-			// URL이 /attachments로 시작하지 않으면 첨부파일 다운로드 URL 사용
-			if !strings.HasPrefix(thumbnails[attachment.PostID], "/attachments") {
-				thumbnails[attachment.PostID] = fmt.Sprintf("/attachments/%d/download", attachment.ID)
+				// URL이 /attachments로 시작하면 첨부파일 다운로드 URL 사용
+				if strings.HasPrefix(thumbnailURL, "/attachments") {
+					thumbnails[attachment.PostID] = fmt.Sprintf("/attachments/%d/download", attachment.ID)
+				} else {
+					thumbnails[attachment.PostID] = thumbnailURL
+				}
+			} else {
+				// 썸네일 URL이 없는 경우 원본 URL에서 유추하여 생성
+				downloadURL := filepath.ToSlash(attachment.DownloadURL)
+				thumbnailURL := utils.GetThumbnailURL(downloadURL)
+
+				// URL이 /attachments로 시작하면 첨부파일 다운로드 URL 사용
+				if strings.HasPrefix(downloadURL, "/attachments") {
+					thumbnails[attachment.PostID] = fmt.Sprintf("/attachments/%d/download", attachment.ID)
+				} else {
+					thumbnails[attachment.PostID] = thumbnailURL
+				}
 			}
 		}
 	}

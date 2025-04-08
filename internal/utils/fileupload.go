@@ -54,6 +54,7 @@ type UploadedFile struct {
 	Size         int64
 	MimeType     string
 	URL          string
+	ThumbnailURL string
 	IsImage      bool
 }
 
@@ -71,6 +72,10 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 	}
 	defer src.Close()
 
+	// 파일명 준비
+	originalName := filepath.Base(file.Filename)
+	ext := filepath.Ext(originalName)
+
 	// MIME 타입 확인
 	buffer := make([]byte, 512)
 	_, err = src.Read(buffer)
@@ -85,14 +90,16 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 	mimeType := http.DetectContentType(buffer)
 	mimeType = strings.SplitN(mimeType, ";", 2)[0]
 
+	// WebP 파일 확장자 명시적 확인 (.webp 확장자이지만 MIME 타입이 제대로 감지되지 않는 경우)
+	if ext == ".webp" {
+		// fmt.Printf("WebP 파일 감지: %s (원래 감지된 MIME: %s)\n", file.Filename, mimeType)
+		mimeType = "image/webp"
+	}
+
 	// MIME 타입 확인
 	if !config.AllowedTypes[mimeType] {
 		return nil, fmt.Errorf("허용되지 않는 파일 형식입니다: %s", mimeType)
 	}
-
-	// 파일명 준비
-	originalName := filepath.Base(file.Filename)
-	ext := filepath.Ext(originalName)
 
 	var storageName string
 	if config.UniqueFilename {
@@ -124,18 +131,29 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 	isImage := AllowedImageTypes[mimeType]
 
 	// URL 경로 생성 - 항상 슬래시(/)를 사용하도록 수정
-	urlPath := filepath.ToSlash(filepath.Join("/uploads", storageName))
+	// URL의 파일 경로만 추출
+	relativePath := strings.TrimPrefix(config.BasePath, ".")
+	relativePath = strings.TrimPrefix(relativePath, "/")
+	urlPath := filepath.ToSlash(filepath.Join("/", relativePath, storageName))
 
-	return &UploadedFile{
+	// 업로드된 파일 객체 생성
+	uploadedFile := &UploadedFile{
 		OriginalName: originalName,
 		StorageName:  storageName,
 		Path:         fullPath,
 		Size:         file.Size,
 		MimeType:     mimeType,
-		// URL:          filepath.Join("/uploads", storageName),
-		URL:     urlPath,
-		IsImage: isImage,
-	}, nil
+		URL:          urlPath,
+		IsImage:      isImage,
+	}
+
+	// 이미지인 경우 썸네일 URL 설정
+	if isImage {
+		// 썸네일 URL 생성
+		uploadedFile.ThumbnailURL = GetThumbnailURL(urlPath)
+	}
+
+	return uploadedFile, nil
 }
 
 // 여러 파일 업로드 처리 함수
@@ -157,7 +175,7 @@ func UploadFiles(files []*multipart.FileHeader, config UploadConfig) ([]*Uploade
 	return uploadedFiles, nil
 }
 
-// 이미지 업로드 헬퍼 함수
+// UploadImages 헬퍼 함수
 func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64) ([]*UploadedFile, error) {
 	config := UploadConfig{
 		BasePath:       basePath,
@@ -166,7 +184,32 @@ func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64)
 		UniqueFilename: true,
 	}
 
-	return UploadFiles(files, config)
+	uploadedFiles, err := UploadFiles(files, config)
+	if err != nil {
+		return nil, err
+	}
+
+	// 이미지인 경우 썸네일 생성
+	for _, file := range uploadedFiles {
+		if file.IsImage {
+			// 갤러리 및 컨텐츠용 썸네일 생성
+			_, err := GenerateThumbnail(file.Path, GalleryThumbnailWidth, GalleryThumbnailHeight)
+			if err != nil {
+				// 썸네일 생성 실패 시 로그 기록하고 계속 진행
+				fmt.Printf("갤러리 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 컨텐츠용 썸네일도 생성 (너비만 지정하여 비율 유지)
+			_, err = GenerateThumbnail(file.Path, ContentThumbnailWidth, 0)
+			if err != nil {
+				fmt.Printf("컨텐츠 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 썸네일 URL은 이미 UploadFile 함수에서 설정됨
+		}
+	}
+
+	return uploadedFiles, nil
 }
 
 // 일반 파일 업로드 헬퍼 함수
@@ -179,7 +222,33 @@ func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize i
 		UniqueFilename: true,
 	}
 
-	return UploadFiles(files, config)
+	uploadedFiles, err := UploadFiles(files, config)
+	if err != nil {
+		return nil, err
+	}
+
+	// 이미지 파일인 경우 썸네일 생성 추가
+	for _, file := range uploadedFiles {
+		if file.IsImage {
+			// 갤러리 및 컨텐츠용 썸네일 생성
+			_, err := GenerateThumbnail(file.Path, GalleryThumbnailWidth, GalleryThumbnailHeight)
+			if err != nil {
+				// 썸네일 생성 실패 시 로그 기록하고 계속 진행
+				fmt.Printf("갤러리 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 컨텐츠용 썸네일도 생성 (너비만 지정하여 비율 유지)
+			_, err = GenerateThumbnail(file.Path, ContentThumbnailWidth, 0)
+			if err != nil {
+				fmt.Printf("컨텐츠 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 썸네일 URL 설정
+			file.ThumbnailURL = GetThumbnailURL(file.URL)
+		}
+	}
+
+	return uploadedFiles, nil
 }
 
 // 갤러리용 파일 업로드 헬퍼 함수 (이미지와 파일 타입 모두 허용)
@@ -206,5 +275,31 @@ func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize 
 		UniqueFilename: true,
 	}
 
-	return UploadFiles(files, config)
+	uploadedFiles, err := UploadFiles(files, config)
+	if err != nil {
+		return nil, err
+	}
+
+	// 이미지 파일인 경우 썸네일 생성 추가
+	for _, file := range uploadedFiles {
+		if file.IsImage {
+			// 갤러리 및 컨텐츠용 썸네일 생성
+			_, err := GenerateThumbnail(file.Path, GalleryThumbnailWidth, GalleryThumbnailHeight)
+			if err != nil {
+				// 썸네일 생성 실패 시 로그 기록하고 계속 진행
+				fmt.Printf("갤러리 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 컨텐츠용 썸네일도 생성 (너비만 지정하여 비율 유지)
+			_, err = GenerateThumbnail(file.Path, ContentThumbnailWidth, 0)
+			if err != nil {
+				fmt.Printf("컨텐츠 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 썸네일 URL 설정
+			file.ThumbnailURL = GetThumbnailURL(file.URL)
+		}
+	}
+
+	return uploadedFiles, nil
 }

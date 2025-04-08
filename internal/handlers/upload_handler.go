@@ -158,6 +158,7 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 	for _, file := range uploadedFiles {
 		response = append(response, map[string]string{
 			"storagename": file.StorageName,
+			"thumbnail":   file.ThumbnailURL,
 			"url":         file.URL,
 		})
 	}
