@@ -2,8 +2,6 @@
 package utils
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -12,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/text/unicode/norm"
@@ -58,15 +55,6 @@ type UploadedFile struct {
 	MimeType     string
 	URL          string
 	IsImage      bool
-}
-
-// 랜덤 문자열 생성 (고유 파일명 용)
-func generateRandomString(length int) string {
-	bytes := make([]byte, length/2)
-	if _, err := rand.Read(bytes); err != nil {
-		return fmt.Sprintf("%d", time.Now().UnixNano())
-	}
-	return hex.EncodeToString(bytes)
 }
 
 // 파일 업로드 처리 함수

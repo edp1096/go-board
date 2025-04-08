@@ -128,18 +128,16 @@ func main() {
 
 	// Fiber 앱 생성
 	app := fiber.New(fiber.Config{
+		IdleTimeout:           5 * time.Second,
 		Views:                 engine,
 		ViewsLayout:           "layouts/base",
 		DisableStartupMessage: true,
+		BodyLimit:             10 * 1024 * 1024, // 파일 업로드 설정 - 10MB 제한
+		ReadBufferSize:        8192,
+		JSONEncoder:           json.Marshal,
+		JSONDecoder:           json.Unmarshal,
 		// EnablePrintRoutes:     true,
-		// 파일 업로드 설정
-		BodyLimit: 10 * 1024 * 1024, // 10MB 제한
-		// UTF-8 인코딩 설정
-		Immutable:      true,
-		ReadBufferSize: 8192,
-		// 문자셋 설정 (한글 호환성 개선)
-		JSONEncoder: json.Marshal,
-		JSONDecoder: json.Unmarshal,
+		// Immutable:             true,
 	})
 
 	// 업로드 디렉토리 확인

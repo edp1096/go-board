@@ -4,30 +4,26 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{.csrfToken}}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
 
     <title>{{if .title}}{{.title}} - {{end}}게시판 시스템</title>
 
+    <meta name="description" content="{{if .description}}{{.description}}{{else}}게시판 시스템{{end}}">
+
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- 사용자 정의 스타일 -->
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/comments.css">
 
     <!-- Alpine.js 초기화 -->
     <script defer src="/static/js/alpine-init.js"></script>
-
-    <!-- SEO 메타 태그 -->
-    <meta name="description" content="{{if .description}}{{.description}}{{else}}게시판 시스템{{end}}">
-
-    <!-- CSRF 토큰 -->
-    <meta name="csrf-token" content="{{.csrfToken}}">
 </head>
 
 <body class="min-h-screen flex flex-col bg-gray-50">
-    <!-- 헤더 포함 -->
+    <!-- 헤더 -->
     {{ template "partials/header" . }}
 
     <!-- 메인 컨텐츠 -->
@@ -80,11 +76,11 @@
         </div>
         {{end}}
 
-        <!-- 컨텐츠 영역 -->
+        <!-- 컨텐츠 -->
         {{ embed }}
     </main>
 
-    <!-- 푸터 포함 -->
+    <!-- 푸터 -->
     {{ template "partials/footer" . }}
 
     <!-- 페이지별 스크립트 -->
