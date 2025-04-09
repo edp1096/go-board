@@ -11,6 +11,30 @@ document.addEventListener('DOMContentLoaded', function () {
             uploadAccessURI: `/uploads/boards/${boardId}/images`,
             uploadCallback: function (response) {
                 console.log("업로드 완료:", response);
+
+                // 애니메이션 이미지 처리
+                if (response && response.files && response.files.length > 0) {
+                    response.files.forEach(file => {
+                        if (file.animation) {
+                            // 에디터에 이미지가 삽입된 후 처리
+                            setTimeout(() => {
+                                // 최근 삽입된 이미지를 찾기 (URL로 식별)
+                                const images = editorEL.querySelectorAll('img');
+                                images.forEach(img => {
+                                    if (img.src.includes(file.storagename)) {
+                                        // 애니메이션 이미지로 표시
+                                        img.setAttribute('data-animate', 'true');
+                                        console.log(`애니메이션 이미지 태그 처리 완료: ${file.storagename}`);
+                                    }
+                                });
+                            }, 100); // 이미지가 DOM에 삽입될 시간을 조금 주기 위한 지연
+                        }
+                    });
+                }
+
+                setTimeout(() => {
+                    console.log(editor.getHTML());
+                }, 1000);
             }
         };
         // const editor = new MyEditor(contentField.value, editorContainer, editorOptions);

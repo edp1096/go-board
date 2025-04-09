@@ -154,13 +154,23 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 	}
 
 	// 에디터 요구사항에 맞는 응답 포맷
-	response := make([]map[string]string, 0, len(uploadedFiles))
+	response := make([]map[string]interface{}, 0, len(uploadedFiles))
 	for _, file := range uploadedFiles {
-		response = append(response, map[string]string{
+		fileResponse := map[string]interface{}{
 			"storagename": file.StorageName,
 			"thumbnail":   file.ThumbnailURL,
 			"url":         file.URL,
-		})
+		}
+
+		// WebP 파일인 경우 애니메이션 여부 확인
+		if strings.HasSuffix(strings.ToLower(file.OriginalName), ".webp") {
+			isAnimated, _ := utils.IsAnimatedWebP(file.Path)
+			fileResponse["animation"] = isAnimated
+		} else {
+			fileResponse["animation"] = false
+		}
+
+		response = append(response, fileResponse)
 	}
 
 	return c.JSON(fiber.Map{
