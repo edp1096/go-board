@@ -256,6 +256,8 @@ document.addEventListener('alpine:init', () => {
                     .then(data => {
                         this.submitting = false;
                         if (data.success) {
+                            const newCommentId = data.comment.id; // 새 댓글 ID
+
                             if (this.replyToId === null) {
                                 this.comments.push(data.comment);
                             } else {
@@ -278,6 +280,14 @@ document.addEventListener('alpine:init', () => {
                             if (commentEditor) {
                                 commentEditor.setHTML('');
                             }
+
+                            // DOM 업데이트 후 새 댓글의 이미지 처리
+                            // Alpine.js의 반응성으로 인해 DOM이 업데이트된 후 처리해야 함
+                            setTimeout(() => {
+                                if (typeof processNewCommentImages === 'function') {
+                                    processNewCommentImages(newCommentId);
+                                }
+                            }, 200);
                         } else {
                             alert(data.message);
                         }

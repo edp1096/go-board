@@ -251,8 +251,10 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 
 	// 템플릿 선택 - gallery_view는 없음
 	templateName := "board/view"
+	scriptPath := "/static/js/pages/board-view.js"
 	if board.BoardType == models.BoardTypeQnA {
 		templateName = "board/qna_view"
+		scriptPath = "/static/js/pages/qna-view.js"
 	}
 
 	return utils.RenderWithUser(c, templateName, fiber.Map{
@@ -260,7 +262,7 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		"board":          board,
 		"post":           post,
 		"isManager":      isManager,
-		"pageScriptPath": "/static/js/pages/board-view.js",
+		"pageScriptPath": scriptPath,
 	})
 }
 

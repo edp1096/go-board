@@ -61,86 +61,66 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /**
+ * 레이어팝업 표시를 위한 이미지 처리 함수
+ * @param {HTMLElement} container - 이미지를 포함하는 컨테이너 요소
+ */
+function setupSpecificImages(container) {
+    if (!container) return;
+
+    // 아직 처리되지 않은 이미지만 선택
+    const images = container.querySelectorAll('img:not([data-viewer-processed="true"])');
+
+    images.forEach(img => {
+        const originalSrc = img.src;
+
+        // 애니메이션 webp 이미지인지 확인
+        const isAnimatedWebp = originalSrc.toLowerCase().endsWith('.webp') &&
+            img.getAttribute('animate') === 'true';
+
+        // 이미지가 이미 처리되었는지 표시
+        img.setAttribute('data-viewer-processed', 'true');
+
+        // 썸네일이 아니고 애니메이션 webp가 아닌 경우에만 썸네일로 변경
+        if (!originalSrc.includes('/thumbs/') && !isAnimatedWebp) {
+            img.src = convertToThumbnailUrl(originalSrc);
+            img.dataset.originalSrc = originalSrc;
+        }
+
+        // 모든 이미지에 클릭 이벤트 추가 (이미 처리된 이미지는 위에서 필터링됨)
+        img.addEventListener('click', function () {
+            const imageViewer = document.getElementById('image-viewer');
+            if (imageViewer && typeof Alpine !== 'undefined') {
+                const viewerData = Alpine.$data(imageViewer);
+                if (viewerData) {
+                    viewerData.openImageViewer(originalSrc, img.alt);
+                }
+            }
+        });
+
+        img.classList.add('cursor-pointer', 'hover:opacity-90');
+        img.title = '클릭하면 원본 이미지를 볼 수 있습니다';
+    });
+}
+
+/**
  * 본문 내 이미지를 처리하는 함수
  */
 function setupContentImages() {
     const postContent = document.getElementById('post-content');
-    if (!postContent) return;
+    if (!postContent) { return; }
 
-    // 본문 내 모든 이미지에 이벤트 리스너 추가
-    const images = postContent.querySelectorAll('img');
-
-    images.forEach(img => {
-        // 원본 이미지 URL 저장
-        const originalSrc = img.src;
-
-        // 썸네일이 아닌 경우에만 썸네일로 변경
-        if (!originalSrc.includes('/thumbs/')) {
-            // 썸네일 URL로 변경
-            img.src = convertToThumbnailUrl(originalSrc);
-
-            // 원본 이미지 URL을 data 속성에 저장
-            img.dataset.originalSrc = originalSrc;
-
-            // 이미지에 클릭 이벤트 추가
-            img.addEventListener('click', function () {
-                // 이미지 뷰어 컴포넌트 호출
-                const imageViewer = document.getElementById('image-viewer');
-                if (imageViewer && typeof Alpine !== 'undefined') {
-                    const viewerData = Alpine.$data(imageViewer);
-                    if (viewerData) {
-                        viewerData.openImageViewer(originalSrc, img.alt);
-                    }
-                }
-            });
-
-            // 스타일 및 클래스 추가
-            img.classList.add('cursor-pointer', 'hover:opacity-90');
-            img.title = '클릭하면 원본 이미지를 볼 수 있습니다';
-        }
-    });
+    setupSpecificImages(postContent);
 }
 
 /**
  * 댓글 내 이미지를 처리하는 함수
  */
 function setupCommentImages() {
-    // Alpine의 변경 감지를 이용해 댓글 로드 후 이미지 처리
     document.addEventListener('comments-loaded', function () {
-        // 댓글 컨테이너
         const commentsContainer = document.querySelector('.space-y-6');
-        if (!commentsContainer) return;
+        if (!commentsContainer) { return; }
 
-        // 모든 댓글 내 이미지 찾기
-        const commentImages = commentsContainer.querySelectorAll('.text-sm.text-gray-700 img');
-
-        commentImages.forEach(img => {
-            const originalSrc = img.src;
-
-            if (!originalSrc.includes('/thumbs/')) {
-                // 썸네일 URL로 변경
-                img.src = convertToThumbnailUrl(originalSrc);
-
-                // 원본 이미지 URL을 data 속성에 저장
-                img.dataset.originalSrc = originalSrc;
-
-                // 이미지에 클릭 이벤트 추가
-                img.addEventListener('click', function () {
-                    // 이미지 뷰어 컴포넌트 호출
-                    const imageViewer = document.getElementById('image-viewer');
-                    if (imageViewer && typeof Alpine !== 'undefined') {
-                        const viewerData = Alpine.$data(imageViewer);
-                        if (viewerData) {
-                            viewerData.openImageViewer(originalSrc, img.alt);
-                        }
-                    }
-                });
-
-                // 스타일 및 클래스 추가
-                img.classList.add('cursor-pointer', 'hover:opacity-90');
-                img.title = '클릭하면 원본 이미지를 볼 수 있습니다';
-            }
-        });
+        setupSpecificImages(commentsContainer);
     });
 
     // 댓글이 로드되었을 때 이벤트 발생
@@ -148,7 +128,8 @@ function setupCommentImages() {
     if (typeof Alpine !== 'undefined') {
         // 댓글 관련 컴포넌트 초기화 후 처리
         const checkComments = function () {
-            const commentsSystem = document.querySelector('[x-data="commentSystem"]');
+            // const commentsSystem = document.querySelector('[x-data="commentSystem"]');
+            const commentsSystem = document.querySelector('#comments-container');
             if (commentsSystem) {
                 try {
                     const commentsData = Alpine.$data(commentsSystem);
@@ -179,6 +160,34 @@ function setupCommentImages() {
             }, 10000);
         }
     }
+}
+
+/**
+ * 새 댓글 추가 후 이미지 처리
+ * @param {number} commentId - 새로 추가된 댓글 ID
+ */
+function processNewCommentImages(commentId) {
+    const commentsContainer = document.querySelector('#comments-container');
+
+    // commentId가 있으면 해당 댓글만 처리, 없으면 마지막 댓글 처리
+    setTimeout(() => {
+        let commentElement;
+
+        if (commentId) {
+            commentElement = commentsContainer.querySelector(`[data-new-comment-id="${commentId}"]`);
+        } else {
+            // 마지막 댓글 선택 (대안)
+            const allComments = document.querySelectorAll('#comments-container .comment-item');
+            if (allComments.length > 0) {
+                commentElement = allComments[allComments.length - 1];
+            }
+        }
+
+        console.log(commentElement, commentId);
+        if (commentElement) {
+            setupSpecificImages(commentElement);
+        }
+    }, 100); // DOM 업데이트 후 처리하기 위한 지연
 }
 
 /**

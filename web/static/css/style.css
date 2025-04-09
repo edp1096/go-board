@@ -248,6 +248,7 @@ body {
 }
 
 
+
 /* 이미지 */
 p img {
     display: inline-block;
@@ -257,11 +258,25 @@ p img {
     padding: 0.5rem;
 }
 
+#comments-container p img,
+#answers-container p img {
+    max-width: 480px;
+}
+
 @media (max-width: 640px) {
     p img {
         width: 100%;
     }
+
+    #comments-container p img,
+    #answers-container p img {
+        width: unset;
+        height: unset;
+        min-width: 240px;
+        max-width: 290px;
+    }
 }
+
 
 
 /* 동영상 */

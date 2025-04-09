@@ -478,3 +478,59 @@ func (h *QnAHandler) SetBestAnswer(c *fiber.Ctx) error {
 		"message": "베스트 답변이 설정되었습니다",
 	})
 }
+
+// internal/handlers/qna_handler.go 파일에 추가할 메소드
+
+// CreateAnswerReply - 답변에 대한 답글 작성 API
+func (h *QnAHandler) CreateAnswerReply(c *fiber.Ctx) error {
+	answerID, err := strconv.ParseInt(c.Params("answerID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 답변 ID입니다",
+		})
+	}
+
+	// 현재 로그인한 사용자 정보
+	user := c.Locals("user").(*models.User)
+
+	// 요청 본문 파싱
+	var req struct {
+		Content string `json:"content"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 형식이 잘못되었습니다",
+		})
+	}
+
+	// 답글 내용 검증
+	if req.Content == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "답글 내용을 입력해주세요",
+		})
+	}
+
+	// 답글 생성
+	reply, err := h.qnaService.CreateAnswerReply(c.Context(), answerID, user.ID, req.Content)
+	if err != nil {
+		if err == service.ErrAnswerNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"success": false,
+				"message": "답변을 찾을 수 없습니다",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "답글 작성에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"reply":   reply,
+	})
+}

@@ -133,7 +133,7 @@ func main() {
 		Views:                 engine,
 		ViewsLayout:           "layouts/base",
 		DisableStartupMessage: true,
-		BodyLimit:             10 * 1024 * 1024, // 파일 업로드 설정 - 10MB 제한
+		BodyLimit:             20 * 1024 * 1024, // 파일 업로드 설정 - 20MB 제한
 		ReadBufferSize:        8192,
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
@@ -451,6 +451,7 @@ func setupRoutes(
 	answerAPI := api.Group("/answers/:answerID")
 	answerAPI.Put("/", authMiddleware.RequireAuth, qnaHandler.UpdateAnswer)
 	answerAPI.Delete("/", authMiddleware.RequireAuth, qnaHandler.DeleteAnswer)
+	answerAPI.Post("/replies", authMiddleware.RequireAuth, qnaHandler.CreateAnswerReply)
 	answerAPI.Post("/vote", authMiddleware.RequireAuth, qnaHandler.VoteAnswer)
 
 	adminAPI := api.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)

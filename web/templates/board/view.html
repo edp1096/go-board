@@ -220,7 +220,7 @@
 </div>
 
 <!-- 댓글 섹션 -->
-<div x-data="commentSystem({{.board.CommentsEnabled}})" class="mt-8 border-t border-gray-200 pt-8" x-show="commentsEnabled">
+<div x-data="commentSystem({{.board.CommentsEnabled}})" id="comments-container" class="mt-8 border-t border-gray-200 pt-8" x-show="commentsEnabled">
     <h3 class="text-lg font-medium text-gray-900">댓글</h3>
     <!-- 댓글 목록 -->
     <div class="space-y-6">
@@ -256,7 +256,7 @@
         <template x-for="comment in comments" :key="comment.id">
             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                 <!-- 기본 댓글 -->
-                <div class="p-4">
+                <div :data-new-comment-id="comment.id" class="p-4">
                     <div class="flex space-x-3">
                         <div class="flex-shrink-0">
                             <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -292,7 +292,7 @@
                 <template x-if="comment.children && comment.children.length > 0">
                     <div class="bg-gray-300 px-4 py-2 border-t border-gray-100">
                         <template x-for="reply in comment.children" :key="reply.id">
-                            <div class="mt-2 mb-2">
+                            <div :data-new-comment-id="reply.id" class="mt-2 mb-2">
                                 <div class="flex space-x-3">
                                     <div class="flex-shrink-0">
                                         <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">

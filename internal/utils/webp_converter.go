@@ -156,10 +156,6 @@ func ResizeImage(src image.Image, maxWidth, maxHeight int) image.Image {
 		newHeight = 1
 	}
 
-	// 디버깅을 위한 로그 and filename
-	fmt.Printf("리사이징: (%d,%d) -> (%d,%d) [maxW=%d, maxH=%d, scale=%.3f]\n",
-		srcWidth, srcHeight, newWidth, newHeight, maxWidth, maxHeight, scale)
-
 	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
 	xdraw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, bounds, xdraw.Over, nil)
 	return dst
@@ -199,11 +195,12 @@ func ConvertWebPToJPG(webpPath, jpgPath string, maxWidth, maxHeight int, quality
 	}
 	defer file.Close()
 
-	// 파일 전체 읽기
-	fileData, err := io.ReadAll(file)
-	if err != nil {
-		return "", fmt.Errorf("WebP 파일 읽기 실패: %w", err)
-	}
+	// // 파일 전체 읽기
+	// // fileData, err := io.ReadAll(file)
+	// _, err = io.ReadAll(file)
+	// if err != nil {
+	// 	return "", fmt.Errorf("WebP 파일 읽기 실패: %w", err)
+	// }
 
 	var img image.Image
 
@@ -216,16 +213,8 @@ func ConvertWebPToJPG(webpPath, jpgPath string, maxWidth, maxHeight int, quality
 			return "", fmt.Errorf("WebP 애니메이션 파싱 실패: %w", err)
 		}
 
-		// RIFF 헤더 디버깅용 로그 (실제 코드에서는 제거 가능)
-		fmt.Printf("RIFF 헤더: %s\n", string(fileData[0:4]))
-		fmt.Printf("WEBP 식별자: %s\n", string(fileData[8:12]))
-		fmt.Printf("첫 프레임 크기: %d 바이트\n", len(frames[0].Data))
-
 		// 첫 번째 프레임만 사용
 		webpData := ReconstructWebP(frames[0])
-
-		// 디버깅용 로그 (실제 코드에서는 제거 가능)
-		fmt.Printf("재구성된 WebP 데이터 크기: %d 바이트\n", len(webpData))
 
 		img, err = webp.Decode(bytes.NewReader(webpData))
 		if err != nil {
@@ -245,16 +234,9 @@ func ConvertWebPToJPG(webpPath, jpgPath string, maxWidth, maxHeight int, quality
 		}
 	}
 
-	// 이미지 크기 확인 (디버깅용)
-	bounds := img.Bounds()
-	fmt.Printf("디코딩된 이미지 크기: %dx%d\n", bounds.Dx(), bounds.Dy())
-
 	// 이미지 리사이징
 	if maxWidth > 0 || maxHeight > 0 {
 		img = ResizeImage(img, maxWidth, maxHeight)
-		// 리사이즈 후 이미지 크기 확인 (디버깅용)
-		newBounds := img.Bounds()
-		fmt.Printf("리사이즈 후 이미지 크기: %dx%d\n", newBounds.Dx(), newBounds.Dy())
 	}
 
 	// JPG 파일 경로 생성

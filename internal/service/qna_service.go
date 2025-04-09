@@ -34,6 +34,9 @@ type QnAService interface {
 	// 상태 관련 메서드
 	UpdateQuestionStatus(ctx context.Context, boardID, questionID, userID int64, status string) error
 	SetBestAnswer(ctx context.Context, boardID, questionID, answerID, userID int64) error
+
+	// 답글 관련 메서드
+	CreateAnswerReply(ctx context.Context, answerID, userID int64, content string) (*models.Answer, error)
 }
 
 type qnaService struct {
@@ -134,7 +137,7 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 	return answer, nil
 }
 
-// GetAnswersByQuestionID는 질문의 모든 답변을 조회합니다.
+// GetAnswersByQuestionID는 질문의 모든 답변과 답글을 조회합니다.
 func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questionID int64) ([]*models.Answer, error) {
 	// 게시물 가져오기 - 베스트 답변 ID 확인을 위해
 	post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
@@ -148,22 +151,40 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 		bestAnswerID = utils.InterfaceToInt64(post.Fields["best_answer_id"].Value)
 	}
 
-	// 답변 목록 조회
-	var answers []*models.Answer
+	// 모든 답변 및 답글 조회
+	var allAnswers []*models.Answer
 	err = s.db.NewSelect().
-		Model(&answers).
+		Model(&allAnswers).
 		Relation("User").
 		Where("board_id = ? AND question_id = ?", boardID, questionID).
-		OrderExpr("vote_count DESC, created_at ASC").
+		OrderExpr("CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END, vote_count DESC, created_at ASC").
 		Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// 베스트 답변 표시
+	// 답변과 답글 분리
+	answers := make([]*models.Answer, 0)
+	repliesMap := make(map[int64][]*models.Answer)
+
+	for _, answer := range allAnswers {
+		if answer.ParentID == nil {
+			// 답변인 경우
+			if answer.ID == bestAnswerID {
+				answer.IsBestAnswer = true
+			}
+			answers = append(answers, answer)
+		} else {
+			// 답글인 경우
+			parentID := *answer.ParentID
+			repliesMap[parentID] = append(repliesMap[parentID], answer)
+		}
+	}
+
+	// 답변에 답글 연결
 	for _, answer := range answers {
-		if answer.ID == bestAnswerID {
-			answer.IsBestAnswer = true
+		if replies, exists := repliesMap[answer.ID]; exists {
+			answer.Children = replies
 		}
 	}
 
@@ -605,4 +626,64 @@ func (s *qnaService) SetBestAnswer(ctx context.Context, boardID, questionID, ans
 
 	// 트랜잭션 커밋
 	return tx.Commit()
+}
+
+// CreateAnswerReply는 답변에 대한 답글을 생성합니다.
+func (s *qnaService) CreateAnswerReply(ctx context.Context, answerID, userID int64, content string) (*models.Answer, error) {
+	// 부모 답변 조회
+	parentAnswer, err := s.GetAnswerByID(ctx, answerID)
+	if err != nil {
+		return nil, ErrAnswerNotFound
+	}
+
+	// 이미 답글인 경우 거부 (중첩 답글 방지)
+	if parentAnswer.ParentID != nil {
+		return nil, errors.New("답글에 대한 답글은 작성할 수 없습니다")
+	}
+
+	// 답글 객체 생성
+	now := time.Now()
+	reply := &models.Answer{
+		BoardID:    parentAnswer.BoardID,
+		QuestionID: parentAnswer.QuestionID,
+		UserID:     userID,
+		Content:    content,
+		ParentID:   &answerID, // 부모 답변 ID 설정
+		VoteCount:  0,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+
+	// 트랜잭션 시작
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	// 답글 저장
+	_, err = tx.NewInsert().Model(reply).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 사용자 정보 조회하여 반환 결과에 포함
+	var user models.User
+	err = tx.NewSelect().
+		Model(&user).
+		Where("id = ?", userID).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 트랜잭션 커밋
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	// 반환할 결과에 사용자 정보 포함
+	reply.User = &user
+
+	return reply, nil
 }

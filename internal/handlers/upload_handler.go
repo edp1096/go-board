@@ -162,13 +162,13 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 			"url":         file.URL,
 		}
 
-		// WebP 파일인 경우 애니메이션 여부 확인
-		if strings.HasSuffix(strings.ToLower(file.OriginalName), ".webp") {
-			isAnimated, _ := utils.IsAnimatedWebP(file.Path)
-			fileResponse["animation"] = isAnimated
-		} else {
-			fileResponse["animation"] = false
-		}
+		// // WebP 파일인 경우 애니메이션 여부 확인
+		// if strings.HasSuffix(strings.ToLower(file.OriginalName), ".webp") {
+		// 	isAnimated, _ := utils.IsAnimatedWebP(file.Path)
+		// 	fileResponse["animation"] = isAnimated
+		// } else {
+		// 	fileResponse["animation"] = false
+		// }
 
 		response = append(response, fileResponse)
 	}
