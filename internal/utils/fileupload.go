@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"maps"
+
 	"github.com/google/uuid"
 	"golang.org/x/text/unicode/norm"
 )
@@ -251,7 +253,7 @@ func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize i
 	return uploadedFiles, nil
 }
 
-// 갤러리용 파일 업로드 헬퍼 함수 (이미지와 파일 타입 모두 허용)
+// 갤러리용 (대표이미지) 파일 업로드 헬퍼 함수 (이미지와 파일 타입 모두 허용)
 func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize int64) ([]*UploadedFile, error) {
 	normalizedPath := norm.NFC.String(basePath)
 
@@ -259,14 +261,10 @@ func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize 
 	combinedTypes := make(map[string]bool)
 
 	// 이미지 타입 복사
-	for mimeType, allowed := range AllowedImageTypes {
-		combinedTypes[mimeType] = allowed
-	}
+	maps.Copy(combinedTypes, AllowedImageTypes)
 
 	// 파일 타입 복사
-	for mimeType, allowed := range AllowedFileTypes {
-		combinedTypes[mimeType] = allowed
-	}
+	maps.Copy(combinedTypes, AllowedFileTypes)
 
 	config := UploadConfig{
 		BasePath:       normalizedPath,
@@ -297,6 +295,7 @@ func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize 
 			}
 
 			// 썸네일 URL 설정
+			fmt.Println("썸네일 URL 설정:", file.URL)
 			file.ThumbnailURL = GetThumbnailURL(file.URL)
 		}
 	}

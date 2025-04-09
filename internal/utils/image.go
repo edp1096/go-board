@@ -28,30 +28,35 @@ func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error
 	// 파일 확장자 확인
 	ext := strings.ToLower(filepath.Ext(imagePath))
 
+	// 이미지, 썸네일 저장 경로 설정
+	dir, filename := filepath.Split(imagePath)
+	thumbsDir := filepath.Join(dir, "thumbs")
+
+	// thumbs 디렉토리 생성
+	if err := os.MkdirAll(thumbsDir, 0755); err != nil {
+		return "", fmt.Errorf("썸네일 디렉토리 생성 실패: %w", err)
+	}
+
 	// WebP 애니메이션 확인
 	if ext == ".webp" {
 		isAnimated, _ := IsAnimatedWebP(imagePath)
 		if isAnimated {
-			// 애니메이션 WebP인 경우 JPG와 GIF 모두 생성
-			// JPG 썸네일 (첫 프레임만)
-			dir, filename := filepath.Split(imagePath)
+			// 애니메이션 WebP인 경우
 			baseFilename := filename[:len(filename)-len(ext)]
-			thumbsDir := filepath.Join(dir, "thumbs")
 			jpgThumbPath := filepath.Join(thumbsDir, baseFilename+".jpg")
 
+			// JPG 썸네일 생성
 			_, err := ConvertWebPToJPG(imagePath, jpgThumbPath, maxWidth, maxHeight, 90)
 			if err != nil {
 				return "", fmt.Errorf("애니메이션 WebP 썸네일 변환 실패: %w", err)
 			}
 
-			// 추가적으로 GIF 썸네일도 생성 (옵션)
-			gifThumbPath := filepath.Join(thumbsDir, baseFilename+".gif")
-			// GIF는 160x120 크기 제한과 최대 6프레임으로 생성
-			_, err = ConvertWebPToGIF(imagePath, gifThumbPath, 160, 120, 6)
-			if err != nil {
-				// GIF 생성에 실패해도 JPG는 있으므로 경고만 출력
-				fmt.Printf("WebP에서 GIF 변환 실패 (%s): %v\n", imagePath, err)
-			}
+			// // GIF 썸네일 생성
+			// gifThumbPath := filepath.Join(thumbsDir, baseFilename+".gif")
+			// _, err = ConvertWebPToGIF(imagePath, gifThumbPath, 160, 120, 6)
+			// if err != nil {
+			// 	fmt.Printf("GIF 썸네일 생성 실패 (%s): %v\n", imagePath, err)
+			// }
 
 			return jpgThumbPath, nil
 		}
@@ -87,10 +92,6 @@ func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error
 		// 너비와 높이 모두 지정된 경우 (비율 유지하며 맞춤)
 		thumbnail = imaging.Fit(src, maxWidth, maxHeight, imaging.Lanczos)
 	}
-
-	// 썸네일 저장 경로 생성
-	dir, filename := filepath.Split(imagePath)
-	thumbsDir := filepath.Join(dir, "thumbs")
 
 	// thumbs 디렉토리 생성
 	if err := os.MkdirAll(thumbsDir, 0755); err != nil {

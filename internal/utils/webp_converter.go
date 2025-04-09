@@ -11,6 +11,7 @@ import (
 	stdDraw "image/draw"
 	"image/gif"
 	"image/jpeg"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -107,25 +108,59 @@ func ReconstructWebP(frame WebPFrame) []byte {
 }
 
 // ResizeImage는 주어진 이미지를 최대 maxWidth×maxHeight 크기에 맞게, 원본 비율을 유지하며 리사이즈합니다.
+// maxWidth나 maxHeight가 0이면 다른 값에 맞춰 비율을 유지합니다.
+// 두 값이 모두 0이면 원본 이미지를 그대로 반환합니다.
 func ResizeImage(src image.Image, maxWidth, maxHeight int) image.Image {
 	bounds := src.Bounds()
 	srcWidth := bounds.Dx()
 	srcHeight := bounds.Dy()
 
-	scale := 1.0
-	if srcWidth > maxWidth || srcHeight > maxHeight {
-		scaleW := float64(maxWidth) / float64(srcWidth)
-		scaleH := float64(maxHeight) / float64(srcHeight)
-		if scaleW < scaleH {
-			scale = scaleW
-		} else {
-			scale = scaleH
-		}
+	// 둘 다 0이면 원본 반환
+	if maxWidth == 0 && maxHeight == 0 {
+		return src
 	}
+
+	// 하나만 0이면 다른 값에 맞춰 비율 계산
+	if maxWidth == 0 {
+		// 너비가 0이면 높이에 맞춰 비율 계산
+		maxWidth = int(float64(srcWidth) * float64(maxHeight) / float64(srcHeight))
+	} else if maxHeight == 0 {
+		// 높이가 0이면 너비에 맞춰 비율 계산
+		maxHeight = int(float64(srcHeight) * float64(maxWidth) / float64(srcWidth))
+	}
+
+	// 안전장치: 최소 크기 보장
+	if maxWidth < 1 {
+		maxWidth = 1
+	}
+	if maxHeight < 1 {
+		maxHeight = 1
+	}
+
+	// 실제 리사이징할 크기 계산
+	scale := 1.0
+	scaleW := float64(maxWidth) / float64(srcWidth)
+	scaleH := float64(maxHeight) / float64(srcHeight)
+
+	// 더 작은 비율을 선택하여 이미지가 지정된 크기 내에 맞도록 함
+	scale = min(scaleW, scaleH)
+
 	newWidth := int(float64(srcWidth) * scale)
 	newHeight := int(float64(srcHeight) * scale)
+
+	// 최소 크기 보장
+	if newWidth < 1 {
+		newWidth = 1
+	}
+	if newHeight < 1 {
+		newHeight = 1
+	}
+
+	// 디버깅을 위한 로그 and filename
+	fmt.Printf("리사이징: (%d,%d) -> (%d,%d) [maxW=%d, maxH=%d, scale=%.3f]\n",
+		srcWidth, srcHeight, newWidth, newHeight, maxWidth, maxHeight, scale)
+
 	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
-	// xdraw.ApproxBiLinear 이용 – 부드러운 보간
 	xdraw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, bounds, xdraw.Over, nil)
 	return dst
 }
@@ -151,48 +186,81 @@ func SelectFrames(frames []image.Image, delays []int, maxFrames int) ([]image.Im
 }
 
 // ConvertWebPToJPG는 WebP 이미지(애니메이션 포함)를 JPG로 변환합니다.
-// 애니메이션 WebP의 경우 첫 번째 프레임만 변환합니다.
 func ConvertWebPToJPG(webpPath, jpgPath string, maxWidth, maxHeight int, quality int) (string, error) {
 	// 파일이 존재하는지 확인
 	if _, err := os.Stat(webpPath); os.IsNotExist(err) {
 		return "", fmt.Errorf("WebP 파일이 존재하지 않습니다: %s", webpPath)
 	}
 
-	// 프레임 파싱 시도 (애니메이션 WebP 확인)
-	frames, err := ParseAnimatedWebP(webpPath)
+	// 파일 열기
+	file, err := os.Open(webpPath)
+	if err != nil {
+		return "", fmt.Errorf("WebP 파일 열기 실패: %w", err)
+	}
+	defer file.Close()
+
+	// 파일 전체 읽기
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("WebP 파일 읽기 실패: %w", err)
+	}
+
 	var img image.Image
 
-	if err == nil && len(frames) > 0 {
-		// 애니메이션 WebP인 경우 첫 번째 프레임 사용
+	// 애니메이션 WebP인지 확인
+	isAnimated, _ := IsAnimatedWebP(webpPath)
+	if isAnimated {
+		// 애니메이션 WebP 처리
+		frames, err := ParseAnimatedWebP(webpPath)
+		if err != nil || len(frames) == 0 {
+			return "", fmt.Errorf("WebP 애니메이션 파싱 실패: %w", err)
+		}
+
+		// RIFF 헤더 디버깅용 로그 (실제 코드에서는 제거 가능)
+		fmt.Printf("RIFF 헤더: %s\n", string(fileData[0:4]))
+		fmt.Printf("WEBP 식별자: %s\n", string(fileData[8:12]))
+		fmt.Printf("첫 프레임 크기: %d 바이트\n", len(frames[0].Data))
+
+		// 첫 번째 프레임만 사용
 		webpData := ReconstructWebP(frames[0])
+
+		// 디버깅용 로그 (실제 코드에서는 제거 가능)
+		fmt.Printf("재구성된 WebP 데이터 크기: %d 바이트\n", len(webpData))
+
 		img, err = webp.Decode(bytes.NewReader(webpData))
 		if err != nil {
-			return "", fmt.Errorf("WebP 프레임 디코딩 실패: %w", err)
+			// 재구성에 실패한 경우 원본 파일에서 디코딩 시도
+			file.Seek(0, io.SeekStart)
+			img, err = webp.Decode(file)
+			if err != nil {
+				return "", fmt.Errorf("WebP 디코딩 실패: %w", err)
+			}
 		}
 	} else {
-		// 일반 WebP 이미지인 경우
-		file, err := os.Open(webpPath)
-		if err != nil {
-			return "", fmt.Errorf("WebP 파일 열기 실패: %w", err)
-		}
-		defer file.Close()
-
+		// 일반 WebP 이미지
+		file.Seek(0, io.SeekStart)
 		img, err = webp.Decode(file)
 		if err != nil {
 			return "", fmt.Errorf("WebP 디코딩 실패: %w", err)
 		}
 	}
 
-	// JPG 파일 경로 생성
-	if jpgPath == "" {
-		// 같은 위치에 같은 이름으로 확장자만 변경
-		ext := filepath.Ext(webpPath)
-		jpgPath = webpPath[:len(webpPath)-len(ext)] + ".jpg"
-	}
+	// 이미지 크기 확인 (디버깅용)
+	bounds := img.Bounds()
+	fmt.Printf("디코딩된 이미지 크기: %dx%d\n", bounds.Dx(), bounds.Dy())
 
 	// 이미지 리사이징
 	if maxWidth > 0 || maxHeight > 0 {
 		img = ResizeImage(img, maxWidth, maxHeight)
+		// 리사이즈 후 이미지 크기 확인 (디버깅용)
+		newBounds := img.Bounds()
+		fmt.Printf("리사이즈 후 이미지 크기: %dx%d\n", newBounds.Dx(), newBounds.Dy())
+	}
+
+	// JPG 파일 경로 생성
+	if jpgPath == "" {
+		ext := filepath.Ext(webpPath)
+		jpgPath = webpPath[:len(webpPath)-len(ext)] + ".jpg"
 	}
 
 	// 디렉토리 생성
@@ -215,6 +283,12 @@ func ConvertWebPToJPG(webpPath, jpgPath string, maxWidth, maxHeight int, quality
 	err = jpeg.Encode(outFile, img, &jpeg.Options{Quality: quality})
 	if err != nil {
 		return "", fmt.Errorf("JPG 인코딩 실패: %w", err)
+	}
+
+	// 파일 크기 확인 (디버깅용)
+	fileInfo, _ := os.Stat(jpgPath)
+	if fileInfo != nil {
+		fmt.Printf("생성된 JPG 파일 크기: %d 바이트\n", fileInfo.Size())
 	}
 
 	return jpgPath, nil
