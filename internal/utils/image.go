@@ -23,10 +23,41 @@ const (
 
 // GenerateThumbnail 주어진 이미지 파일에 대한 썸네일을 생성합니다
 // WebP 이미지의 경우 JPEG 형식으로 변환하여 썸네일을 생성합니다
+// 애니메이션 WebP는 첫 프레임만 사용하며, 필요시 GIF 썸네일도 생성할 수 있습니다
 func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error) {
 	// 파일 확장자 확인
 	ext := strings.ToLower(filepath.Ext(imagePath))
 
+	// WebP 애니메이션 확인
+	if ext == ".webp" {
+		isAnimated, _ := IsAnimatedWebP(imagePath)
+		if isAnimated {
+			// 애니메이션 WebP인 경우 JPG와 GIF 모두 생성
+			// JPG 썸네일 (첫 프레임만)
+			dir, filename := filepath.Split(imagePath)
+			baseFilename := filename[:len(filename)-len(ext)]
+			thumbsDir := filepath.Join(dir, "thumbs")
+			jpgThumbPath := filepath.Join(thumbsDir, baseFilename+".jpg")
+
+			_, err := ConvertWebPToJPG(imagePath, jpgThumbPath, maxWidth, maxHeight, 90)
+			if err != nil {
+				return "", fmt.Errorf("애니메이션 WebP 썸네일 변환 실패: %w", err)
+			}
+
+			// 추가적으로 GIF 썸네일도 생성 (옵션)
+			gifThumbPath := filepath.Join(thumbsDir, baseFilename+".gif")
+			// GIF는 160x120 크기 제한과 최대 6프레임으로 생성
+			_, err = ConvertWebPToGIF(imagePath, gifThumbPath, 160, 120, 6)
+			if err != nil {
+				// GIF 생성에 실패해도 JPG는 있으므로 경고만 출력
+				fmt.Printf("WebP에서 GIF 변환 실패 (%s): %v\n", imagePath, err)
+			}
+
+			return jpgThumbPath, nil
+		}
+	}
+
+	// 기존 코드 유지 (일반 WebP 및 다른 이미지 포맷 처리)
 	var src image.Image
 	var err error
 
@@ -121,7 +152,8 @@ func GetThumbnailPath(imagePath string) string {
 }
 
 // GetThumbnailURL 원본 이미지 URL에 대한 썸네일 URL을 반환합니다
-func GetThumbnailURL(imageURL string) string {
+// 애니메이션 WebP의 경우 JPG 썸네일을 기본으로 반환합니다
+func GetThumbnailUrlBase(imageURL string, useGif bool) string {
 	if imageURL == "" {
 		return ""
 	}
@@ -134,17 +166,28 @@ func GetThumbnailURL(imageURL string) string {
 
 	// 파일명과 확장자 처리
 	filename := urlParts[len(urlParts)-1]
-
-	// WebP 파일인 경우 JPG 확장자로 변경
 	ext := strings.ToLower(filepath.Ext(filename))
+	baseFilename := filename[:len(filename)-len(ext)]
+
+	// WebP 파일인 경우 확장자 변경
 	if ext == ".webp" {
-		baseFilename := filename[:len(filename)-len(ext)]
-		filename = baseFilename + ".jpg"
+		if useGif {
+			// 애니메이션 WebP를 GIF로 변환한 경우 GIF 사용
+			filename = baseFilename + ".gif"
+		} else {
+			// 기본적으로 JPG 사용
+			filename = baseFilename + ".jpg"
+		}
 	}
 
 	// 경로 재구성 (마지막 요소 앞에 thumbs 추가)
 	newParts := append(urlParts[:len(urlParts)-1], "thumbs", filename)
 	return strings.Join(newParts, "/")
+}
+
+// 기존 함수와의 호환성을 위해 오버로드 함수 제공
+func GetThumbnailURL(imageURL string) string {
+	return GetThumbnailUrlBase(imageURL, false) // 기본값은 JPG 사용
 }
 
 // IsImageFile 파일 경로가 이미지 파일인지 확인합니다
