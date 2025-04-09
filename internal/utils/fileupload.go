@@ -1,8 +1,6 @@
-// internal/utils/fileupload.go
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -64,7 +62,9 @@ type UploadedFile struct {
 func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile, error) {
 	// 파일 크기 확인
 	if file.Size > config.MaxSize {
-		return nil, errors.New("파일 크기가 허용 한도를 초과했습니다")
+		maxSizeMB := config.MaxSize / (1024 * 1024)
+		fileSizeMB := float64(file.Size) / float64(1024*1024)
+		return nil, fmt.Errorf("파일 크기가 허용 한도를 초과했습니다: %.2fMB (최대 허용: %dMB)", fileSizeMB, maxSizeMB)
 	}
 
 	// 파일 열기

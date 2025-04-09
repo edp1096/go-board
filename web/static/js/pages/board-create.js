@@ -11,7 +11,12 @@ document.addEventListener('DOMContentLoaded', function () {
             uploadAccessURI: `/uploads/boards/${boardId}/images`,
             uploadCallback: function (response) {
                 console.log("업로드 완료:", response);
-            }
+            },
+            uploadErrorCallback: async function (response) {
+                const message = response.message;
+                console.error("업로드 오류:", response);
+                alert(`업로드 오류: ${message}`);
+            },
         };
         // const editor = new MyEditor(contentField.value, editorContainer, editorOptions);
         const editor = new MyEditor("", editorEL, editorOptions);
@@ -45,4 +50,42 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // 업로드 허용치 초과 체크
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+
+    // 각 파일 입력 요소에 이벤트 리스너 추가
+    fileInputs.forEach(input => {
+        // 파일 유형별 크기 제한 설정 (서버 설정과 일치시켜야 함)
+        const maxFileSizeMB = input.dataset.fileType === 'image' ? 20 : 10; // 이미지는 20MB, 일반 파일은 10MB
+        const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+
+        // 입력값 변경 시 이벤트
+        input.addEventListener('change', function () {
+            const files = this.files;
+            let oversizedFiles = [];
+
+            // 모든 선택된 파일 검사
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].size > maxFileSizeBytes) {
+                    oversizedFiles.push({
+                        name: files[i].name,
+                        size: (files[i].size / (1024 * 1024)).toFixed(2)
+                    });
+                }
+            }
+
+            // 용량 초과 파일이 있으면 알림
+            if (oversizedFiles.length > 0) {
+                let message = `다음 파일이 최대 허용 크기(${maxFileSizeMB}MB)를 초과했습니다:\n\n`;
+
+                oversizedFiles.forEach(file => {
+                    message += `- ${file.name}: ${file.size}MB\n`;
+                });
+
+                alert(message);
+                this.value = ''; // 파일 선택 초기화
+            }
+        });
+    });
 });

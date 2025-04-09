@@ -267,12 +267,6 @@ func ConvertWebPToJPG(webpPath, jpgPath string, maxWidth, maxHeight int, quality
 		return "", fmt.Errorf("JPG 인코딩 실패: %w", err)
 	}
 
-	// 파일 크기 확인 (디버깅용)
-	fileInfo, _ := os.Stat(jpgPath)
-	if fileInfo != nil {
-		fmt.Printf("생성된 JPG 파일 크기: %d 바이트\n", fileInfo.Size())
-	}
-
 	return jpgPath, nil
 }
 

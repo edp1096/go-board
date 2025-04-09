@@ -4,6 +4,7 @@ package handlers
 
 import (
 	"fmt"
+	"go-board/config"
 	"go-board/internal/models"
 	"go-board/internal/service"
 	"go-board/internal/utils"
@@ -20,13 +21,20 @@ type BoardHandler struct {
 	boardService   service.BoardService
 	commentService service.CommentService
 	uploadService  service.UploadService
+	config         *config.Config
 }
 
-func NewBoardHandler(boardService service.BoardService, commentService service.CommentService, uploadService service.UploadService) *BoardHandler {
+func NewBoardHandler(
+	boardService service.BoardService,
+	commentService service.CommentService,
+	uploadService service.UploadService,
+	cfg *config.Config,
+) *BoardHandler {
 	return &BoardHandler{
 		boardService:   boardService,
 		commentService: commentService,
 		uploadService:  uploadService,
+		config:         cfg,
 	}
 }
 
@@ -288,9 +296,11 @@ func (h *BoardHandler) CreatePostPage(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "board/create", fiber.Map{
-		"title":          "게시물 작성",
-		"board":          board,
-		"pageScriptPath": "/static/js/pages/board-create.js",
+		"title":                "게시물 작성",
+		"board":                board,
+		"pageScriptPath":       "/static/js/pages/board-create.js",
+		"maxUploadSizeMB":      h.config.MaxUploadSize / config.BytesPerMB,
+		"maxImageUploadSizeMB": h.config.MaxImageUploadSize / config.BytesPerMB,
 	})
 }
 
@@ -437,10 +447,10 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		// 게시판 타입에 따라 다른 업로드 함수 사용
 		if board.BoardType == models.BoardTypeGallery {
 			// 갤러리 게시판은 이미지 타입도 허용
-			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, 10*1024*1024) // 10MB 제한
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize)
 		} else {
 			// 일반 게시판은 기존대로 처리
-			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize)
 		}
 
 		if err != nil {

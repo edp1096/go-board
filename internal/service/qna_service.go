@@ -280,7 +280,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 		_, err = tx.NewUpdate().
 			Table(board.TableName).
 			Set("best_answer_id = NULL").
-			Where("question_id = ?", answer.QuestionID).
+			Where("id = ?", answer.QuestionID).
 			Exec(ctx)
 		if err != nil {
 			return err

@@ -1,10 +1,10 @@
-// config/config.go
 package config
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -38,6 +38,11 @@ type Config struct {
 	CookieHTTPOnly bool
 	TemplateDir    string
 	StaticDir      string
+
+	// 파일 업로드 관련 설정
+	MaxUploadSize      int64 // 일반 파일 업로드 최대 크기 (바이트)
+	MaxImageUploadSize int64 // 이미지 업로드 최대 크기 (바이트)
+	MaxBodyLimit       int   // HTTP 요청 본문 최대 크기 (바이트)
 }
 
 // Load 함수는 환경에 따라 config를 로드하고 반환
@@ -137,24 +142,47 @@ func Load() (*Config, error) {
 		requireSetup = true
 	}
 
+	// 파일 업로드 크기 설정
+	maxUploadSizeMB, err := strconv.ParseInt(getEnvWithDefault("MAX_UPLOAD_SIZE",
+		strconv.Itoa(DefaultUploadSizeMB)), 10, 64)
+	if err != nil {
+		maxUploadSizeMB = DefaultUploadSizeMB
+	}
+
+	// 이미지 업로드 크기 설정
+	maxImageUploadSizeMB, err := strconv.ParseInt(getEnvWithDefault("MAX_IMAGE_UPLOAD_SIZE",
+		strconv.Itoa(DefaultImageUploadSizeMB)), 10, 64)
+	if err != nil {
+		maxImageUploadSizeMB = DefaultImageUploadSizeMB
+	}
+
+	// HTTP 요청 본문 최대 크기 설정
+	maxBodyLimitMB, err := strconv.Atoi(getEnvWithDefault("MAX_BODY_LIMIT", strconv.Itoa(DefaultBodyLimitMB)))
+	if err != nil {
+		maxBodyLimitMB = DefaultBodyLimitMB
+	}
+
 	return &Config{
-		Environment:    env,
-		Debug:          debug,
-		RequireSetup:   requireSetup,
-		ServerAddress:  serverAddress,
-		DBDriver:       dbDriver,
-		DBHost:         getEnvWithDefault("DB_HOST", "localhost"),
-		DBPort:         getEnvWithDefault("DB_PORT", "5432"),
-		DBUser:         getEnvWithDefault("DB_USER", "postgres"),
-		DBPassword:     os.Getenv("DB_PASSWORD"),
-		DBName:         getEnvWithDefault("DB_NAME", "go_board"),
-		DBPath:         dbPath,
-		JWTSecret:      jwtSecret,
-		SessionSecret:  sessionSecret,
-		CookieSecure:   os.Getenv("COOKIE_SECURE") == "true" || env == EnvProduction,
-		CookieHTTPOnly: os.Getenv("COOKIE_HTTP_ONLY") != "false",
-		TemplateDir:    templateDir,
-		StaticDir:      staticDir,
+		Environment:        env,
+		Debug:              debug,
+		RequireSetup:       requireSetup,
+		ServerAddress:      serverAddress,
+		DBDriver:           dbDriver,
+		DBHost:             getEnvWithDefault("DB_HOST", "localhost"),
+		DBPort:             getEnvWithDefault("DB_PORT", "5432"),
+		DBUser:             getEnvWithDefault("DB_USER", "postgres"),
+		DBPassword:         os.Getenv("DB_PASSWORD"),
+		DBName:             getEnvWithDefault("DB_NAME", "go_board"),
+		DBPath:             dbPath,
+		JWTSecret:          jwtSecret,
+		SessionSecret:      sessionSecret,
+		CookieSecure:       os.Getenv("COOKIE_SECURE") == "true" || env == EnvProduction,
+		CookieHTTPOnly:     os.Getenv("COOKIE_HTTP_ONLY") != "false",
+		TemplateDir:        templateDir,
+		StaticDir:          staticDir,
+		MaxUploadSize:      maxUploadSizeMB * BytesPerMB,
+		MaxImageUploadSize: maxImageUploadSizeMB * BytesPerMB,
+		MaxBodyLimit:       maxBodyLimitMB * BytesPerMB,
 	}, nil
 }
 

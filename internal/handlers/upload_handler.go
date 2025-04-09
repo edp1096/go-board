@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"fmt"
+	"go-board/config"
 	"go-board/internal/models"
 	"go-board/internal/service"
 	"go-board/internal/utils"
@@ -17,12 +18,18 @@ import (
 type UploadHandler struct {
 	uploadService service.UploadService
 	boardService  service.BoardService
+	config        *config.Config
 }
 
-func NewUploadHandler(uploadService service.UploadService, boardService service.BoardService) *UploadHandler {
+func NewUploadHandler(
+	uploadService service.UploadService,
+	boardService service.BoardService,
+	cfg *config.Config,
+) *UploadHandler {
 	return &UploadHandler{
 		uploadService: uploadService,
 		boardService:  boardService,
+		config:        cfg,
 	}
 }
 
@@ -73,8 +80,16 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 	uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
 
 	// 파일 업로드
-	uploadedFiles, err := utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+	uploadedFiles, err := utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize)
 	if err != nil {
+		if strings.Contains(err.Error(), "파일 크기가 허용 한도를 초과") {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": err.Error(),
+				"code":    "file_too_large",
+			})
+		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "파일 업로드 실패: " + err.Error(),
@@ -145,7 +160,7 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 	uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "images")
 
 	// 이미지 업로드
-	uploadedFiles, err := utils.UploadImages(files, uploadPath, 20*1024*1024) // 20MB 제한
+	uploadedFiles, err := utils.UploadImages(files, uploadPath, h.config.MaxImageUploadSize)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -154,9 +169,9 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 	}
 
 	// 에디터 요구사항에 맞는 응답 포맷
-	response := make([]map[string]interface{}, 0, len(uploadedFiles))
+	response := make([]map[string]any, 0, len(uploadedFiles))
 	for _, file := range uploadedFiles {
-		fileResponse := map[string]interface{}{
+		fileResponse := map[string]any{
 			"storagename": file.StorageName,
 			"thumbnail":   file.ThumbnailURL,
 			"url":         file.URL,

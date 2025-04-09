@@ -111,6 +111,9 @@ document.addEventListener('alpine:init', () => {
         editingCommentId: null,
         showEditModal: false,
         editCommentContent: '',
+        editingReplyId: null, // 현재 수정 중인 답글 ID
+        editContent: '', // 수정 중인 내용
+        submittingEdit: false, // 수정 제출 중
 
         init() {
             this.loadAnswers();
@@ -283,9 +286,9 @@ document.addEventListener('alpine:init', () => {
                             if (!answer.children) {
                                 answer.children = [];
                             }
+
                             // 새 답글 추가
                             answer.children.push(data.reply);
-                            console.log("답글 추가됨:", data.reply);
 
                             // 베스트 답변인 경우 베스트 답변에도 답글 추가
                             if (answer.isBestAnswer && this.bestAnswer) {
@@ -356,6 +359,7 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+
         // 수정된 댓글 제출
         submitEditComment() {
             // 에디터에서 HTML 내용 가져오기
@@ -373,7 +377,7 @@ document.addEventListener('alpine:init', () => {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
             // 수정 API 호출
-            fetch(`/api/comments/${this.editingCommentId}`, {
+            fetch(`/api/answers/${this.editingCommentId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -390,8 +394,8 @@ document.addEventListener('alpine:init', () => {
                         const updateContent = (items) => {
                             for (let i = 0; i < items.length; i++) {
                                 if (items[i].id === this.editingCommentId) {
-                                    items[i].content = data.comment.content;
-                                    items[i].updatedAt = data.comment.updatedAt;
+                                    items[i].content = data.answer.content;
+                                    items[i].updatedAt = data.answer.updatedAt;
                                     return true;
                                 }
                                 if (items[i].children) {
@@ -409,8 +413,8 @@ document.addEventListener('alpine:init', () => {
                         // 베스트 답변인 경우 베스트 답변도 업데이트
                         if (this.bestAnswer) {
                             if (this.bestAnswer.id === this.editingCommentId) {
-                                this.bestAnswer.content = data.comment.content;
-                                this.bestAnswer.updatedAt = data.comment.updatedAt;
+                                this.bestAnswer.content = data.answer.content;
+                                this.bestAnswer.updatedAt = data.answer.updatedAt;
                             } else if (this.bestAnswer.children) {
                                 updateContent([this.bestAnswer]);
                             }
@@ -455,6 +459,117 @@ document.addEventListener('alpine:init', () => {
                 });
         },
 
+
+        // 답글 수정 모드 시작 (인라인 textarea로 변경)
+        editReply(commentId, content) {
+            // 이미 수정 중인 댓글이 있다면 취소
+            this.cancelEdit();
+
+            // 현재 수정할 댓글 정보 설정
+            this.editingReplyId = commentId;
+            this.editContent = this.extractTextContent(content); // HTML에서 텍스트만 추출
+
+            // 답글 작성 중이면 취소
+            this.cancelReply();
+
+            // 수정할 요소로 스크롤
+            setTimeout(() => {
+                const replyElement = document.querySelector(`[data-reply-id="${commentId}"]`);
+                if (replyElement) {
+                    const textarea = replyElement.querySelector('.edit-textarea');
+                    if (textarea) {
+                        textarea.focus();
+                    }
+                }
+            }, 100);
+        },
+
+        // HTML에서 텍스트 콘텐츠만 추출하는 헬퍼 함수
+        extractTextContent(html) {
+            if (!html) return '';
+            // 임시 div를 생성하여 HTML 파싱
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            return tempDiv.textContent || tempDiv.innerText || '';
+        },
+
+        // 수정 취소
+        cancelEdit() {
+            this.editingReplyId = null;
+            this.editContent = '';
+            this.submittingEdit = false;
+        },
+
+        // 수정된 답글 제출 (인라인 textarea 버전)
+        submitEditReply(commentId) {
+            if (!this.editContent.trim()) {
+                alert('답글 내용을 입력해주세요.');
+                return;
+            }
+
+            // CSRF 토큰 가져오기
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+            this.submittingEdit = true;
+
+            fetch(`/api/answers/${commentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    content: this.editContent
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    this.submittingEdit = false;
+                    if (data.success) {
+                        // 일반 답변 목록 업데이트
+                        const updateContent = (items) => {
+                            for (let i = 0; i < items.length; i++) {
+                                if (items[i].id === commentId) {
+                                    items[i].content = data.answer.content;
+                                    items[i].updatedAt = data.answer.updatedAt;
+                                    return true;
+                                }
+                                if (items[i].children) {
+                                    const updated = items[i].children.some(child => {
+                                        if (child.id === commentId) {
+                                            child.content = data.answer.content;
+                                            child.updatedAt = data.answer.updatedAt;
+                                            return true;
+                                        }
+                                        return false;
+                                    });
+                                    if (updated) return true;
+                                }
+                            }
+                            return false;
+                        };
+
+                        // 답변 목록 업데이트
+                        updateContent(this.answers);
+
+                        // 베스트 답변도 업데이트
+                        if (this.bestAnswer && this.bestAnswer.children) {
+                            updateContent([this.bestAnswer]);
+                        }
+
+                        // 수정 모드 종료
+                        this.cancelEdit();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(err => {
+                    this.submittingEdit = false;
+                    console.error('답글 수정 중 오류:', err);
+                    alert('답글 수정 중 오류가 발생했습니다.');
+                });
+        },
+
         // 답글 삭제
         deleteComment(commentId, isReply = false, parentId = null) {
             if (!confirm('답글을 삭제하시겠습니까?')) return;
@@ -462,7 +577,7 @@ document.addEventListener('alpine:init', () => {
             // CSRF 토큰 가져오기
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-            fetch(`/api/comments/${commentId}`, {
+            fetch(`/api/answers/${commentId}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-Token': csrfToken

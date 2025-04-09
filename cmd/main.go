@@ -133,13 +133,14 @@ func main() {
 		Views:                 engine,
 		ViewsLayout:           "layouts/base",
 		DisableStartupMessage: true,
-		BodyLimit:             20 * 1024 * 1024, // 파일 업로드 설정 - 20MB 제한
+		BodyLimit:             cfg.MaxBodyLimit,
+		StreamRequestBody:     true,
 		ReadBufferSize:        8192,
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
 		// Prefork:               true,
-		// EnablePrintRoutes:     true,
 		// Immutable:             true,
+		// EnablePrintRoutes:     true,
 	})
 
 	// 업로드 디렉토리 확인
@@ -170,10 +171,10 @@ func main() {
 	// 핸들러 초기화
 	setupHandler := handlers.NewSetupHandler(authService, setupService)
 	authHandler := handlers.NewAuthHandler(authService)
-	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService)
+	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService, cfg)
 	commentHandler := handlers.NewCommentHandler(commentService)
 	qnaHandler := handlers.NewQnAHandler(boardService, qnaService)
-	uploadHandler := handlers.NewUploadHandler(uploadService, boardService)
+	uploadHandler := handlers.NewUploadHandler(uploadService, boardService, cfg)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 
 	// 인증 미들웨어
@@ -301,6 +302,32 @@ func setupMiddleware(
 		AllowOrigins: "*",
 		AllowMethods: "GET,POST,PUT,DELETE",
 	}))
+
+	// // Request body 제한
+	// app.Use(func(c *fiber.Ctx) error {
+	// 	// 다음 핸들러 실행
+	// 	err := c.Next()
+
+	// 	// 413 상태 코드 확인
+	// 	if err != nil && c.Response().StatusCode() == fiber.StatusRequestEntityTooLarge {
+	// 		// API 요청인 경우 JSON 응답
+	// 		if strings.HasPrefix(c.Path(), "/api/") || c.XHR() {
+	// 			return c.Status(fiber.StatusRequestEntityTooLarge).JSON(fiber.Map{
+	// 				"success": false,
+	// 				"message": fmt.Sprintf("요청 크기가 허용된 최대 크기(%dMB)를 초과했습니다.", cfg.MaxBodyLimit/config.BytesPerMB),
+	// 				"code":    "file_too_large",
+	// 			})
+	// 		}
+
+	// 		// 일반 페이지 요청인 경우
+	// 		return utils.RenderWithUser(c, "error", fiber.Map{
+	// 			"title":   "요청 크기 초과",
+	// 			"message": fmt.Sprintf("요청된 크기가 허용된 최대 크기(%dMB)를 초과했습니다.", cfg.MaxBodyLimit/config.BytesPerMB),
+	// 		})
+	// 	}
+
+	// 	return err
+	// })
 
 	// // 로거 설정
 	// app.Use(flogger.New(flogger.Config{
@@ -460,11 +487,6 @@ func setupRoutes(
 
 	// 첨부파일 다운로드
 	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
-
-	// 업로드된 파일 정적 제공
-	app.Static("/uploads", "./uploads", fiber.Static{
-		Browse: false,
-	})
 
 	// 업로드된 파일 정적 제공
 	app.Static("/uploads", "./uploads", fiber.Static{
