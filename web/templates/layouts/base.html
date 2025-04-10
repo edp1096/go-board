@@ -10,7 +10,23 @@
 
     <title>{{if .title}}{{.title}} - {{end}}게시판 시스템</title>
 
-    <meta name="description" content="{{if .description}}{{.description}}{{else}}게시판 시스템{{end}}">
+    <!-- 기본 메타 태그 -->
+    <meta name="description" content="{{if .metaDescription}}{{.metaDescription}}{{else}}{{if .description}}{{.description}}{{else}}게시판 시스템{{end}}{{end}}">
+    <meta name="content-language" content="ko">
+    <!-- 동적 SEO 메타 태그 -->
+    {{if .metaTitle}}
+    <meta name="author" content="{{.metaAuthor}}">
+    <meta name="title" content="{{.metaTitle}}">
+    <meta property="og:locale" content="ko_KR">
+    <meta property="og:title" content="{{.metaTitle}}">
+    <meta property="og:url" content="{{.metaURL}}">
+    <meta property="og:site_name" content="{{.metaSiteName}}">
+    <meta property="og:description" content="{{.metaDescription}}">
+    {{if .metaImage}}
+    <meta name="thumbnail" content="{{.metaImage}}">
+    <meta property="og:image" content="{{.metaImage}}" />
+    {{end}}
+    {{end}}
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>

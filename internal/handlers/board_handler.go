@@ -265,12 +265,44 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		scriptPath = "/static/js/pages/qna-view.js"
 	}
 
+	// 메타 데이터 추출
+	// metaDescription := ""
+	// if len(post.Content) > 150 {
+	// 	metaDescription = utils.PlainText(post.Content[:150]) + "..."
+	// } else {
+	// 	metaDescription = utils.PlainText(post.Content)
+	// }
+	metaDescription := utils.TruncateText(post.Content, 150)
+
+	// 썸네일 URL 처리
+	var thumbnailURL string
+	if board.BoardType == models.BoardTypeGallery {
+		thumbnails, _ := h.boardService.GetPostThumbnails(c.Context(), boardID, []int64{postID})
+		if url, ok := thumbnails[postID]; ok {
+			thumbnailURL = url
+		}
+	}
+
+	// 서버 주소 가져오기
+	serverURL := "https://" + h.config.ServerAddress
+	if h.config.Environment == "development" {
+		serverURL = "http://" + h.config.ServerAddress
+	}
+
 	return utils.RenderWithUser(c, templateName, fiber.Map{
 		"title":          post.Title,
+		"description":    metaDescription,
 		"board":          board,
 		"post":           post,
 		"isManager":      isManager,
 		"pageScriptPath": scriptPath,
+		// SEO 메타 태그 데이터
+		"metaAuthor":      post.Username,
+		"metaTitle":       post.Title,
+		"metaDescription": metaDescription,
+		"metaURL":         serverURL + c.Path(),
+		"metaSiteName":    "게시판 시스템",
+		"metaImage":       thumbnailURL,
 	})
 }
 

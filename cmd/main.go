@@ -92,6 +92,9 @@ func main() {
 		return template.HTML(sanitizedString)
 	})
 
+	// Extract plain text to HTML
+	engine.AddFunc("plaintext", utils.PlainText)
+
 	// json
 	engine.AddFunc("json", func(v any) string {
 		jsonBytes, err := json.Marshal(v)
