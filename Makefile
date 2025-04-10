@@ -69,13 +69,13 @@ build-linux-amd64:
 	@go env -w GOOS=linux
 	@go env -w GOARCH=amd64
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_amd64 ./cmd
-	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_amd64 ./cmd
+	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_amd64 ./cmd/migrate
 
 build-linux-arm64:
 	@go env -w GOOS=linux
 	@go env -w GOARCH=arm64
-	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_amd64 ./cmd
-	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_arm64 ./cmd
+	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_arm64 ./cmd
+	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_arm64 ./cmd/migrate
 
 dev:
 	@echo "Running in development mode..."
