@@ -22,8 +22,7 @@ import (
 func main() {
 	// 명령행 인자 파싱
 	driver := flag.String("driver", "", "데이터베이스 드라이버 (mysql, postgres, sqlite)")
-	operation := flag.String("op", "up", "마이그레이션 작업 (up, down, reset, status, create, redo, purge, version)")
-	newMigration := flag.String("name", "", "새 마이그레이션 이름 (create 명령에만 사용)")
+	operation := flag.String("op", "up", "마이그레이션 작업 (up, down, status, purge)")
 	flag.Parse()
 
 	// 환경 설정 로드
@@ -106,7 +105,7 @@ func main() {
 	goose.SetBaseFS(migrationFS)
 
 	// 마이그레이션 실행
-	if err := runMigration(sqlDB, cfg.DBDriver, migrationsDir, *operation, *newMigration); err != nil {
+	if err := runMigration(sqlDB, cfg.DBDriver, migrationsDir, *operation, cfg.DBName); err != nil {
 		log.Fatalf("마이그레이션 실패: %v", err)
 	}
 }
@@ -197,7 +196,7 @@ func ensureDatabaseExists(cfg *config.Config) error {
 }
 
 // runMigration은 지정된 마이그레이션 작업을 실행합니다
-func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration string) error {
+func runMigration(db *sql.DB, driver, migrationsDir, operation, dbName string) error {
 	// 마이그레이션 작업 실행
 	var err error
 	switch operation {
@@ -207,93 +206,12 @@ func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration str
 	case "down":
 		fmt.Println("마이그레이션 롤백 중...")
 		err = goose.Down(db, migrationsDir)
-	case "reset":
-		fmt.Println("마이그레이션 초기화 중...")
-		err = goose.Reset(db, migrationsDir)
 	case "status":
 		fmt.Println("마이그레이션 상태 확인 중...")
 		err = goose.Status(db, migrationsDir)
-	case "create":
-		// create는 임베디드 파일 시스템에서 직접 수행할 수 없으므로
-		// 임시 디렉토리에 생성해야 합니다.
-		if newMigration == "" {
-			return fmt.Errorf("새 마이그레이션 이름을 지정해야 합니다 (-name 플래그 사용)")
-		}
-
-		// 임시 디렉토리 생성
-		tmpDir, err := os.MkdirTemp("", "migrations")
-		if err != nil {
-			return fmt.Errorf("임시 디렉토리 생성 실패: %w", err)
-		}
-		defer os.RemoveAll(tmpDir)
-
-		fmt.Printf("새 마이그레이션 생성 중: %s (임시 위치: %s)\n", newMigration, tmpDir)
-
-		// 임시 디렉토리로 변경 (goose.Create가 현재 디렉토리 기준으로 동작)
-		wd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("현재 작업 디렉토리 확인 실패: %w", err)
-		}
-
-		if err := os.Chdir(tmpDir); err != nil {
-			return fmt.Errorf("작업 디렉토리 변경 실패: %w", err)
-		}
-
-		// 작업 완료 후 원래 디렉토리로 돌아가기
-		defer os.Chdir(wd)
-
-		// 마이그레이션 파일 생성
-		err = goose.Create(db, ".", newMigration, "sql")
-		if err != nil {
-			return fmt.Errorf("마이그레이션 생성 실패: %w", err)
-		}
-
-		// 생성된 파일 경로 확인
-		upFile := filepath.Join(tmpDir, fmt.Sprintf("%s.sql", newMigration))
-
-		// SQL 파일 내용 읽기
-		upContent, err := os.ReadFile(upFile)
-		if err != nil {
-			return fmt.Errorf("생성된 마이그레이션 파일 읽기 실패: %w", err)
-		}
-
-		// 마이그레이션 디렉토리 확인 및 생성
-		var targetDir string
-		switch driver {
-		case "postgres":
-			targetDir = "migrations/postgres"
-		case "sqlite":
-			targetDir = "migrations/sqlite"
-		default:
-			targetDir = "migrations/mysql"
-		}
-
-		if _, err := os.Stat(targetDir); os.IsNotExist(err) {
-			if err := os.MkdirAll(targetDir, 0755); err != nil {
-				return fmt.Errorf("마이그레이션 디렉토리 생성 실패: %w", err)
-			}
-		}
-
-		// 새 마이그레이션 파일 경로
-		targetFile := filepath.Join(targetDir, filepath.Base(upFile))
-
-		// 임시 파일을 실제 마이그레이션 디렉토리로 복사
-		if err := os.WriteFile(targetFile, upContent, 0644); err != nil {
-			return fmt.Errorf("마이그레이션 파일 복사 실패: %w", err)
-		}
-
-		fmt.Printf("새 마이그레이션 파일이 생성되었습니다: %s\n", targetFile)
-
-	case "redo":
-		fmt.Println("마지막 마이그레이션 재실행 중...")
-		err = goose.Redo(db, migrationsDir)
 	case "purge":
-		// 새로 추가한 명령: 모든 테이블 삭제
+		// 모든 테이블 삭제
 		fmt.Println("모든 테이블 삭제 중...")
-		dbName := os.Getenv("DB_NAME")
-		if dbName == "" {
-			dbName = "go_board" // 기본값
-		}
 		err = dropAllTables(db, driver, dbName)
 		if err == nil {
 			// 마이그레이션 기록도 삭제
@@ -307,9 +225,6 @@ func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration str
 			fmt.Println("마이그레이션 다시 적용 중...")
 			err = goose.Up(db, migrationsDir)
 		}
-	case "version":
-		fmt.Println("현재 마이그레이션 버전 확인 중...")
-		err = goose.Version(db, migrationsDir)
 	default:
 		return fmt.Errorf("알 수 없는 마이그레이션 작업: %s", operation)
 	}
@@ -322,7 +237,7 @@ func runMigration(db *sql.DB, driver, migrationsDir, operation, newMigration str
 	return nil
 }
 
-// cmd/migrate/main.go 파일에 추가할 함수
+// dropAllTables는 데이터베이스의 모든 테이블을 삭제합니다
 func dropAllTables(sqlDB *sql.DB, driver string, dbName string) error {
 	var query string
 	var rows *sql.Rows
