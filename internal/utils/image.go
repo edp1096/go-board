@@ -41,17 +41,15 @@ func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error
 	if ext == ".webp" {
 		isAnimated, _ := IsAnimatedWebP(imagePath)
 		if isAnimated {
-			return imagePath, nil // 애니메이션 WebP는 썸네일 생성하지 않음
+			// 애니메이션 WebP인 경우
+			baseFilename := filename[:len(filename)-len(ext)]
+			jpgThumbPath := filepath.Join(thumbsDir, baseFilename+".jpg")
 
-			// // 애니메이션 WebP인 경우
-			// baseFilename := filename[:len(filename)-len(ext)]
-			// jpgThumbPath := filepath.Join(thumbsDir, baseFilename+".jpg")
-
-			// // JPG 썸네일 생성
-			// _, err := ConvertWebPToJPG(imagePath, jpgThumbPath, maxWidth, maxHeight, 90)
-			// if err != nil {
-			// 	return "", fmt.Errorf("애니메이션 WebP 썸네일 변환 실패: %w", err)
-			// }
+			// JPG 썸네일 생성
+			_, err := ConvertWebPToJPG(imagePath, jpgThumbPath, maxWidth, maxHeight, 90)
+			if err != nil {
+				return "", fmt.Errorf("애니메이션 WebP 썸네일 변환 실패: %w", err)
+			}
 
 			// // GIF 썸네일 생성
 			// gifThumbPath := filepath.Join(thumbsDir, baseFilename+".gif")
@@ -60,7 +58,7 @@ func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error
 			// 	fmt.Printf("GIF 썸네일 생성 실패 (%s): %v\n", imagePath, err)
 			// }
 
-			// return jpgThumbPath, nil
+			return jpgThumbPath, nil
 		}
 	}
 
