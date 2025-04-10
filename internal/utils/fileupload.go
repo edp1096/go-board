@@ -295,7 +295,7 @@ func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize 
 			}
 
 			// 썸네일 URL 설정
-			fmt.Println("썸네일 URL 설정:", file.URL)
+			// fmt.Println("썸네일 URL 설정:", file.URL)
 			file.ThumbnailURL = GetThumbnailURL(file.URL)
 		}
 	}

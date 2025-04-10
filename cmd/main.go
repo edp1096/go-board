@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -27,6 +28,7 @@ import (
 	flogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/html/v2"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 func main() {
@@ -71,7 +73,26 @@ func main() {
 	// 공통 설정
 	engine.Reload(cfg.Debug)
 
-	// 템플릿 함수
+	/* 템플릿 함수 */
+	// sanitizer
+	sanitizer := bluemonday.NewPolicy()
+	sanitizer.AllowElements(
+		"p", "br", "h1", "h2", "h3", "h4", "h5", "h6",
+		"blockquote", "pre", "code", "em", "strong", "del",
+		"ul", "ol", "li", "a", "img", "table", "thead", "tbody",
+		"tr", "th", "td", "hr", "div", "span",
+	)
+	sanitizer.AllowAttrs("href").OnElements("a")
+	sanitizer.AllowAttrs("src", "alt", "title").OnElements("img")
+	sanitizer.AllowAttrs("class").Globally()
+	sanitizer.AllowAttrs("animate").OnElements("img")
+
+	engine.AddFunc("unescape", func(s any) template.HTML {
+		sanitizedString := sanitizer.Sanitize(s.(string))
+		return template.HTML(sanitizedString)
+	})
+
+	// json
 	engine.AddFunc("json", func(v any) string {
 		jsonBytes, err := json.Marshal(v)
 		if err != nil {
@@ -133,11 +154,11 @@ func main() {
 		Views:                 engine,
 		ViewsLayout:           "layouts/base",
 		DisableStartupMessage: true,
-		BodyLimit:             cfg.MaxBodyLimit,
 		StreamRequestBody:     true,
 		ReadBufferSize:        8192,
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
+		// BodyLimit:             cfg.MaxBodyLimit,
 		// Prefork:               true,
 		// Immutable:             true,
 		// EnablePrintRoutes:     true,
@@ -303,31 +324,7 @@ func setupMiddleware(
 		AllowMethods: "GET,POST,PUT,DELETE",
 	}))
 
-	// // Request body 제한
-	// app.Use(func(c *fiber.Ctx) error {
-	// 	// 다음 핸들러 실행
-	// 	err := c.Next()
-
-	// 	// 413 상태 코드 확인
-	// 	if err != nil && c.Response().StatusCode() == fiber.StatusRequestEntityTooLarge {
-	// 		// API 요청인 경우 JSON 응답
-	// 		if strings.HasPrefix(c.Path(), "/api/") || c.XHR() {
-	// 			return c.Status(fiber.StatusRequestEntityTooLarge).JSON(fiber.Map{
-	// 				"success": false,
-	// 				"message": fmt.Sprintf("요청 크기가 허용된 최대 크기(%dMB)를 초과했습니다.", cfg.MaxBodyLimit/config.BytesPerMB),
-	// 				"code":    "file_too_large",
-	// 			})
-	// 		}
-
-	// 		// 일반 페이지 요청인 경우
-	// 		return utils.RenderWithUser(c, "error", fiber.Map{
-	// 			"title":   "요청 크기 초과",
-	// 			"message": fmt.Sprintf("요청된 크기가 허용된 최대 크기(%dMB)를 초과했습니다.", cfg.MaxBodyLimit/config.BytesPerMB),
-	// 		})
-	// 	}
-
-	// 	return err
-	// })
+	app.Use(middleware.BodyLimitMiddleware(cfg))
 
 	// // 로거 설정
 	// app.Use(flogger.New(flogger.Config{

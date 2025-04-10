@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
             uploadActionURI: `/api/boards/${boardId}/upload`,
             uploadAccessURI: `/uploads/boards/${boardId}/images`,
             uploadCallback: function (response) {
-                console.log("업로드 완료:", response);
+                // console.log("업로드 완료:", response);
             },
             uploadErrorCallback: async function (response) {
                 const message = response.message;
@@ -77,7 +77,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 용량 초과 파일이 있으면 알림
             if (oversizedFiles.length > 0) {
-                let message = `다음 파일이 최대 허용 크기(${maxFileSizeMB}MB)를 초과했습니다:\n\n`;
+                // let message = `다음 파일이 최대 허용 크기(${maxFileSizeMB}MB)를 초과했습니다:\n\n`;
+                let message = `다음 파일이 최대 허용 크기를 초과했습니다:\n\n`;
 
                 oversizedFiles.forEach(file => {
                     message += `- ${file.name}: ${file.size}MB\n`;

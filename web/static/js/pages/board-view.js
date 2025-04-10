@@ -26,7 +26,7 @@ function initCommentEditor() {
         uploadAccessURI: `/uploads/boards/${boardId}/images`,
         placeholder: '댓글을 입력하세요...',
         uploadCallback: function (response) {
-            console.log("댓글 이미지 업로드 완료:", response);
+            // console.log("댓글 이미지 업로드 완료:", response);
         }
     };
 

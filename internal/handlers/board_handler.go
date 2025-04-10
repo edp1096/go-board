@@ -454,7 +454,7 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		}
 
 		if err != nil {
-			// 실패해도 게시물은 생성되므로 계속 진행
+			// // 실패해도 게시물은 생성되므로 계속 진행
 			// fmt.Println("파일 업로드 실패:", err)
 		} else if h.uploadService != nil {
 			// 데이터베이스에 첨부 파일 정보 저장
@@ -462,8 +462,6 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 			if err != nil {
 				// fmt.Println("첨부 파일 저장 실패:", err)
 			}
-		} else {
-			// fmt.Println("uploadService가 nil임")
 		}
 	}
 
@@ -785,21 +783,20 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		// 게시판 타입에 따라 다른 업로드 함수 사용
 		if board.BoardType == models.BoardTypeGallery {
 			// 갤러리 게시판은 이미지 타입도 허용
-			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, 10*1024*1024) // 10MB 제한
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize)
 		} else {
 			// 일반 게시판은 기존대로 처리
-			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, 10*1024*1024) // 10MB 제한
+			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize)
 		}
 
 		if err != nil {
-			// 오류 로깅만 하고 계속 진행
-			fmt.Printf("파일 업로드 실패: %v\n", err)
+			// // 오류 로깅만 하고 계속 진행
+			// fmt.Printf("파일 업로드 실패: %v\n", err)
 		} else if h.uploadService != nil {
 			// 데이터베이스에 첨부 파일 정보 저장
 			_, err := h.uploadService.SaveAttachments(c.Context(), boardID, postID, user.ID, uploadedFiles)
 			if err != nil {
-				// 오류 로깅만 하고 계속 진행
-				fmt.Printf("첨부 파일 정보 저장 실패: %v\n", err)
+				// fmt.Printf("첨부 파일 정보 저장 실패: %v\n", err)
 			}
 		}
 	}

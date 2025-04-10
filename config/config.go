@@ -143,23 +143,23 @@ func Load() (*Config, error) {
 	}
 
 	// 파일 업로드 크기 설정
-	maxUploadSizeMB, err := strconv.ParseInt(getEnvWithDefault("MAX_UPLOAD_SIZE",
-		strconv.Itoa(DefaultUploadSizeMB)), 10, 64)
+	maxUploadSizeKB, err := strconv.ParseInt(getEnvWithDefault("MAX_UPLOAD_SIZE",
+		strconv.Itoa(DefaultUploadSizeKB)), 10, 64)
 	if err != nil {
-		maxUploadSizeMB = DefaultUploadSizeMB
+		maxUploadSizeKB = DefaultUploadSizeKB
 	}
 
 	// 이미지 업로드 크기 설정
-	maxImageUploadSizeMB, err := strconv.ParseInt(getEnvWithDefault("MAX_IMAGE_UPLOAD_SIZE",
-		strconv.Itoa(DefaultImageUploadSizeMB)), 10, 64)
+	maxImageUploadSizeKB, err := strconv.ParseInt(getEnvWithDefault("MAX_IMAGE_UPLOAD_SIZE",
+		strconv.Itoa(DefaultImageUploadSizeKB)), 10, 64)
 	if err != nil {
-		maxImageUploadSizeMB = DefaultImageUploadSizeMB
+		maxImageUploadSizeKB = DefaultImageUploadSizeKB
 	}
 
 	// HTTP 요청 본문 최대 크기 설정
-	maxBodyLimitMB, err := strconv.Atoi(getEnvWithDefault("MAX_BODY_LIMIT", strconv.Itoa(DefaultBodyLimitMB)))
+	maxBodyLimitKB, err := strconv.Atoi(getEnvWithDefault("MAX_BODY_LIMIT", strconv.Itoa(DefaultBodyLimitKB)))
 	if err != nil {
-		maxBodyLimitMB = DefaultBodyLimitMB
+		maxBodyLimitKB = DefaultBodyLimitKB
 	}
 
 	return &Config{
@@ -180,9 +180,9 @@ func Load() (*Config, error) {
 		CookieHTTPOnly:     os.Getenv("COOKIE_HTTP_ONLY") != "false",
 		TemplateDir:        templateDir,
 		StaticDir:          staticDir,
-		MaxUploadSize:      maxUploadSizeMB * BytesPerMB,
-		MaxImageUploadSize: maxImageUploadSizeMB * BytesPerMB,
-		MaxBodyLimit:       maxBodyLimitMB * BytesPerMB,
+		MaxUploadSize:      maxUploadSizeKB * BytesPerKB,
+		MaxImageUploadSize: maxImageUploadSizeKB * BytesPerKB,
+		MaxBodyLimit:       maxBodyLimitKB * BytesPerKB,
 	}, nil
 }
 
