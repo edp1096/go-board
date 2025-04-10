@@ -3,9 +3,9 @@
 -- +goose StatementBegin
 CREATE TABLE attachments (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    board_id BIGINT NOT NULL,
-    post_id BIGINT NOT NULL,
-    user_id BIGINT NOT NULL,
+    board_id INT NOT NULL,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
     file_name VARCHAR(255) NOT NULL,
     storage_name VARCHAR(255) NOT NULL,
     file_path VARCHAR(255) NOT NULL,
