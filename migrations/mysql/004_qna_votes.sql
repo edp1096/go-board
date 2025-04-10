@@ -8,10 +8,16 @@ CREATE TABLE qna_answers (
     user_id INT NOT NULL,
     content TEXT NOT NULL,
     vote_count INT NOT NULL DEFAULT 0,
+    parent_id INT DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES qna_answers(id) ON DELETE CASCADE
 );
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE INDEX idx_qna_answers_parent_id ON qna_answers(parent_id);
 -- +goose StatementEnd
 
 -- +goose StatementBegin
