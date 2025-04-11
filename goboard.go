@@ -10,6 +10,9 @@ import (
 	"strings"
 )
 
+//go:embed .env.example
+var envExampleFS embed.FS
+
 //go:embed web/templates
 var templatesFS embed.FS
 
@@ -24,6 +27,11 @@ var PostgresMigrationsFS embed.FS
 
 //go:embed migrations/sqlite
 var SQLiteMigrationsFS embed.FS
+
+// GetEnvExampleContent는 .env.example 파일의 내용을 반환합니다
+func GetEnvExampleContent() ([]byte, error) {
+	return envExampleFS.ReadFile(".env.example")
+}
 
 // GetWebContentDirs는 웹 콘텐츠 디렉토리의 경로와 임베디드 파일 시스템을 반환합니다.
 func GetWebContentDirs() map[string]embed.FS {
@@ -142,5 +150,30 @@ func ExportWebContent(destPath string) error {
 		}
 	}
 
+	return nil
+}
+
+// ExportEnvExample은 .env.example 파일만 지정된 경로로 내보냅니다
+func ExportEnvExample(destPath string) error {
+	fmt.Printf(".env.example 파일을 %s 경로로 내보냅니다...\n", destPath)
+
+	// .env.example 파일 내용 가져오기
+	envData, err := GetEnvExampleContent()
+	if err != nil {
+		return fmt.Errorf(".env.example 파일 읽기 실패: %w", err)
+	}
+
+	// 대상 디렉토리가 없으면 생성
+	destDir := filepath.Dir(destPath)
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return fmt.Errorf("디렉토리 생성 실패: %w", err)
+	}
+
+	// 파일 쓰기
+	if err := os.WriteFile(destPath, envData, 0644); err != nil {
+		return fmt.Errorf(".env.example 파일 쓰기 실패: %w", err)
+	}
+
+	fmt.Printf(".env.example 파일이 %s에 성공적으로 내보내졌습니다\n", destPath)
 	return nil
 }

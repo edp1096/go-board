@@ -267,6 +267,10 @@ func handleCommandLineArgs() (bool, error) {
 	exportWebCmd := flag.NewFlagSet("export-web", flag.ExitOnError)
 	exportPath := exportWebCmd.String("path", "./web", "웹 콘텐츠를 내보낼 경로")
 
+	// export-env 명령어 추가
+	exportEnvCmd := flag.NewFlagSet("export-env", flag.ExitOnError)
+	exportEnvPath := exportEnvCmd.String("path", "./.env.example", ".env.example 파일을 내보낼 경로")
+
 	// 명령행 인자가 없으면 정상 실행
 	if len(os.Args) < 2 {
 		return false, nil
@@ -292,6 +296,14 @@ func handleCommandLineArgs() (bool, error) {
 		fmt.Printf("웹 콘텐츠가 %s 경로에 성공적으로 내보내졌습니다\n", *exportPath)
 		return true, nil
 
+	case "export-env":
+		exportEnvCmd.Parse(os.Args[2:])
+		if err := goboard.ExportEnvExample(*exportEnvPath); err != nil {
+			fmt.Fprintf(os.Stderr, "오류: %s\n", err)
+			return true, err
+		}
+		return true, nil
+
 	default:
 		// 알 수 없는 명령 처리
 		fmt.Fprintf(os.Stderr, "알 수 없는 명령: %s\n", os.Args[1])
@@ -310,6 +322,9 @@ func printHelp() {
 	fmt.Println("  export-web\t웹 콘텐츠를 내보냅니다")
 	fmt.Println("    옵션:")
 	fmt.Println("      -path string\t내보낼 경로를 지정합니다 (기본값: \"./web\")")
+	fmt.Println("  export-env\t.env.example 파일을 내보냅니다")
+	fmt.Println("    옵션:")
+	fmt.Println("      -path string\t내보낼 경로를 지정합니다 (기본값: \"./.env.example\")")
 	fmt.Println()
 }
 
