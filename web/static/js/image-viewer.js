@@ -74,8 +74,10 @@ function setupSpecificImages(container) {
         const originalSrc = img.src;
 
         // 애니메이션 webp 이미지인지 확인
-        const isAnimatedWebp = originalSrc.toLowerCase().endsWith('.webp') &&
-            img.getAttribute('animate') === 'true';
+        const isAnimatedWebp = (
+            originalSrc.toLowerCase().endsWith('.gif')
+            || originalSrc.toLowerCase().endsWith('.webp')
+        ) && img.getAttribute('animate') === 'true';
 
         // 이미지가 이미 처리되었는지 표시
         img.setAttribute('data-viewer-processed', 'true');

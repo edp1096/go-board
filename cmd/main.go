@@ -329,6 +329,40 @@ func setupMiddleware(
 
 	app.Use(middleware.BodyLimitMiddleware(cfg))
 
+	app.Use(func(c *fiber.Ctx) error {
+		/*
+			# NginX 설정 예시
+			server {
+				listen 80;
+				server_name www.example.com;
+
+				location / {
+					proxy_set_header Host $host;
+					proxy_set_header X-Real-IP $remote_addr;
+					proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+					proxy_set_header X-Forwarded-Proto $scheme;
+					proxy_set_header X-Forwarded-Host $host;
+					proxy_pass http://localhost:3000;
+				}
+			}
+		*/
+		// X-Forwarded-Proto와 X-Forwarded-Host 헤더 확인
+		proto := c.Get("X-Forwarded-Proto")
+		if proto == "" {
+			proto = "http"
+		}
+
+		host := c.Get("X-Forwarded-Host")
+		if host == "" {
+			host = c.Hostname()
+		}
+
+		baseURL := proto + "://" + host
+		c.Locals("baseURL", baseURL)
+
+		return c.Next()
+	})
+
 	// // 로거 설정
 	// app.Use(flogger.New(flogger.Config{
 	// 	Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",

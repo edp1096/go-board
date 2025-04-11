@@ -283,11 +283,11 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		}
 	}
 
-	// 서버 주소 가져오기
-	serverURL := "https://" + h.config.ServerAddress
-	if h.config.Environment == "development" {
-		serverURL = "http://" + h.config.ServerAddress
-	}
+	// // 서버 주소 가져오기
+	// serverURL := "https://" + h.config.ServerAddress
+	// if h.config.Environment == "development" {
+	// 	serverURL = "http://" + h.config.ServerAddress
+	// }
 
 	return utils.RenderWithUser(c, templateName, fiber.Map{
 		"title":          post.Title,
@@ -300,9 +300,10 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		"metaAuthor":      post.Username,
 		"metaTitle":       post.Title,
 		"metaDescription": metaDescription,
-		"metaURL":         serverURL + c.Path(),
-		"metaSiteName":    "게시판 시스템",
-		"metaImage":       thumbnailURL,
+		// "metaURL":         serverURL + c.Path(),
+		"metaURL":      c.BaseURL() + c.Path(),
+		"metaSiteName": "게시판 시스템",
+		"metaImage":    thumbnailURL,
 	})
 }
 
