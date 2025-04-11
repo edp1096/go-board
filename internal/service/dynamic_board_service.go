@@ -182,6 +182,11 @@ func (s *dynamicBoardService) AlterBoardTable(ctx context.Context, board *models
 		return fmt.Errorf("유효하지 않은 테이블 이름입니다: %s (영문자, 숫자, 언더스코어만 허용)", board.TableName)
 	}
 
+	// SQLite인 경우 다른 방식으로 처리
+	if utils.IsSQLite(s.db) {
+		return s.alterBoardTableSQLite(ctx, board, addFields, modifyFields, dropFields)
+	}
+
 	// 트랜잭션 시작
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
@@ -288,6 +293,178 @@ func (s *dynamicBoardService) AlterBoardTable(ctx context.Context, board *models
 	}
 
 	// 4. 게시판 업데이트 시간 갱신
+	board.UpdatedAt = time.Now()
+	_, err = tx.ExecContext(ctx,
+		"UPDATE boards SET updated_at = ? WHERE id = ?",
+		board.UpdatedAt, board.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("게시판 업데이트 실패: %w", err)
+	}
+
+	// 트랜잭션 커밋
+	return tx.Commit()
+}
+
+// SQLite용 AlterBoardTable 메소드 추가
+func (s *dynamicBoardService) alterBoardTableSQLite(ctx context.Context, board *models.Board, addFields, modifyFields []*models.BoardField, dropFields []string) error {
+	// 트랜잭션 시작
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// 1. 필드 추가 (SQLite는 ADD COLUMN 지원)
+	for _, field := range addFields {
+		// 컬럼 이름 유효성 검사
+		if !columnNameRegex.MatchString(field.ColumnName) {
+			return fmt.Errorf("유효하지 않은 컬럼 이름입니다: %s (영문자, 숫자, 언더스코어만 허용)", field.ColumnName)
+		}
+
+		// 예약된 컬럼 이름 검사
+		if isReservedColumnName(field.ColumnName) {
+			return fmt.Errorf("'%s'는 시스템에서 예약된 필드 이름입니다. 다른 이름을 사용해주세요", field.ColumnName)
+		}
+
+		columnDef := s.getColumnDefinition(field)
+		query := fmt.Sprintf("ALTER TABLE \"%s\" ADD COLUMN %s;", board.TableName, columnDef)
+
+		_, err := tx.ExecContext(ctx, query)
+		if err != nil {
+			return fmt.Errorf("필드 추가 실패 (%s): %w", field.Name, err)
+		}
+	}
+
+	// 2. 필드 수정 및 삭제가 있는 경우 - SQLite는 직접 수정할 수 없으므로 테이블 재생성
+	if len(modifyFields) > 0 || len(dropFields) > 0 {
+		// 기존 테이블 스키마 조회
+		var existingColumns []struct {
+			Name         string
+			Type         string
+			NotNull      int
+			DefaultValue sql.NullString
+			PrimaryKey   int
+		}
+
+		// SQLite pragmas을 사용하여 테이블 스키마 가져오기
+		rows, err := tx.QueryContext(ctx, fmt.Sprintf("PRAGMA table_info(\"%s\");", board.TableName))
+		if err != nil {
+			return fmt.Errorf("테이블 스키마 조회 실패: %w", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var col struct {
+				Name         string
+				Type         string
+				NotNull      int
+				DefaultValue sql.NullString
+				PrimaryKey   int
+			}
+			var cid int
+			if err := rows.Scan(&cid, &col.Name, &col.Type, &col.NotNull, &col.DefaultValue, &col.PrimaryKey); err != nil {
+				return fmt.Errorf("컬럼 정보 스캔 실패: %w", err)
+			}
+			existingColumns = append(existingColumns, col)
+		}
+
+		if err := rows.Err(); err != nil {
+			return err
+		}
+
+		// 수정된 컬럼 정보 맵 생성
+		modifiedColumns := make(map[string]*models.BoardField)
+		for _, field := range modifyFields {
+			modifiedColumns[field.ColumnName] = field
+		}
+
+		// 삭제할 컬럼 맵 생성
+		dropColumnsMap := make(map[string]bool)
+		for _, col := range dropFields {
+			dropColumnsMap[col] = true
+		}
+
+		// 임시 테이블 이름
+		tempTableName := board.TableName + "_temp"
+
+		// CREATE TABLE 문 생성
+		var createTableSQL strings.Builder
+		createTableSQL.WriteString(fmt.Sprintf("CREATE TABLE \"%s\" (\n", tempTableName))
+
+		// 컬럼 정의 추가
+		var columnDefs []string
+		var columnNames []string
+		for _, col := range existingColumns {
+			// 삭제할 컬럼은 제외
+			if dropColumnsMap[col.Name] {
+				continue
+			}
+
+			columnNames = append(columnNames, col.Name)
+
+			// 수정할 컬럼인 경우 변경된 정의 사용
+			if field, ok := modifiedColumns[col.Name]; ok {
+				columnType := s.getColumnType(field.FieldType)
+				nullDef := ""
+				if field.Required {
+					nullDef = " NOT NULL"
+				}
+
+				columnDefs = append(columnDefs, fmt.Sprintf("\"%s\" %s%s", col.Name, columnType, nullDef))
+			} else {
+				// 기존 컬럼 정의 유지
+				nullDef := ""
+				if col.NotNull == 1 {
+					nullDef = " NOT NULL"
+				}
+
+				defaultDef := ""
+				if col.DefaultValue.Valid {
+					defaultDef = fmt.Sprintf(" DEFAULT %s", col.DefaultValue.String)
+				}
+
+				pkDef := ""
+				if col.PrimaryKey == 1 {
+					pkDef = " PRIMARY KEY"
+				}
+
+				columnDefs = append(columnDefs, fmt.Sprintf("\"%s\" %s%s%s%s", col.Name, col.Type, nullDef, defaultDef, pkDef))
+			}
+		}
+
+		createTableSQL.WriteString(strings.Join(columnDefs, ",\n"))
+		createTableSQL.WriteString("\n);")
+
+		// 임시 테이블 생성
+		_, err = tx.ExecContext(ctx, createTableSQL.String())
+		if err != nil {
+			return fmt.Errorf("임시 테이블 생성 실패: %w", err)
+		}
+
+		// 데이터 복사
+		columnNamesStr := "\"" + strings.Join(columnNames, "\", \"") + "\""
+		_, err = tx.ExecContext(ctx, fmt.Sprintf("INSERT INTO \"%s\" (%s) SELECT %s FROM \"%s\";",
+			tempTableName, columnNamesStr, columnNamesStr, board.TableName))
+		if err != nil {
+			return fmt.Errorf("데이터 복사 실패: %w", err)
+		}
+
+		// 기존 테이블 삭제
+		_, err = tx.ExecContext(ctx, fmt.Sprintf("DROP TABLE \"%s\";", board.TableName))
+		if err != nil {
+			return fmt.Errorf("기존 테이블 삭제 실패: %w", err)
+		}
+
+		// 임시 테이블 이름 변경
+		_, err = tx.ExecContext(ctx, fmt.Sprintf("ALTER TABLE \"%s\" RENAME TO \"%s\";",
+			tempTableName, board.TableName))
+		if err != nil {
+			return fmt.Errorf("테이블 이름 변경 실패: %w", err)
+		}
+	}
+
+	// 게시판 업데이트 시간 갱신
 	board.UpdatedAt = time.Now()
 	_, err = tx.ExecContext(ctx,
 		"UPDATE boards SET updated_at = ? WHERE id = ?",
