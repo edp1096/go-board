@@ -24,6 +24,7 @@ const (
 // GenerateThumbnail 주어진 이미지 파일에 대한 썸네일을 생성합니다
 // WebP 이미지의 경우 JPEG 형식으로 변환하여 썸네일을 생성합니다
 // 애니메이션 WebP는 첫 프레임만 사용하며, 필요시 GIF 썸네일도 생성할 수 있습니다
+// EXIF 정보를 참고하여 올바른 방향으로 이미지를 처리합니다
 func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error) {
 	// 파일 확장자 확인
 	ext := strings.ToLower(filepath.Ext(imagePath))
@@ -51,7 +52,7 @@ func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error
 				return "", fmt.Errorf("애니메이션 WebP 썸네일 변환 실패: %w", err)
 			}
 
-			// // GIF 썸네일 생성
+			// // GIF 썸네일 생성 (필요 시)
 			// gifThumbPath := filepath.Join(thumbsDir, baseFilename+".gif")
 			// _, err = ConvertWebPToGIF(imagePath, gifThumbPath, 160, 120, 6)
 			// if err != nil {
@@ -73,8 +74,9 @@ func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error
 			return "", fmt.Errorf("WebP 이미지 로드 실패: %w", err)
 		}
 	} else {
-		// 다른 이미지 포맷은 imaging 라이브러리 사용
-		src, err = imaging.Open(imagePath)
+		// 다른 이미지 포맷은 imaging 라이브러리 사용 - EXIF 방향 정보 자동 적용
+		// AutoOrientation 옵션을 사용하여 EXIF 방향 정보를 기반으로 이미지를 자동으로 회전
+		src, err = imaging.Open(imagePath, imaging.AutoOrientation(true))
 		if err != nil {
 			return "", fmt.Errorf("이미지 열기 실패: %w", err)
 		}
@@ -91,11 +93,6 @@ func GenerateThumbnail(imagePath string, maxWidth, maxHeight int) (string, error
 	} else {
 		// 너비와 높이 모두 지정된 경우 (비율 유지하며 맞춤)
 		thumbnail = imaging.Fit(src, maxWidth, maxHeight, imaging.Lanczos)
-	}
-
-	// thumbs 디렉토리 생성
-	if err := os.MkdirAll(thumbsDir, 0755); err != nil {
-		return "", fmt.Errorf("썸네일 디렉토리 생성 실패: %w", err)
 	}
 
 	// WebP의 경우 저장 형식을 JPEG으로 변경 (파일명도 변경)
