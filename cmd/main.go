@@ -191,6 +191,7 @@ func main() {
 	commentService := service.NewCommentService(commentRepo, boardRepo)
 	qnaService := service.NewQnAService(db, boardRepo, boardService)
 	uploadService := service.NewUploadService(attachmentRepo)
+	sitemapService := service.NewSitemapService(boardRepo, boardService)
 
 	// 핸들러 초기화
 	setupHandler := handlers.NewSetupHandler(authService, setupService)
@@ -200,6 +201,8 @@ func main() {
 	qnaHandler := handlers.NewQnAHandler(boardService, qnaService)
 	uploadHandler := handlers.NewUploadHandler(uploadService, boardService, cfg)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
+	sitemapHandler := handlers.NewSitemapHandler(sitemapService)
+	robotsHandler := handlers.NewRobotsHandler()
 
 	// 인증 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
@@ -242,6 +245,8 @@ func main() {
 		qnaHandler,
 		uploadHandler,
 		adminHandler,
+		sitemapHandler,
+		robotsHandler,
 		authMiddleware,
 		boardAccessMiddleware,
 		adminMiddleware,
@@ -428,6 +433,8 @@ func setupRoutes(
 	qnaHandler *handlers.QnAHandler,
 	uploadHandler *handlers.UploadHandler,
 	adminHandler *handlers.AdminHandler,
+	sitemapHandler *handlers.SitemapHandler,
+	robotsHandler *handlers.RobotsHandler,
 	authMiddleware middleware.AuthMiddleware,
 	boardAccessMiddleware middleware.BoardAccessMiddleware,
 	adminMiddleware middleware.AdminMiddleware,
@@ -440,6 +447,10 @@ func setupRoutes(
 	// 초기 설정 라우트
 	app.Get("/admin/setup", setupHandler.SetupPage)
 	app.Post("/admin/setup", setupHandler.SetupAdmin)
+
+	app.Get("/sitemap.xml", sitemapHandler.GetSitemapIndex)
+	app.Get("/sitemap_:index.xml", sitemapHandler.GetSitemapFile)
+	app.Get("/robots.txt", robotsHandler.GetRobots)
 
 	// 인증 관련 라우트
 	auth := app.Group("/auth")
