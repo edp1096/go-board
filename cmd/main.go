@@ -182,6 +182,7 @@ func main() {
 	boardRepo := repository.NewBoardRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
 	attachmentRepo := repository.NewAttachmentRepository(db)
+	referrerRepo := repository.NewReferrerRepository(db)
 
 	// 서비스 초기화
 	setupService := service.NewSetupService(userRepo)
@@ -192,6 +193,7 @@ func main() {
 	qnaService := service.NewQnAService(db, boardRepo, boardService)
 	uploadService := service.NewUploadService(attachmentRepo)
 	sitemapService := service.NewSitemapService(boardRepo, boardService)
+	referrerService := service.NewReferrerService(referrerRepo)
 
 	// 핸들러 초기화
 	setupHandler := handlers.NewSetupHandler(authService, setupService)
@@ -203,14 +205,17 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 	sitemapHandler := handlers.NewSitemapHandler(sitemapService)
 	robotsHandler := handlers.NewRobotsHandler()
+	referrerHandler := handlers.NewReferrerHandler(referrerService)
 
-	// 인증 미들웨어
+	// 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 	boardAccessMiddleware := middleware.NewBoardAccessMiddleware(boardService)
 	adminMiddleware := middleware.NewAdminMiddleware(authService)
+	referrerMiddleware := middleware.NewReferrerMiddleware(referrerService)
 
 	// 미들웨어 설정
 	setupMiddleware(app, cfg, setupService, authService)
+	app.Use(referrerMiddleware.CaptureReferrer)
 
 	// 정적 파일 제공 - 단순화된 자동 감지 방식
 	var staticFS http.FileSystem
@@ -247,6 +252,7 @@ func main() {
 		adminHandler,
 		sitemapHandler,
 		robotsHandler,
+		referrerHandler,
 		authMiddleware,
 		boardAccessMiddleware,
 		adminMiddleware,
@@ -435,6 +441,7 @@ func setupRoutes(
 	adminHandler *handlers.AdminHandler,
 	sitemapHandler *handlers.SitemapHandler,
 	robotsHandler *handlers.RobotsHandler,
+	referrerHandler *handlers.ReferrerHandler,
 	authMiddleware middleware.AuthMiddleware,
 	boardAccessMiddleware middleware.BoardAccessMiddleware,
 	adminMiddleware middleware.AdminMiddleware,
@@ -486,6 +493,8 @@ func setupRoutes(
 
 	// 관리자 라우트 (관리자 권한 필요)
 	admin := app.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
+	admin.Get("/referrer-stats", referrerHandler.ReferrerStatsPage)
+
 	admin.Get("/", adminHandler.Dashboard)
 
 	// 게시판 관리 라우트
@@ -544,6 +553,9 @@ func setupRoutes(
 	adminAPI := api.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
 	adminAPI.Get("/users/search", adminHandler.SearchUsers)
 	adminAPI.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
+
+	// 레퍼러
+	adminAPI.Get("/referrer-stats", referrerHandler.GetReferrerData)
 
 	// 첨부파일 다운로드
 	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
