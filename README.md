@@ -1,5 +1,7 @@
 간단한 회원관리와 게시판
 
+예시: https://bbs.enjoytools.net
+
 
 ## 처음 실행
 
