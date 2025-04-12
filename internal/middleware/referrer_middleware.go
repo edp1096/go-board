@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/edp1096/go-board/config"
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/service"
 
@@ -17,11 +18,13 @@ type ReferrerMiddleware interface {
 
 type referrerMiddleware struct {
 	referrerService service.ReferrerService
+	config          *config.Config
 }
 
-func NewReferrerMiddleware(referrerService service.ReferrerService) ReferrerMiddleware {
+func NewReferrerMiddleware(referrerService service.ReferrerService, cfg *config.Config) ReferrerMiddleware {
 	return &referrerMiddleware{
 		referrerService: referrerService,
+		config:          cfg,
 	}
 }
 
@@ -60,10 +63,16 @@ func (m *referrerMiddleware) CaptureReferrer(c *fiber.Ctx) error {
 		userID = &u.ID
 	}
 
-	// Record the visit asynchronously to not block the request
-	go func(ctx context.Context, rs service.ReferrerService) {
-		_ = rs.RecordVisit(ctx, referrerURL, targetURL, visitorIP, userAgent, userID)
-	}(context.Background(), m.referrerService)
+	// DBDriver로 SQLite 여부 확인
+	if m.config.DBDriver == "sqlite" {
+		// SQLite인 경우 동기적으로 처리
+		_ = m.referrerService.RecordVisit(c.Context(), referrerURL, targetURL, visitorIP, userAgent, userID)
+	} else {
+		// 다른 DB는 비동기 처리
+		go func(ctx context.Context, rs service.ReferrerService) {
+			_ = rs.RecordVisit(ctx, referrerURL, targetURL, visitorIP, userAgent, userID)
+		}(context.Background(), m.referrerService)
+	}
 
 	return c.Next()
 }

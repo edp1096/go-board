@@ -31,7 +31,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.1"
+const APP_VERSION = "v0.0.2"
 
 func main() {
 	// // 시작 시간 기록
@@ -216,7 +216,7 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(authService)
 	boardAccessMiddleware := middleware.NewBoardAccessMiddleware(boardService)
 	adminMiddleware := middleware.NewAdminMiddleware(authService)
-	referrerMiddleware := middleware.NewReferrerMiddleware(referrerService)
+	referrerMiddleware := middleware.NewReferrerMiddleware(referrerService, cfg)
 
 	// 미들웨어 설정
 	setupMiddleware(app, cfg, setupService, authService)
