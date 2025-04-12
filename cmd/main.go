@@ -178,6 +178,7 @@ func main() {
 
 	// 계층 구성 (의존성 주입)
 	// 저장소 초기화
+	systemSettingsRepo := repository.NewSystemSettingsRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	boardRepo := repository.NewBoardRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
@@ -186,7 +187,8 @@ func main() {
 
 	// 서비스 초기화
 	setupService := service.NewSetupService(userRepo)
-	authService := service.NewAuthService(userRepo)
+	systemSettingsService := service.NewSystemSettingsService(systemSettingsRepo)
+	authService := service.NewAuthService(userRepo, systemSettingsService)
 	boardService := service.NewBoardService(boardRepo, db)
 	dynamicBoardService := service.NewDynamicBoardService(db)
 	commentService := service.NewCommentService(commentRepo, boardRepo)
@@ -197,6 +199,7 @@ func main() {
 
 	// 핸들러 초기화
 	setupHandler := handlers.NewSetupHandler(authService, setupService)
+	systemSettingsHandler := handlers.NewSystemSettingsHandler(systemSettingsService)
 	authHandler := handlers.NewAuthHandler(authService)
 	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService, cfg)
 	commentHandler := handlers.NewCommentHandler(commentService)
@@ -244,6 +247,7 @@ func main() {
 	setupRoutes(
 		app,
 		setupHandler,
+		systemSettingsHandler,
 		authHandler,
 		boardHandler,
 		commentHandler,
@@ -433,6 +437,7 @@ func setupMiddleware(
 func setupRoutes(
 	app *fiber.App,
 	setupHandler *handlers.SetupHandler,
+	systemSettingsHandler *handlers.SystemSettingsHandler,
 	authHandler *handlers.AuthHandler,
 	boardHandler *handlers.BoardHandler,
 	commentHandler *handlers.CommentHandler,
@@ -493,6 +498,8 @@ func setupRoutes(
 
 	// 관리자 라우트 (관리자 권한 필요)
 	admin := app.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
+	admin.Get("/system-settings", systemSettingsHandler.SettingsPage)
+	admin.Post("/system-settings", systemSettingsHandler.UpdateSettings)
 	admin.Get("/referrer-stats", referrerHandler.ReferrerStatsPage)
 
 	admin.Get("/", adminHandler.Dashboard)
@@ -507,6 +514,9 @@ func setupRoutes(
 
 	// 사용자 관리 라우트
 	admin.Get("/users", adminHandler.ListUsers)
+	admin.Get("/user-approval", adminHandler.UserApprovalPage)
+	admin.Put("/users/:userID/approve", adminHandler.ApproveUser)
+	admin.Put("/users/:userID/reject", adminHandler.RejectUser)
 	admin.Get("/users/create", adminHandler.CreateUserPage)
 	admin.Post("/users", adminHandler.CreateUser)
 	admin.Get("/users/:userID/edit", adminHandler.EditUserPage)

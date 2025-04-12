@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     full_name TEXT,
     role TEXT NOT NULL DEFAULT 'user',
     active INTEGER NOT NULL DEFAULT 1, -- SQLite는 BOOLEAN이 없음 (1=true, 0=false)
+    approval_status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected
+    approval_due TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

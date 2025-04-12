@@ -58,14 +58,14 @@ func ConnectDatabase(cfg *Config) (*bun.DB, error) {
 			return nil, fmt.Errorf("SQLite 데이터베이스 디렉토리 생성 실패: %w", err)
 		}
 
-		// SQLite 연결
-		sqldb, err = sql.Open("sqlite", cfg.DBPath)
+		// SQLite 연결 - 로킹 타임아웃 추가
+		sqldb, err = sql.Open("sqlite", cfg.DBPath+"?_timeout=5000&_journal=WAL&_busy_timeout=5000")
 		if err != nil {
 			return nil, fmt.Errorf("SQLite 연결 실패: %w", err)
 		}
 
 		// SQLite 성능 최적화 설정
-		if _, err := sqldb.Exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;"); err != nil {
+		if _, err := sqldb.Exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;"); err != nil {
 			return nil, fmt.Errorf("SQLite PRAGMA 설정 실패: %w", err)
 		}
 

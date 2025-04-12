@@ -1278,3 +1278,92 @@ func (h *AdminHandler) SearchUsers(c *fiber.Ctx) error {
 		"users":   users,
 	})
 }
+
+// UserApprovalPage 사용자 승인 관리 페이지 렌더링
+func (h *AdminHandler) UserApprovalPage(c *fiber.Ctx) error {
+	// 승인 대기 중인 사용자 목록 조회
+	users, err := h.authService.GetPendingApprovalUsers(c.Context())
+	if err != nil {
+		return utils.RenderWithUser(c, "error", fiber.Map{
+			"title":   "오류",
+			"message": "사용자 목록을 불러오는데 실패했습니다",
+			"error":   err.Error(),
+		})
+	}
+
+	return utils.RenderWithUser(c, "admin/user_approval", fiber.Map{
+		"title":          "사용자 승인 관리",
+		"users":          users,
+		"pageScriptPath": "/static/js/pages/admin-user-approval.js",
+	})
+}
+
+// ApproveUser 사용자 승인 처리
+func (h *AdminHandler) ApproveUser(c *fiber.Ctx) error {
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	// 사용자 정보 조회
+	// user, err := h.authService.GetUserByID(c.Context(), userID)
+	_, err = h.authService.GetUserByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자를 찾을 수 없습니다",
+		})
+	}
+
+	// 승인 상태 업데이트
+	err = h.authService.UpdateUserApprovalStatus(c.Context(), userID, models.ApprovalApproved)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 승인에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "사용자가 성공적으로 승인되었습니다",
+	})
+}
+
+// RejectUser 사용자 승인 거부 처리
+func (h *AdminHandler) RejectUser(c *fiber.Ctx) error {
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	// 사용자 정보 조회
+	// user, err := h.authService.GetUserByID(c.Context(), userID)
+	_, err = h.authService.GetUserByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자를 찾을 수 없습니다",
+		})
+	}
+
+	// 승인 상태 업데이트
+	err = h.authService.UpdateUserApprovalStatus(c.Context(), userID, models.ApprovalRejected)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "사용자 승인 거부에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "사용자 승인이 거부되었습니다",
+	})
+}

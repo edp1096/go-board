@@ -17,11 +17,13 @@ import (
 )
 
 var (
-	ErrInvalidCredentials = errors.New("유효하지 않은 인증 정보")
-	ErrUserNotFound       = errors.New("사용자를 찾을 수 없음")
-	ErrUserInactive       = errors.New("비활성화된 사용자")
-	ErrUsernameTaken      = errors.New("이미 사용 중인 사용자 이름")
-	ErrEmailTaken         = errors.New("이미 사용 중인 이메일")
+	ErrInvalidCredentials  = errors.New("유효하지 않은 인증 정보")
+	ErrUserNotFound        = errors.New("사용자를 찾을 수 없음")
+	ErrUserInactive        = errors.New("비활성화된 사용자")
+	ErrUserPendingApproval = errors.New("승인 대기 중인 사용자")
+	ErrUserRejected        = errors.New("승인이 거절된 사용자")
+	ErrUsernameTaken       = errors.New("이미 사용 중인 사용자 이름")
+	ErrEmailTaken          = errors.New("이미 사용 중인 이메일")
 )
 
 type AuthService interface {
@@ -32,20 +34,24 @@ type AuthService interface {
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
 	UpdateUserActiveStatus(ctx context.Context, id int64, active bool) error
+	UpdateUserApprovalStatus(ctx context.Context, id int64, status models.ApprovalStatus) error
 	ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error
 	AdminChangePassword(ctx context.Context, id int64, newPassword string) error
 	DeleteUser(ctx context.Context, id int64) error
 	ListUsers(ctx context.Context, offset, limit int, search string) ([]*models.User, int, error)
 	SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error)
+	GetPendingApprovalUsers(ctx context.Context) ([]*models.User, error)
+	CheckAndUpdateUserApproval(ctx context.Context, user *models.User) error
 }
 
 type authService struct {
-	userRepo    repository.UserRepository
-	jwtSecret   string
-	tokenExpiry time.Duration
+	userRepo        repository.UserRepository
+	settingsService SystemSettingsService
+	jwtSecret       string
+	tokenExpiry     time.Duration
 }
 
-func NewAuthService(userRepo repository.UserRepository) AuthService {
+func NewAuthService(userRepo repository.UserRepository, settingsService SystemSettingsService) AuthService {
 	// 환경 변수에서 JWT 시크릿 키 로드
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -61,9 +67,10 @@ func NewAuthService(userRepo repository.UserRepository) AuthService {
 	}
 
 	return &authService{
-		userRepo:    userRepo,
-		jwtSecret:   jwtSecret,
-		tokenExpiry: 24 * time.Hour, // 토큰 만료 기간 (예: 24시간)
+		userRepo:        userRepo,
+		settingsService: settingsService,
+		jwtSecret:       jwtSecret,
+		tokenExpiry:     24 * time.Hour, // 토큰 만료 기간 (예: 24시간)
 	}
 }
 
@@ -86,16 +93,40 @@ func (s *authService) Register(ctx context.Context, username, email, password, f
 		return nil, fmt.Errorf("비밀번호 해싱 오류: %w", err)
 	}
 
+	// 승인 모드 확인
+	approvalMode, err := s.settingsService.GetApprovalMode(ctx)
+	if err != nil {
+		// 설정을 가져올 수 없는 경우 기본값으로 즉시 승인 사용
+		approvalMode = models.ApprovalModeImmediate
+	}
+
+	// 승인 상태 및 승인 예정 시간 설정
+	approvalStatus := models.ApprovalPending
+	var approvalDue *time.Time
+
+	if approvalMode == models.ApprovalModeImmediate {
+		// 즉시 승인 모드
+		approvalStatus = models.ApprovalApproved
+	} else if approvalMode == models.ApprovalModeDelayed {
+		// n일 후 승인 모드
+		approvalDays, _ := s.settingsService.GetApprovalDays(ctx)
+		dueTime := time.Now().Add(time.Duration(approvalDays) * 24 * time.Hour)
+		approvalDue = &dueTime
+	}
+	// manual 모드는 기본값인 pending 상태로 유지
+
 	// 사용자 생성
 	user := &models.User{
-		Username:  username,
-		Email:     email,
-		Password:  string(hashedPassword),
-		FullName:  fullName,
-		Role:      models.RoleUser, // 기본 역할은 일반 사용자
-		Active:    true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Username:       username,
+		Email:          email,
+		Password:       string(hashedPassword),
+		FullName:       fullName,
+		Role:           models.RoleUser, // 기본 역할은 일반 사용자
+		Active:         true,
+		ApprovalStatus: approvalStatus,
+		ApprovalDue:    approvalDue,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	// 데이터베이스에 저장
@@ -117,6 +148,19 @@ func (s *authService) Login(ctx context.Context, username, password string) (*mo
 	// 비활성 사용자 확인
 	if !user.Active {
 		return nil, "", ErrUserInactive
+	}
+
+	// 승인 상태 확인 및 업데이트
+	err = s.CheckAndUpdateUserApproval(ctx, user)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// 승인 상태에 따른 처리
+	if user.ApprovalStatus == models.ApprovalPending {
+		return nil, "", ErrUserPendingApproval
+	} else if user.ApprovalStatus == models.ApprovalRejected {
+		return nil, "", ErrUserRejected
 	}
 
 	// 비밀번호 검증
@@ -163,6 +207,17 @@ func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*m
 			return nil, ErrUserInactive
 		}
 
+		// 승인 상태 확인 및 업데이트
+		err = s.CheckAndUpdateUserApproval(ctx, user)
+		if err != nil {
+			return nil, err
+		}
+
+		// 승인 상태 확인
+		if user.ApprovalStatus != models.ApprovalApproved {
+			return nil, ErrUserPendingApproval
+		}
+
 		return user, nil
 	}
 
@@ -185,6 +240,11 @@ func (s *authService) UpdateUser(ctx context.Context, user *models.User) error {
 // UpdateUserActiveStatus는 사용자의 활성 상태만 업데이트합니다
 func (s *authService) UpdateUserActiveStatus(ctx context.Context, id int64, active bool) error {
 	return s.userRepo.UpdateActiveStatus(ctx, id, active)
+}
+
+// UpdateUserApprovalStatus는 사용자의 승인 상태를 업데이트합니다
+func (s *authService) UpdateUserApprovalStatus(ctx context.Context, id int64, status models.ApprovalStatus) error {
+	return s.userRepo.UpdateApprovalStatus(ctx, id, status)
 }
 
 func (s *authService) ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error {
@@ -293,6 +353,27 @@ func (s *authService) ListUsers(ctx context.Context, offset, limit int, search s
 // SearchUsers 사용자 검색
 func (s *authService) SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error) {
 	return s.userRepo.SearchUsers(ctx, query, offset, limit)
+}
+
+// GetPendingApprovalUsers 승인 대기 중인 사용자 목록 조회
+func (s *authService) GetPendingApprovalUsers(ctx context.Context) ([]*models.User, error) {
+	return s.userRepo.GetPendingApprovalUsers(ctx)
+}
+
+// CheckAndUpdateUserApproval 사용자 승인 상태 확인 및 업데이트
+func (s *authService) CheckAndUpdateUserApproval(ctx context.Context, user *models.User) error {
+	// 이미 승인된 사용자는 처리하지 않음
+	if user.ApprovalStatus == models.ApprovalApproved || user.ApprovalStatus == models.ApprovalRejected {
+		return nil
+	}
+
+	// 승인 예정 시간이 설정되어 있고 현재 시간이 승인 예정 시간을 지났다면 승인 처리
+	if user.ApprovalDue != nil && time.Now().After(*user.ApprovalDue) {
+		user.ApprovalStatus = models.ApprovalApproved
+		return s.UpdateUser(ctx, user)
+	}
+
+	return nil
 }
 
 // JWT 토큰 생성 헬퍼 함수

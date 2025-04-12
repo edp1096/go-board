@@ -57,16 +57,17 @@ func (s *setupService) CreateAdminUser(ctx context.Context, username, email, pas
 		return nil, err
 	}
 
-	// 관리자 사용자 생성
+	// 관리자 사용자 생성 - 최초 관리자 계정은 항상 바로 승인 상태로 설정
 	user := &models.User{
-		Username:  username,
-		Email:     email,
-		Password:  string(hashedPassword),
-		FullName:  fullName,
-		Role:      models.RoleAdmin, // 관리자 역할 부여
-		Active:    true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Username:       username,
+		Email:          email,
+		Password:       string(hashedPassword),
+		FullName:       fullName,
+		Role:           models.RoleAdmin, // 관리자 역할 부여
+		Active:         true,
+		ApprovalStatus: models.ApprovalApproved, // 최초 관리자는 항상 바로 승인
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	// 데이터베이스에 저장

@@ -16,9 +16,11 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
 	UpdateActiveStatus(ctx context.Context, id int64, active bool) error
+	UpdateApprovalStatus(ctx context.Context, id int64, status models.ApprovalStatus) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*models.User, int, error)
 	SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error)
+	GetPendingApprovalUsers(ctx context.Context) ([]*models.User, error)
 }
 
 type userRepository struct {
@@ -77,6 +79,17 @@ func (r *userRepository) UpdateActiveStatus(ctx context.Context, id int64, activ
 	return err
 }
 
+func (r *userRepository) UpdateApprovalStatus(ctx context.Context, id int64, status models.ApprovalStatus) error {
+	_, err := r.db.NewUpdate().
+		Table("users").
+		Set("approval_status = ?", status).
+		Set("updated_at = ?", time.Now()).
+		Where("id = ?", id).
+		Exec(ctx)
+
+	return err
+}
+
 func (r *userRepository) Delete(ctx context.Context, id int64) error {
 	_, err := r.db.NewDelete().Model((*models.User)(nil)).Where("id = ?", id).Exec(ctx)
 	return err
@@ -110,4 +123,20 @@ func (r *userRepository) SearchUsers(ctx context.Context, query string, offset, 
 	err := selectQuery.Scan(ctx, &users)
 
 	return users, err
+}
+
+// GetPendingApprovalUsers - 승인 대기 중인 사용자 목록 조회
+func (r *userRepository) GetPendingApprovalUsers(ctx context.Context) ([]*models.User, error) {
+	var users []*models.User
+	err := r.db.NewSelect().
+		Model(&users).
+		Where("approval_status = ?", models.ApprovalPending).
+		OrderExpr("created_at ASC").
+		Scan(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

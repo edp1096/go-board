@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(100),
     role VARCHAR(20) NOT NULL DEFAULT 'user',
     active BOOLEAN NOT NULL DEFAULT TRUE,
+    approval_status VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending, approved, rejected
+    approval_due TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
