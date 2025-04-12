@@ -34,7 +34,15 @@ go-board export-web
 
 
 ## 도움말
+
 ```sh
 go-board -h
 migrate -h
 ```
+
+
+## ai
+
+ai 써서 만들었습니다.
+
+`클로드 프로`를 사용했고, 참고용으로 대화내역을 `claude`폴더에 올려두었습니다.
