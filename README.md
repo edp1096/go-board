@@ -29,3 +29,10 @@ go-board
 ```sh
 go-board export-web
 ```
+
+
+## 도움말
+```sh
+go-board -h
+migrate -h
+```
