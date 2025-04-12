@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go-board/internal/models"
-	"go-board/internal/repository"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/repository"
 
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"

@@ -4,12 +4,13 @@ package handlers
 
 import (
 	"fmt"
-	"go-board/internal/models"
-	"go-board/internal/service"
-	"go-board/internal/utils" // utils 패키지 임포트 추가
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/service"
+	"github.com/edp1096/go-board/internal/utils" // utils 패키지 임포트 추가
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"

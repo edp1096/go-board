@@ -14,13 +14,13 @@ import (
 	"syscall"
 	"time"
 
-	goboard "go-board"
-	"go-board/config"
-	"go-board/internal/handlers"
-	"go-board/internal/middleware"
-	"go-board/internal/repository"
-	"go-board/internal/service"
-	"go-board/internal/utils"
+	goboard "github.com/edp1096/go-board"
+	"github.com/edp1096/go-board/config"
+	"github.com/edp1096/go-board/internal/handlers"
+	"github.com/edp1096/go-board/internal/middleware"
+	"github.com/edp1096/go-board/internal/repository"
+	"github.com/edp1096/go-board/internal/service"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -30,6 +30,8 @@ import (
 	"github.com/gofiber/template/html/v2"
 	"github.com/microcosm-cc/bluemonday"
 )
+
+const APP_VERSION = "v0.0.1"
 
 func main() {
 	// // 시작 시간 기록
@@ -299,7 +301,7 @@ func handleCommandLineArgs() (bool, error) {
 		return true, nil
 
 	case "version", "--version", "-v":
-		fmt.Println("Dynamic Board 버전 1.0.0")
+		fmt.Println(APP_VERSION)
 		return true, nil
 
 	case "export-web":

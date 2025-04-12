@@ -5,13 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go-board/internal/models"
-	"go-board/internal/repository"
-	"go-board/internal/utils"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/repository"
+	"github.com/edp1096/go-board/internal/utils"
 )
 
 // UploadService는 파일 업로드 관련 기능을 제공합니다

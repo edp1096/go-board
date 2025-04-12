@@ -1,4 +1,4 @@
-module go-board
+module github.com/edp1096/go-board
 
 go 1.24
 

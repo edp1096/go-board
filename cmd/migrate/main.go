@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	goboard "go-board"
-	"go-board/config"
+	goboard "github.com/edp1096/go-board"
+	"github.com/edp1096/go-board/config"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"

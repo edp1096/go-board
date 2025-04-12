@@ -2,9 +2,10 @@
 package middleware
 
 import (
-	"go-board/internal/models"
-	"go-board/internal/service"
 	"strings"
+
+	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 )

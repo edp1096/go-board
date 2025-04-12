@@ -3,8 +3,9 @@ package repository
 
 import (
 	"context"
-	"go-board/internal/models"
 	"time"
+
+	"github.com/edp1096/go-board/internal/models"
 
 	"github.com/uptrace/bun"
 )

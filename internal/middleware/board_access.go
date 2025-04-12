@@ -2,8 +2,9 @@
 package middleware
 
 import (
-	"go-board/internal/service"
 	"strconv"
+
+	"github.com/edp1096/go-board/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 )

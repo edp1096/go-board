@@ -2,9 +2,10 @@
 package handlers
 
 import (
-	"go-board/internal/service"
-	"go-board/internal/utils"
 	"strconv"
+
+	"github.com/edp1096/go-board/internal/service"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 )

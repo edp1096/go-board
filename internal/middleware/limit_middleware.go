@@ -3,9 +3,10 @@ package middleware
 
 import (
 	"fmt"
-	"go-board/config"
-	"go-board/internal/utils"
 	"strings"
+
+	"github.com/edp1096/go-board/config"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 )

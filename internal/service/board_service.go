@@ -6,12 +6,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go-board/internal/models"
-	"go-board/internal/repository"
-	"go-board/internal/utils"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/repository"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/gosimple/slug"
 	"github.com/uptrace/bun"

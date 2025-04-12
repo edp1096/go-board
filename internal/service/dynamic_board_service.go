@@ -6,11 +6,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go-board/internal/models"
-	"go-board/internal/utils"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/uptrace/bun"
 )

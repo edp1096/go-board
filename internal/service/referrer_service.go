@@ -3,9 +3,10 @@ package service
 
 import (
 	"context"
-	"go-board/internal/models"
-	"go-board/internal/repository"
 	"time"
+
+	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/repository"
 )
 
 type ReferrerService interface {
