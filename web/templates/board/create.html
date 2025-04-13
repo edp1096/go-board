@@ -58,27 +58,7 @@
                             <small class="text-muted">최대 이미지 크기: {{$.maxImageUploadSizeMB}}MB</small>
 
                             <!-- 기존 첨부 파일 목록 -->
-                            <div class="mt-4" x-data="{ 
-                                attachments: [], 
-                                deletedFiles: [], // 삭제된 파일들의 전체 정보 저장
-                                markForDeletion(file) {
-                                    this.deletedFiles.push(file);
-                                    this.attachments = this.attachments.filter(f => f.id !== file.id);
-                                },
-                                restoreFile(fileId) {
-                                    // 삭제 목록에서 파일 찾기
-                                    const fileToRestore = this.deletedFiles.find(file => file.id === fileId);
-                                    if (fileToRestore) {
-                                        // 원래 목록에 복원
-                                        this.attachments.push(fileToRestore);
-                                        // 정렬 (필요시)
-                                        this.attachments.sort((a, b) => a.id - b.id);
-                                        // 삭제 목록에서 제거
-                                        this.deletedFiles = this.deletedFiles.filter(file => file.id !== fileId);
-                                    }
-                                }
-                            }" x-init="attachments = [];">
-
+                            <div class="mt-4" x-data="newAttachmentManager()">
                                 <!-- 선택된 새 파일 목록 표시 -->
                                 <div class="mt-4" x-show="fileNames.length > 0">
                                     <h4 class="text-sm font-medium text-gray-700 mb-2">추가할 파일</h4>
@@ -155,4 +135,5 @@
     customElements.define("editor-other", modifierElement)
 </script>
 
+<script src="/static/js/view-helpers.js"></script>
 <script src="/static/js/pages/board-create.js"></script>

@@ -158,7 +158,7 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 		Model(&allAnswers).
 		Relation("User").
 		Where("board_id = ? AND question_id = ?", boardID, questionID).
-		OrderExpr("CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END, vote_count DESC, created_at ASC").
+		OrderExpr("CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END, vote_count DESC, a.created_at ASC").
 		Scan(ctx)
 	if err != nil {
 		return nil, err

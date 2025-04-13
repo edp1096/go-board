@@ -95,18 +95,11 @@
                         </svg>
                         {{end}}
                         {{else if eq $boardField.FieldType "file"}}
-                        <!-- 필드 타입이 파일인 경우 첨부 파일 목록 표시 -->
-                        <div class="mt-1" x-data="{ attachments: [] }" x-init="
-                                fetch('/api/boards/{{$.board.ID}}/posts/{{$.post.ID}}/attachments')
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        if (data.success) attachments = data.attachments || [];
-                                    })
-                            ">
+                        <!-- 첨부파일 목록 -->
+                        <div class="mt-4" x-data="attachmentEditor({{$.board.ID}}, {{$.post.ID}})">
                             <div x-show="attachments.length === 0" class="text-sm text-gray-500">
                                 첨부된 파일이 없습니다.
                             </div>
-                            <!-- 첨부파일 목록 표시 -->
                             <ul x-show="attachments.length > 0" class="border border-gray-200 rounded-md divide-y divide-gray-200 w-full">
                                 <template x-for="file in attachments" :key="file.id">
                                     <li class="pl-3 pr-4 py-3 flex flex-col sm:flex-row text-sm w-full">

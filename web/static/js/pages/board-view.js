@@ -76,6 +76,7 @@ function updateEditCommentContent(content) {
 
 // Alpine.js 컴포넌트 수정
 document.addEventListener('alpine:init', () => {
+    // 댓글 시스템 컴포넌트
     Alpine.data('commentSystem', function (commentsEnabled) {
         return {
             comments: [],
@@ -460,6 +461,7 @@ document.addEventListener('alpine:init', () => {
         };
     });
 
+    // 게시물 액션 컴포넌트
     Alpine.data('postActions', function () {
         return {
             async deletePost() {

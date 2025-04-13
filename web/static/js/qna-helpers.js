@@ -88,37 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
     getQuestionVoteCount();
 });
 
-// 3. 질문 투표 함수 수정
-function voteQuestion(direction) {
-    const boardId = document.getElementById('boardId').value;
-    const postId = document.getElementById('postId').value;
-
-    // CSRF 토큰 가져오기
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
-    fetch(`/api/boards/${boardId}/posts/${postId}/vote`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify({ direction: direction })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // 페이지 새로고침 대신 투표 수 표시 요소만 업데이트
-                document.getElementById('question-vote-count').textContent = data.voteCount;
-            } else {
-                alert('투표 실패: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('투표 처리 중 오류:', error);
-            alert('투표 처리 중 오류가 발생했습니다.');
-        });
-}
-
 // 이미지 뷰어 컴포넌트
 document.addEventListener('alpine:init', () => {
     Alpine.data('imageViewer', () => ({
@@ -138,6 +107,28 @@ document.addEventListener('alpine:init', () => {
             this.show = false;
             // 스크롤 복원
             document.body.style.overflow = '';
+        }
+    }));
+
+    // 첨부 파일 관리자 컴포넌트 - 조회용 (게시글 보기 페이지)
+    Alpine.data('attachmentManager', (boardId, postId) => ({
+        attachments: [],
+
+        init() {
+            this.loadAttachments(boardId, postId);
+        },
+
+        async loadAttachments(boardId, postId) {
+            try {
+                const response = await fetch(`/api/boards/${boardId}/posts/${postId}/attachments`);
+                const data = await response.json();
+
+                if (data.success) {
+                    this.attachments = data.attachments || [];
+                }
+            } catch (error) {
+                console.error('첨부 파일 로딩 중 오류:', error);
+            }
         }
     }));
 });
