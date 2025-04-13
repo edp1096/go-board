@@ -1,5 +1,5 @@
-/* web/static/js/image-viewer.js */
-// 이미지 뷰어
+/* image-viewer.js */
+// 이미지 뷰어 컴포넌트 및 관련 기능
 
 // Alpine 컴포넌트 먼저 정의
 if (typeof Alpine !== 'undefined') {
@@ -26,28 +26,15 @@ if (typeof Alpine !== 'undefined') {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Alpine.js 로드 여부 확인 및 초기화
+    initializeAlpine();
+});
+
+// Alpine.js 초기화 함수
+function initializeAlpine() {
     if (typeof Alpine === 'undefined') {
         document.addEventListener('alpine:init', function () {
-            Alpine.data('imageViewer', () => ({
-                show: false,
-                imageSrc: '',
-                imageAlt: '',
-
-                openImageViewer(src, alt) {
-                    this.imageSrc = src;
-                    this.imageAlt = alt || 'Image';
-                    this.show = true;
-
-                    // 스크롤 방지
-                    document.body.style.overflow = 'hidden';
-                },
-
-                closeImageViewer() {
-                    this.show = false;
-                    // 스크롤 복원
-                    document.body.style.overflow = '';
-                }
-            }));
+            registerImageViewerComponent();
 
             // Alpine 초기화 후 이미지 처리
             setupContentImages();
@@ -58,7 +45,31 @@ document.addEventListener('DOMContentLoaded', function () {
         setupContentImages();
         setupCommentImages();
     }
-});
+}
+
+// 이미지 뷰어 컴포넌트 등록 함수
+function registerImageViewerComponent() {
+    Alpine.data('imageViewer', () => ({
+        show: false,
+        imageSrc: '',
+        imageAlt: '',
+
+        openImageViewer(src, alt) {
+            this.imageSrc = src;
+            this.imageAlt = alt || 'Image';
+            this.show = true;
+
+            // 스크롤 방지
+            document.body.style.overflow = 'hidden';
+        },
+
+        closeImageViewer() {
+            this.show = false;
+            // 스크롤 복원
+            document.body.style.overflow = '';
+        }
+    }));
+}
 
 /**
  * 레이어팝업 표시를 위한 이미지 처리 함수
@@ -130,7 +141,6 @@ function setupCommentImages() {
     if (typeof Alpine !== 'undefined') {
         // 댓글 관련 컴포넌트 초기화 후 처리
         const checkComments = function () {
-            // const commentsSystem = document.querySelector('[x-data="commentSystem"]');
             const commentsSystem = document.querySelector('#comments-container');
             if (commentsSystem) {
                 try {
@@ -162,34 +172,6 @@ function setupCommentImages() {
             }, 10000);
         }
     }
-}
-
-/**
- * 새 댓글 추가 후 이미지 처리
- * @param {number} commentId - 새로 추가된 댓글 ID
- */
-function processNewCommentImages(commentId) {
-    const commentsContainer = document.querySelector('#comments-container');
-
-    // commentId가 있으면 해당 댓글만 처리, 없으면 마지막 댓글 처리
-    setTimeout(() => {
-        let commentElement;
-
-        if (commentId) {
-            commentElement = commentsContainer.querySelector(`[data-new-comment-id="${commentId}"]`);
-        } else {
-            // 마지막 댓글 선택 (대안)
-            const allComments = document.querySelectorAll('#comments-container .comment-item');
-            if (allComments.length > 0) {
-                commentElement = allComments[allComments.length - 1];
-            }
-        }
-
-        console.log(commentElement, commentId);
-        if (commentElement) {
-            setupSpecificImages(commentElement);
-        }
-    }, 100); // DOM 업데이트 후 처리하기 위한 지연
 }
 
 /**

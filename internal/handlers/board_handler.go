@@ -260,10 +260,8 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 
 	// 템플릿 선택 - gallery_view는 없음
 	templateName := "board/view"
-	scriptPath := "/static/js/pages/board-view.js"
 	if board.BoardType == models.BoardTypeQnA {
 		templateName = "board/qna_view"
-		scriptPath = "/static/js/pages/qna-view.js"
 	}
 
 	// 메타 데이터 추출
@@ -291,12 +289,11 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	// }
 
 	return utils.RenderWithUser(c, templateName, fiber.Map{
-		"title":          post.Title,
-		"description":    metaDescription,
-		"board":          board,
-		"post":           post,
-		"isManager":      isManager,
-		"pageScriptPath": scriptPath,
+		"title":       post.Title,
+		"description": metaDescription,
+		"board":       board,
+		"post":        post,
+		"isManager":   isManager,
 		// SEO 메타 태그 데이터
 		"metaAuthor":      post.Username,
 		"metaTitle":       post.Title,
@@ -332,7 +329,6 @@ func (h *BoardHandler) CreatePostPage(c *fiber.Ctx) error {
 	return utils.RenderWithUser(c, "board/create", fiber.Map{
 		"title":                "게시물 작성",
 		"board":                board,
-		"pageScriptPath":       "/static/js/pages/board-create.js",
 		"maxUploadSizeMB":      h.config.MaxUploadSize / config.BytesPerMB,
 		"maxImageUploadSizeMB": h.config.MaxImageUploadSize / config.BytesPerMB,
 	})
@@ -580,10 +576,9 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "board/edit", fiber.Map{
-		"title":          "게시물 수정",
-		"board":          board,
-		"post":           post,
-		"pageScriptPath": "/static/js/pages/board-edit.js",
+		"title": "게시물 수정",
+		"board": board,
+		"post":  post,
 	})
 }
 

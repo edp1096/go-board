@@ -52,9 +52,6 @@
                 <div id="post-content">
                     {{unescape .post.Content}}
                 </div>
-                <script>
-                    // document.getElementById('post-content').innerHTML = `{{.post.Content}}`;
-                </script>
             </div>
 
             <!-- 이미지 뷰어 컴포넌트 -->
@@ -153,45 +150,6 @@
             </div>
             {{end}}
         </div>
-
-        <script>
-            // 파일 크기 포맷팅 함수
-            function formatFileSize(bytes) {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            }
-
-            // 첨부 파일 삭제 함수
-            function deleteAttachment(id) {
-                if (!confirm('첨부 파일을 삭제하시겠습니까?')) return;
-
-                // CSRF 토큰 가져오기
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
-                fetch(`/api/attachments/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-Token': csrfToken,
-                    }
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            // 페이지 새로고침
-                            window.location.reload();
-                        } else {
-                            alert('첨부 파일 삭제 실패: ' + data.message);
-                        }
-                    })
-                    .catch(err => {
-                        console.error('첨부 파일 삭제 중 오류:', err);
-                        alert('첨부 파일 삭제 중 오류가 발생했습니다.');
-                    });
-            }
-        </script>
 
         <!-- 게시물 푸터 -->
         <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
@@ -429,7 +387,6 @@
 </div>
 
 
-
 <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
 <script src="/static/vendor/myeditor/myeditor.js"></script>
 
@@ -453,18 +410,6 @@
     </div>
 </template>
 
-<script>
-    class CommentEditorElement extends HTMLElement {
-        constructor() {
-            super()
-            const templateContent = document.querySelector("#comment-editor-template").content
-            const shadowRoot = this.attachShadow({ mode: "open" })
-            shadowRoot.appendChild(templateContent.cloneNode(true))
-        }
-    }
-    customElements.define("editor-comment", CommentEditorElement)
-</script>
-
 <!-- 댓글 수정 에디터 -->
 <template id="edit-comment-editor-template">
     <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
@@ -485,43 +430,6 @@
     </div>
 </template>
 
-<script>
-    // 수정 에디터용 별도의 커스텀 엘리먼트 정의
-    class EditCommentEditorElement extends HTMLElement {
-        constructor() {
-            super()
-            const templateContent = document.querySelector("#edit-comment-editor-template").content
-            const shadowRoot = this.attachShadow({ mode: "open" })
-            shadowRoot.appendChild(templateContent.cloneNode(true))
-        }
-    }
-    customElements.define("editor-edit-comment", EditCommentEditorElement)
-</script>
-
-<!-- 이미지 뷰어 컴포넌트 -->
-<script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('imageViewer', () => ({
-            show: false,
-            imageSrc: '',
-            imageAlt: '',
-
-            openImageViewer(src, alt) {
-                this.imageSrc = src;
-                this.imageAlt = alt || 'Image';
-                this.show = true;
-                // 스크롤 방지
-                document.body.style.overflow = 'hidden';
-            },
-
-            closeImageViewer() {
-                this.show = false;
-                // 스크롤 복원
-                document.body.style.overflow = '';
-            }
-        }));
-    });
-</script>
-
-<!-- 이미지 뷰어 스크립트 -->
+<script src="/static/js/view-helpers.js"></script>
+<script src="/static/js/pages/board-view.js"></script>
 <script src="/static/js/image-viewer.js"></script>

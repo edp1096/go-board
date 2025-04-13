@@ -105,24 +105,25 @@ document.addEventListener('alpine:init', () => {
                 }, 1000);
             },
 
-            loadComments() {
+            async loadComments() {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
 
-                fetch(`/api/boards/${boardId}/posts/${postId}/comments`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            this.comments = data.comments;
-                        } else {
-                            this.error = data.message;
-                        }
-                        this.loading = false;
-                    })
-                    .catch(err => {
-                        this.error = '댓글을 불러오는 중 오류가 발생했습니다.';
-                        this.loading = false;
-                    });
+                try {
+                    const response = await fetch(`/api/boards/${boardId}/posts/${postId}/comments`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.comments = data.comments;
+                    } else {
+                        this.error = data.message;
+                    }
+                } catch (err) {
+                    this.error = '댓글을 불러오는 중 오류가 발생했습니다.';
+                    console.error('댓글 로딩 오류:', err);
+                } finally {
+                    this.loading = false;
+                }
             },
 
             focusCommentEditor() {
@@ -221,7 +222,7 @@ document.addEventListener('alpine:init', () => {
                 }
             },
 
-            submitComment() {
+            async submitComment() {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
 
@@ -241,62 +242,63 @@ document.addEventListener('alpine:init', () => {
 
                 this.submitting = true;
 
-                fetch(`/api/boards/${boardId}/posts/${postId}/comments`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
-                    body: JSON.stringify({
-                        content: this.commentContent,
-                        parentId: this.replyToId
-                    })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        this.submitting = false;
-                        if (data.success) {
-                            const newCommentId = data.comment.id; // 새 댓글 ID
-
-                            if (this.replyToId === null) {
-                                this.comments.push(data.comment);
-                            } else {
-                                // 부모 댓글 찾아서 답글 추가
-                                const parentIndex = this.comments.findIndex(c => c.id === this.replyToId);
-                                if (parentIndex !== -1) {
-                                    if (!this.comments[parentIndex].children) {
-                                        this.comments[parentIndex].children = [];
-                                    }
-                                    this.comments[parentIndex].children.push(data.comment);
-                                }
-                            }
-
-                            // 입력 필드 초기화
-                            this.commentContent = '';
-                            this.replyToId = null;
-                            this.replyToUser = '';
-
-                            // 에디터 내용 초기화
-                            if (commentEditor) {
-                                commentEditor.setHTML('');
-                            }
-
-                            // DOM 업데이트 후 새 댓글의 이미지 처리
-                            // Alpine.js의 반응성으로 인해 DOM이 업데이트된 후 처리해야 함
-                            setTimeout(() => {
-                                if (typeof processNewCommentImages === 'function') {
-                                    processNewCommentImages(newCommentId);
-                                }
-                            }, 200);
-                        } else {
-                            alert(data.message);
-                        }
-                    })
-                    .catch(err => {
-                        this.submitting = false;
-                        console.error('댓글 등록 중 오류:', err);
-                        alert('댓글 등록 중 오류가 발생했습니다.');
+                try {
+                    const response = await fetch(`/api/boards/${boardId}/posts/${postId}/comments`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({
+                            content: this.commentContent,
+                            parentId: this.replyToId
+                        })
                     });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const newCommentId = data.comment.id; // 새 댓글 ID
+
+                        if (this.replyToId === null) {
+                            this.comments.push(data.comment);
+                        } else {
+                            // 부모 댓글 찾아서 답글 추가
+                            const parentIndex = this.comments.findIndex(c => c.id === this.replyToId);
+                            if (parentIndex !== -1) {
+                                if (!this.comments[parentIndex].children) {
+                                    this.comments[parentIndex].children = [];
+                                }
+                                this.comments[parentIndex].children.push(data.comment);
+                            }
+                        }
+
+                        // 입력 필드 초기화
+                        this.commentContent = '';
+                        this.replyToId = null;
+                        this.replyToUser = '';
+
+                        // 에디터 내용 초기화
+                        if (commentEditor) {
+                            commentEditor.setHTML('');
+                        }
+
+                        // DOM 업데이트 후 새 댓글의 이미지 처리
+                        // Alpine.js의 반응성으로 인해 DOM이 업데이트된 후 처리해야 함
+                        setTimeout(() => {
+                            if (typeof processNewCommentImages === 'function') {
+                                processNewCommentImages(newCommentId);
+                            }
+                        }, 200);
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (err) {
+                    console.error('댓글 등록 중 오류:', err);
+                    alert('댓글 등록 중 오류가 발생했습니다.');
+                } finally {
+                    this.submitting = false;
+                }
             },
 
             cancelReply() {
@@ -355,7 +357,7 @@ document.addEventListener('alpine:init', () => {
             },
 
             // 수정된 댓글 제출
-            submitEditComment() {
+            async submitEditComment() {
                 // 에디터에서 HTML 내용 가져오기
                 if (editCommentEditor) {
                     this.editCommentContent = editCommentEditor.getHTML();
@@ -370,49 +372,49 @@ document.addEventListener('alpine:init', () => {
                 // CSRF 토큰 가져오기
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-                // 수정 API 호출
-                fetch(`/api/comments/${this.editingCommentId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
-                    body: JSON.stringify({
-                        content: this.editCommentContent
-                    })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            // 댓글 목록에서 해당 댓글 찾아서 업데이트
-                            const updateComment = (comments) => {
-                                for (let i = 0; i < comments.length; i++) {
-                                    if (comments[i].id === this.editingCommentId) {
-                                        comments[i].content = data.comment.content;
-                                        comments[i].updatedAt = data.comment.updatedAt;
+                try {
+                    const response = await fetch(`/api/comments/${this.editingCommentId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({
+                            content: this.editCommentContent
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // 댓글 목록에서 해당 댓글 찾아서 업데이트
+                        const updateComment = (comments) => {
+                            for (let i = 0; i < comments.length; i++) {
+                                if (comments[i].id === this.editingCommentId) {
+                                    comments[i].content = data.comment.content;
+                                    comments[i].updatedAt = data.comment.updatedAt;
+                                    return true;
+                                }
+                                if (comments[i].children) {
+                                    if (updateComment(comments[i].children)) {
                                         return true;
                                     }
-                                    if (comments[i].children) {
-                                        if (updateComment(comments[i].children)) {
-                                            return true;
-                                        }
-                                    }
                                 }
-                                return false;
-                            };
+                            }
+                            return false;
+                        };
 
-                            updateComment(this.comments);
+                        updateComment(this.comments);
 
-                            // 모달 닫기
-                            this.closeEditModal();
-                        } else {
-                            alert(data.message);
-                        }
-                    })
-                    .catch(err => {
-                        console.error('댓글 수정 중 오류:', err);
-                        alert('댓글 수정 중 오류가 발생했습니다.');
-                    });
+                        // 모달 닫기
+                        this.closeEditModal();
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (err) {
+                    console.error('댓글 수정 중 오류:', err);
+                    alert('댓글 수정 중 오류가 발생했습니다.');
+                }
             },
 
             // 이전 방식의 댓글 수정 함수 (이제 새 모달 열기로 변경)
@@ -420,35 +422,39 @@ document.addEventListener('alpine:init', () => {
                 this.openEditModal(commentId, content);
             },
 
-            deleteComment(commentId, isReply = false, parentId = null) {
-                // 기존 코드 유지
+            async deleteComment(commentId, isReply = false, parentId = null) {
                 // CSRF 토큰 가져오기
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 if (confirm('댓글을 삭제하시겠습니까?')) {
-                    fetch(`/api/comments/${commentId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-Token': csrfToken
-                        }
-                    })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                if (isReply && parentId) {
-                                    // 부모 댓글에서 답글 삭제
-                                    const parentComment = this.comments.find(c => c.id === parentId);
-                                    if (parentComment && parentComment.children) {
-                                        parentComment.children = parentComment.children.filter(r => r.id !== commentId);
-                                    }
-                                } else {
-                                    // 기본 댓글 삭제
-                                    this.comments = this.comments.filter(c => c.id !== commentId);
-                                }
-                            } else {
-                                alert(data.message);
+                    try {
+                        const response = await fetch(`/api/comments/${commentId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-Token': csrfToken
                             }
                         });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            if (isReply && parentId) {
+                                // 부모 댓글에서 답글 삭제
+                                const parentComment = this.comments.find(c => c.id === parentId);
+                                if (parentComment && parentComment.children) {
+                                    parentComment.children = parentComment.children.filter(r => r.id !== commentId);
+                                }
+                            } else {
+                                // 기본 댓글 삭제
+                                this.comments = this.comments.filter(c => c.id !== commentId);
+                            }
+                        } else {
+                            alert(data.message);
+                        }
+                    } catch (err) {
+                        console.error('댓글 삭제 중 오류:', err);
+                        alert('댓글 삭제 중 오류가 발생했습니다.');
+                    }
                 }
             }
         };
@@ -456,23 +462,28 @@ document.addEventListener('alpine:init', () => {
 
     Alpine.data('postActions', function () {
         return {
-            deletePost() {
+            async deletePost() {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
 
                 if (confirm('정말 삭제하시겠습니까?')) {
-                    fetch(`/boards/${boardId}/posts/${postId}`, {
-                        method: 'DELETE',
-                        headers: { 'Accept': 'application/json' }
-                    })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                window.location.href = `/boards/${boardId}/posts`;
-                            } else {
-                                alert(data.message);
-                            }
+                    try {
+                        const response = await fetch(`/boards/${boardId}/posts/${postId}`, {
+                            method: 'DELETE',
+                            headers: { 'Accept': 'application/json' }
                         });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            window.location.href = `/boards/${boardId}/posts`;
+                        } else {
+                            alert(data.message);
+                        }
+                    } catch (err) {
+                        console.error('게시물 삭제 중 오류:', err);
+                        alert('게시물 삭제 중 오류가 발생했습니다.');
+                    }
                 }
             }
         };
