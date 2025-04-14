@@ -18,7 +18,8 @@ type ReferrerRepository interface {
 	GetReferrersByType(ctx context.Context, days int) ([]*models.ReferrerTypeStats, error)
 	GetReferrersByDate(ctx context.Context, days int) ([]*models.ReferrerTimeStats, error)
 	GetTotal(ctx context.Context, days int) (int, error)
-	GetMostCommonIpForReferrer(ctx context.Context, referrerURL string, startDate time.Time) (string, string, error)
+	GetUniqueIPsForReferrer(ctx context.Context, referrerURL string, startDate time.Time) ([]string, []string, error)
+	GetUniqueIPsForDomain(ctx context.Context, domain string, startDate time.Time) ([]string, []string, error)
 }
 
 type referrerRepository struct {
@@ -86,8 +87,7 @@ func (r *referrerRepository) GetTopReferrers(ctx context.Context, limit int, day
 			percent = (float64(res.Count) / float64(total)) * 100
 		}
 
-		// 각 레퍼러에 대한 가장 일반적인 IP와 UserAgent 가져오기
-		visitorIP, userAgent, _ := r.GetMostCommonIpForReferrer(ctx, res.ReferrerURL, startDate)
+		visitorIPs, userAgents, _ := r.GetUniqueIPsForReferrer(ctx, res.ReferrerURL, startDate)
 
 		summaries[i] = &models.ReferrerSummary{
 			ReferrerURL:    res.ReferrerURL,
@@ -96,12 +96,46 @@ func (r *referrerRepository) GetTopReferrers(ctx context.Context, limit int, day
 			Count:          res.Count,
 			UniqueCount:    res.UniqueCount,
 			PercentTotal:   percent,
-			VisitorIP:      visitorIP,
-			UserAgent:      userAgent,
+			VisitorIPs:     visitorIPs,
+			UserAgents:     userAgents,
 		}
 	}
 
 	return summaries, nil
+}
+
+// GetUniqueIPsForReferrer는 레퍼러 URL에 대한 모든 고유 방문자 IP와 User-Agent를 찾습니다
+func (r *referrerRepository) GetUniqueIPsForReferrer(ctx context.Context, referrerURL string, startDate time.Time) ([]string, []string, error) {
+	type IpInfo struct {
+		VisitorIP string `bun:"visitor_ip"`
+		UserAgent string `bun:"user_agent"`
+	}
+
+	var ipInfos []IpInfo
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("DISTINCT visitor_ip").
+		ColumnExpr("user_agent").
+		Where("referrer_url = ? AND visit_time >= ?", referrerURL, startDate).
+		GroupExpr("visitor_ip, user_agent").
+		OrderExpr("COUNT(*) DESC").
+		Limit(50). // 최대 50개까지만 표시 (UI 과부하 방지)
+		Scan(ctx, &ipInfos)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ips := make([]string, 0, len(ipInfos))
+	userAgents := make([]string, 0, len(ipInfos))
+
+	for _, info := range ipInfos {
+		ips = append(ips, info.VisitorIP)
+		userAgents = append(userAgents, info.UserAgent)
+	}
+
+	return ips, userAgents, nil
 }
 
 // 레퍼러 URL에 대한 가장 일반적인 방문자 IP와 User-Agent를 찾습니다
@@ -182,29 +216,9 @@ func (r *referrerRepository) GetTopReferrersByDomain(ctx context.Context, limit 
 			percent = (float64(res.Count) / float64(total)) * 100
 		}
 
-		// 도메인에 대한 가장 일반적인 IP 가져오기 쿼리
-		var commonIPInfo struct {
-			VisitorIP string `bun:"visitor_ip"`
-			UserAgent string `bun:"user_agent"`
-		}
-
+		// 기존의 단일 IP 조회 코드를 제거하고 새 함수로 대체
 		// 해당 도메인에 대한 가장 많이 사용된 IP와 User-Agent 찾기
-		err := r.db.NewSelect().
-			TableExpr("referrer_stats").
-			ColumnExpr("visitor_ip").
-			ColumnExpr("user_agent").
-			Where("referrer_domain = ? AND visit_time >= ?", res.ReferrerDomain, startDate).
-			GroupExpr("visitor_ip, user_agent").
-			OrderExpr("COUNT(*) DESC").
-			Limit(1).
-			Scan(ctx, &commonIPInfo)
-
-		visitorIP := ""
-		userAgent := ""
-		if err == nil {
-			visitorIP = commonIPInfo.VisitorIP
-			userAgent = commonIPInfo.UserAgent
-		}
+		visitorIPs, userAgents, _ := r.GetUniqueIPsForDomain(ctx, res.ReferrerDomain, startDate)
 
 		summaries[i] = &models.ReferrerSummary{
 			ReferrerDomain: res.ReferrerDomain,
@@ -212,8 +226,8 @@ func (r *referrerRepository) GetTopReferrersByDomain(ctx context.Context, limit 
 			Count:          res.Count,
 			UniqueCount:    res.UniqueCount,
 			PercentTotal:   percent,
-			VisitorIP:      visitorIP,
-			UserAgent:      userAgent,
+			VisitorIPs:     visitorIPs, // 배열로 변경
+			UserAgents:     userAgents, // 배열로 변경
 		}
 	}
 
@@ -312,4 +326,38 @@ func (r *referrerRepository) GetTotal(ctx context.Context, days int) (int, error
 		Scan(ctx, &count)
 
 	return count, err
+}
+
+// GetUniqueIPsForDomain은 도메인에 대한 모든 고유 방문자 IP와 User-Agent를 찾습니다
+func (r *referrerRepository) GetUniqueIPsForDomain(ctx context.Context, domain string, startDate time.Time) ([]string, []string, error) {
+	type IpInfo struct {
+		VisitorIP string `bun:"visitor_ip"`
+		UserAgent string `bun:"user_agent"`
+	}
+
+	var ipInfos []IpInfo
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("DISTINCT visitor_ip").
+		ColumnExpr("user_agent").
+		Where("referrer_domain = ? AND visit_time >= ?", domain, startDate).
+		GroupExpr("visitor_ip, user_agent").
+		OrderExpr("COUNT(*) DESC").
+		Limit(50). // 최대 50개까지만 표시
+		Scan(ctx, &ipInfos)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ips := make([]string, 0, len(ipInfos))
+	userAgents := make([]string, 0, len(ipInfos))
+
+	for _, info := range ipInfos {
+		ips = append(ips, info.VisitorIP)
+		userAgents = append(userAgents, info.UserAgent)
+	}
+
+	return ips, userAgents, nil
 }

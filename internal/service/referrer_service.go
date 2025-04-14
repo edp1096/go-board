@@ -100,22 +100,20 @@ func (s *referrerService) EnrichReferrerData(referrers []*models.ReferrerSummary
 			for task := range taskCh {
 				ref := task.ref
 
-				// 1. 방문자 IP에 대한 역DNS 조회
-				if ref.VisitorIP != "" && ref.VisitorIP != "unknown" {
-					ptr, _ := utils.LookupPTR(ref.VisitorIP)
-					ref.ReverseDNS = ptr
+				// 1. 방문자 IP 목록에 대한 역DNS 조회
+				if len(ref.VisitorIPs) > 0 {
+					// 첫 번째 IP에 대해서만 역DNS 조회 (성능상 이유로)
+					firstIP := ref.VisitorIPs[0]
+					if firstIP != "" && firstIP != "unknown" {
+						ptr, _ := utils.LookupPTR(firstIP)
+						ref.ReverseDNS = ptr
+					}
 				}
 
 				// 2. 레퍼러 도메인에 대한 정DNS 조회
 				if ref.ReferrerDomain != "" && ref.ReferrerDomain != "direct" && ref.ReferrerDomain != "unknown" {
 					ips := utils.GetDomainInfo(ref.ReferrerDomain)
 					ref.ForwardDNS = ips
-
-					// WHOIS 정보 조회
-					// whoisInfo, _ := utils.GetWhoisInfo(ref.ReferrerDomain)
-					// if whoisInfo != nil {
-					//     ref.WhoisInfo = whoisInfo
-					// }
 				}
 			}
 		}()

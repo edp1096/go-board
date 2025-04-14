@@ -361,3 +361,22 @@ p img:hover {
 .thumbnail-container:hover .thumbnail-image {
     transform: scale(1.05);
 }
+
+
+/* ip 리스트 */
+.ip-list-container {
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.ip-list-item {
+    margin-bottom: 0.25rem;
+    padding: 0.25rem;
+}
+
+.ip-list-item:hover {
+    background-color: #f3f4f6;
+}

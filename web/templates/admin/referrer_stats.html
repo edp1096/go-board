@@ -197,11 +197,17 @@
                                 {{.UniqueCount}}
                             </td>
                             {{if $.showDNS}}
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if and .VisitorIP (ne .VisitorIP "unknown") (ne .VisitorIP "")}}
-                                <a href="#" class="hover:text-blue-600" onclick="showWhoisInfo('{{.VisitorIP}}', 'ip'); return false;">
-                                    {{.VisitorIP}}
-                                </a>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                                {{if .VisitorIPs}}
+                                <div class="w-40 max-h-32 overflow-y-auto">
+                                    {{range $index, $ip := .VisitorIPs}}
+                                    <div class="mb-1">
+                                        <a href="#" class="hover:text-blue-600" onclick="showWhoisInfo('{{$ip}}', 'ip'); return false;">
+                                            {{$ip}}
+                                        </a>
+                                    </div>
+                                    {{end}}
+                                </div>
                                 {{else}}-{{end}}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
