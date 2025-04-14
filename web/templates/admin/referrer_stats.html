@@ -154,7 +154,7 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         {{range .topReferrers}}
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900" style="overflow-x: auto;">
                                 {{if or (eq .ReferrerURL "direct") (eq .ReferrerDomain "direct")}}
                                 직접 방문
                                 {{else if eq $.viewMode "domain"}}
@@ -168,7 +168,7 @@
                                 {{end}}
                             </td>
                             {{if eq $.viewMode "url"}}
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 {{if ne .ReferrerDomain "direct"}}
                                 <a href="#" class="hover:text-blue-600" onclick="showWhoisInfo('{{.ReferrerDomain}}', 'domain'); return false;">
                                     {{.ReferrerDomain}}
@@ -178,7 +178,7 @@
                                 {{end}}
                             </td>
                             {{end}}
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 <span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     {{if eq .ReferrerType "direct"}}bg-gray-100 text-gray-800{{end}}
                                     {{if eq .ReferrerType "search" }}bg-green-100 text-green-800{{end}}
@@ -190,14 +190,14 @@
                                     {{if eq .ReferrerType "other"}}기타{{end}}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 {{.Count}}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 {{.UniqueCount}}
                             </td>
                             {{if $.showDNS}}
-                            <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                            <td class="px-4 py-2 whitespace-normal text-sm text-gray-500">
                                 {{if .VisitorIPs}}
                                 <div class="w-40 max-h-32 overflow-y-auto">
                                     {{range $index, $ip := .VisitorIPs}}
@@ -210,17 +210,17 @@
                                 </div>
                                 {{else}}-{{end}}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 {{if .ReverseDNS}}{{.ReverseDNS}}{{else}}-{{end}}
                             </td>
                             {{end}}
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                 {{printf "%.1f" .PercentTotal}}%
                             </td>
                         </tr>
                         {{else}}
                         <tr>
-                            <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                            <td colspan="8" class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
                                 데이터가 없습니다
                             </td>
                         </tr>
