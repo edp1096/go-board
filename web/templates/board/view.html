@@ -112,7 +112,10 @@
                                                 <!-- 파일명 영역 -->
                                                 <div class="text-xs sm:text-sm truncate block" x-text="file.fileName" :title="file.fileName"></div>
                                                 <!-- 파일 크기 영역 -->
-                                                <div class="text-xs text-gray-400" x-text="formatFileSize(file.fileSize)"></div>
+                                                <div class="text-xs text-gray-400">
+                                                    <span x-text="formatFileSize(file.fileSize)"></span>
+                                                    <span class="ml-2">다운로드: <span x-text="file.downloadCount || 0"></span>회</span>
+                                                </div>
                                             </div>
                                         </div>
 
