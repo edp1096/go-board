@@ -18,6 +18,7 @@ type ReferrerRepository interface {
 	GetReferrersByType(ctx context.Context, days int) ([]*models.ReferrerTypeStats, error)
 	GetReferrersByDate(ctx context.Context, days int) ([]*models.ReferrerTimeStats, error)
 	GetTotal(ctx context.Context, days int) (int, error)
+	GetMostCommonIpForReferrer(ctx context.Context, referrerURL string, startDate time.Time) (string, string, error)
 }
 
 type referrerRepository struct {
@@ -79,23 +80,56 @@ func (r *referrerRepository) GetTopReferrers(ctx context.Context, limit int, day
 
 	// 결과 변환
 	summaries := make([]*models.ReferrerSummary, len(results))
-	for i, r := range results {
+	for i, res := range results {
 		percent := 0.0
 		if total > 0 {
-			percent = (float64(r.Count) / float64(total)) * 100
+			percent = (float64(res.Count) / float64(total)) * 100
 		}
 
+		// 각 레퍼러에 대한 가장 일반적인 IP와 UserAgent 가져오기
+		visitorIP, userAgent, _ := r.GetMostCommonIpForReferrer(ctx, res.ReferrerURL, startDate)
+
 		summaries[i] = &models.ReferrerSummary{
-			ReferrerURL:    r.ReferrerURL,
-			ReferrerDomain: r.ReferrerDomain,
-			ReferrerType:   r.ReferrerType,
-			Count:          r.Count,
-			UniqueCount:    r.UniqueCount,
+			ReferrerURL:    res.ReferrerURL,
+			ReferrerDomain: res.ReferrerDomain,
+			ReferrerType:   res.ReferrerType,
+			Count:          res.Count,
+			UniqueCount:    res.UniqueCount,
 			PercentTotal:   percent,
+			VisitorIP:      visitorIP,
+			UserAgent:      userAgent,
 		}
 	}
 
 	return summaries, nil
+}
+
+// 레퍼러 URL에 대한 가장 일반적인 방문자 IP와 User-Agent를 찾습니다
+func (r *referrerRepository) GetMostCommonIpForReferrer(ctx context.Context, referrerURL string, startDate time.Time) (string, string, error) {
+	type IpInfo struct {
+		VisitorIP string `bun:"visitor_ip"`
+		UserAgent string `bun:"user_agent"`
+		Count     int    `bun:"count"`
+	}
+
+	var ipInfo IpInfo
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("visitor_ip").
+		ColumnExpr("user_agent").
+		ColumnExpr("COUNT(*) as count").
+		Where("referrer_url = ? AND visit_time >= ?", referrerURL, startDate).
+		GroupExpr("visitor_ip, user_agent").
+		OrderExpr("count DESC").
+		Limit(1).
+		Scan(ctx, &ipInfo)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	return ipInfo.VisitorIP, ipInfo.UserAgent, nil
 }
 
 func (r *referrerRepository) GetTopReferrersByDomain(ctx context.Context, limit int, days int) ([]*models.ReferrerSummary, error) {
@@ -142,18 +176,44 @@ func (r *referrerRepository) GetTopReferrersByDomain(ctx context.Context, limit 
 
 	// 결과 변환
 	summaries := make([]*models.ReferrerSummary, len(results))
-	for i, r := range results {
+	for i, res := range results {
 		percent := 0.0
 		if total > 0 {
-			percent = (float64(r.Count) / float64(total)) * 100
+			percent = (float64(res.Count) / float64(total)) * 100
+		}
+
+		// 도메인에 대한 가장 일반적인 IP 가져오기 쿼리
+		var commonIPInfo struct {
+			VisitorIP string `bun:"visitor_ip"`
+			UserAgent string `bun:"user_agent"`
+		}
+
+		// 해당 도메인에 대한 가장 많이 사용된 IP와 User-Agent 찾기
+		err := r.db.NewSelect().
+			TableExpr("referrer_stats").
+			ColumnExpr("visitor_ip").
+			ColumnExpr("user_agent").
+			Where("referrer_domain = ? AND visit_time >= ?", res.ReferrerDomain, startDate).
+			GroupExpr("visitor_ip, user_agent").
+			OrderExpr("COUNT(*) DESC").
+			Limit(1).
+			Scan(ctx, &commonIPInfo)
+
+		visitorIP := ""
+		userAgent := ""
+		if err == nil {
+			visitorIP = commonIPInfo.VisitorIP
+			userAgent = commonIPInfo.UserAgent
 		}
 
 		summaries[i] = &models.ReferrerSummary{
-			ReferrerDomain: r.ReferrerDomain,
-			ReferrerType:   r.ReferrerType,
-			Count:          r.Count,
-			UniqueCount:    r.UniqueCount,
+			ReferrerDomain: res.ReferrerDomain,
+			ReferrerType:   res.ReferrerType,
+			Count:          res.Count,
+			UniqueCount:    res.UniqueCount,
 			PercentTotal:   percent,
+			VisitorIP:      visitorIP,
+			UserAgent:      userAgent,
 		}
 	}
 

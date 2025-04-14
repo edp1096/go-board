@@ -1,0 +1,191 @@
+/* web/static/css/modal.css */
+/* 모달 스타일 */
+
+/* 모달 컨테이너 스타일 */
+.modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-container.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-container.closing {
+    opacity: 0;
+}
+
+/* 모달 배경 스타일 */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+}
+
+/* 모달 콘텐츠 스타일 */
+.modal-content {
+    position: relative;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 42rem;
+    max-height: 90vh;
+    margin: 1rem;
+    z-index: 10000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+.closing .modal-content {
+    transform: translateY(10px);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #4f46e5;
+    color: white;
+}
+
+.modal-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.modal-close-button {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s;
+}
+
+.modal-close-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 4rem);
+}
+
+/* 로딩 애니메이션 */
+.modal-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.modal-loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #4f46e5;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    animation: modal-spin 1s linear infinite;
+}
+
+@keyframes modal-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* WHOIS 모달 특정 스타일 */
+#whois-modal {
+    z-index: 9999;
+}
+
+#whois-summary {
+    background-color: #f9fafb;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+#whois-raw-data {
+    font-family: monospace;
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+    background-color: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    max-height: 20rem;
+    overflow-y: auto;
+}
+
+/* 상세 정보 테이블 스타일 */
+#whois-raw-data table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#whois-raw-data table th,
+#whois-raw-data table td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+#whois-raw-data table th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+}
+
+/* 접을 수 있는 섹션 스타일 */
+details summary {
+    cursor: pointer;
+    user-select: none;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+details summary:hover {
+    background-color: #e5e7eb;
+}
+
+details summary:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+details[open] summary {
+    margin-bottom: 0.5rem;
+}

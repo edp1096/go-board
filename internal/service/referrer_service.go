@@ -3,6 +3,7 @@ package service
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/edp1096/go-board/internal/models"
@@ -17,6 +18,7 @@ type ReferrerService interface {
 	GetReferrersByType(ctx context.Context, days int) ([]*models.ReferrerTypeStats, error)
 	GetReferrersByDate(ctx context.Context, days int) ([]*models.ReferrerTimeStats, error)
 	GetTotal(ctx context.Context, days int) (int, error)
+	EnrichReferrerData(referrers []*models.ReferrerSummary) // DNS 정보 보강
 }
 
 type referrerService struct {
@@ -66,4 +68,58 @@ func (s *referrerService) GetReferrersByDate(ctx context.Context, days int) ([]*
 
 func (s *referrerService) GetTotal(ctx context.Context, days int) (int, error) {
 	return s.referrerRepo.GetTotal(ctx, days)
+}
+
+// EnrichReferrerData는 레퍼러 데이터에 DNS 조회 정보를 추가합니다.
+func (s *referrerService) EnrichReferrerData(referrers []*models.ReferrerSummary) {
+	// 병렬 처리를 위한 워커 풀 구현
+	type dnsTask struct {
+		index int
+		ref   *models.ReferrerSummary
+	}
+
+	const workerCount = 5
+	taskCh := make(chan dnsTask, len(referrers))
+
+	// 태스크 생성
+	for i, ref := range referrers {
+		taskCh <- dnsTask{
+			index: i,
+			ref:   ref,
+		}
+	}
+	close(taskCh)
+
+	// 워커 실행
+	var wg sync.WaitGroup
+	for range workerCount {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for task := range taskCh {
+				ref := task.ref
+
+				// 1. 방문자 IP에 대한 역DNS 조회
+				if ref.VisitorIP != "" && ref.VisitorIP != "unknown" {
+					ptr, _ := utils.LookupPTR(ref.VisitorIP)
+					ref.ReverseDNS = ptr
+				}
+
+				// 2. 레퍼러 도메인에 대한 정DNS 조회
+				if ref.ReferrerDomain != "" && ref.ReferrerDomain != "direct" && ref.ReferrerDomain != "unknown" {
+					ips := utils.GetDomainInfo(ref.ReferrerDomain)
+					ref.ForwardDNS = ips
+
+					// WHOIS 정보 조회
+					// whoisInfo, _ := utils.GetWhoisInfo(ref.ReferrerDomain)
+					// if whoisInfo != nil {
+					//     ref.WhoisInfo = whoisInfo
+					// }
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
 }

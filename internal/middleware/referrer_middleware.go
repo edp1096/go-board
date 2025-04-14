@@ -67,11 +67,18 @@ func (m *referrerMiddleware) CaptureReferrer(c *fiber.Ctx) error {
 	}
 
 	if visitorIP == "" {
-		visitorIP = "unknown"
+		remoteAddr := c.Context().RemoteAddr().String()
+		if strings.Contains(remoteAddr, ":") {
+			remoteAddr = strings.Split(remoteAddr, ":")[0]
+		}
+		visitorIP = remoteAddr
 	}
 
 	// Get user agent
 	userAgent := c.Get("User-Agent")
+	if userAgent == "" {
+		userAgent = "unknown"
+	}
 
 	// Get user ID if logged in
 	var userID *int64

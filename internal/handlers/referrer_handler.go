@@ -26,7 +26,8 @@ func (h *ReferrerHandler) ReferrerStatsPage(c *fiber.Ctx) error {
 	// 쿼리 파라미터 가져오기
 	days, _ := strconv.Atoi(c.Query("days", "30"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
-	viewMode := c.Query("view", "url") // url, domain, type
+	viewMode := c.Query("view", "url")           // url, domain, type
+	showDNS := c.Query("dns", "false") == "true" // DNS 조회 표시 여부
 
 	// 기본값 설정
 	if days <= 0 {
@@ -53,6 +54,11 @@ func (h *ReferrerHandler) ReferrerStatsPage(c *fiber.Ctx) error {
 			"message": "레퍼러 통계를 불러오는데 실패했습니다",
 			"error":   err.Error(),
 		})
+	}
+
+	// DNS 조회 요청이 있는 경우에만 DNS 정보 채우기
+	if showDNS {
+		h.referrerService.EnrichReferrerData(topReferrers)
 	}
 
 	// 레퍼러 타입 통계 조회
@@ -90,6 +96,7 @@ func (h *ReferrerHandler) ReferrerStatsPage(c *fiber.Ctx) error {
 		"days":           days,
 		"limit":          limit,
 		"viewMode":       viewMode,
+		"showDNS":        showDNS,
 		"topReferrers":   topReferrers,
 		"typeStats":      typeStats,
 		"timeStats":      timeStats,
@@ -103,8 +110,9 @@ func (h *ReferrerHandler) GetReferrerData(c *fiber.Ctx) error {
 	// 쿼리 파라미터 가져오기
 	days, _ := strconv.Atoi(c.Query("days", "30"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
-	viewMode := c.Query("view", "url") // url, domain, type
-	mode := c.Query("mode", "all")     // all, top, types, time
+	viewMode := c.Query("view", "url")           // url, domain, type
+	mode := c.Query("mode", "all")               // all, top, types, time
+	showDNS := c.Query("dns", "false") == "true" // DNS 조회 표시 여부
 
 	// 기본값 설정
 	if days <= 0 {
@@ -135,6 +143,11 @@ func (h *ReferrerHandler) GetReferrerData(c *fiber.Ctx) error {
 				"success": false,
 				"message": "레퍼러 통계를 불러오는데 실패했습니다",
 			})
+		}
+
+		// DNS 정보 추가 요청이 있는 경우
+		if showDNS {
+			h.referrerService.EnrichReferrerData(topReferrers)
 		}
 
 		data["topReferrers"] = topReferrers

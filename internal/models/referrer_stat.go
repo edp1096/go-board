@@ -33,6 +33,12 @@ type ReferrerSummary struct {
 	Count          int     `json:"count"`
 	UniqueCount    int     `json:"uniqueCount"`
 	PercentTotal   float64 `json:"percentTotal"`
+
+	// 추가 필드
+	VisitorIP  string   `json:"visitorIp"`  // 가장 많이 등장한 방문자 IP
+	UserAgent  string   `json:"userAgent"`  // User-Agent
+	ReverseDNS string   `json:"reverseDns"` // 역DNS 조회 결과
+	ForwardDNS []string `json:"forwardDns"` // 정DNS 조회 결과
 }
 
 // ReferrerTimeStats represents time-based referrer statistics

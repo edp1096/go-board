@@ -212,6 +212,7 @@ func main() {
 	sitemapHandler := handlers.NewSitemapHandler(sitemapService)
 	robotsHandler := handlers.NewRobotsHandler()
 	referrerHandler := handlers.NewReferrerHandler(referrerService)
+	whoisHandler := handlers.NewWhoisHandler()
 
 	// 미들웨어
 	authMiddleware := middleware.NewAuthMiddleware(authService)
@@ -260,6 +261,7 @@ func main() {
 		sitemapHandler,
 		robotsHandler,
 		referrerHandler,
+		whoisHandler,
 		authMiddleware,
 		boardAccessMiddleware,
 		adminMiddleware,
@@ -450,6 +452,7 @@ func setupRoutes(
 	sitemapHandler *handlers.SitemapHandler,
 	robotsHandler *handlers.RobotsHandler,
 	referrerHandler *handlers.ReferrerHandler,
+	whoisHandler *handlers.WhoisHandler,
 	authMiddleware middleware.AuthMiddleware,
 	boardAccessMiddleware middleware.BoardAccessMiddleware,
 	adminMiddleware middleware.AdminMiddleware,
@@ -529,6 +532,9 @@ func setupRoutes(
 
 	// API 라우트 (댓글 기능)
 	api := app.Group("/api")
+
+	// Whois 정보 조회 라우트
+	api.Get("/whois", whoisHandler.GetWhoisInfo)
 
 	// 업로드 관련 라우트 추가
 	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
