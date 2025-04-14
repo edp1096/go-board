@@ -4,6 +4,8 @@
 CREATE TABLE referrer_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     referrer_url TEXT NOT NULL,
+    referrer_domain TEXT NOT NULL,
+    referrer_type TEXT NOT NULL,
     target_url TEXT NOT NULL,
     visitor_ip TEXT NOT NULL,
     user_id INTEGER NULL,
@@ -13,6 +15,8 @@ CREATE TABLE referrer_stats (
 );
 
 CREATE INDEX idx_referrer_stats_referrer ON referrer_stats(referrer_url);
+CREATE INDEX idx_referrer_stats_domain ON referrer_stats(referrer_domain);
+CREATE INDEX idx_referrer_stats_type ON referrer_stats(referrer_type);
 CREATE INDEX idx_referrer_stats_target ON referrer_stats(target_url);
 CREATE INDEX idx_referrer_stats_time ON referrer_stats(visit_time);
 -- +goose StatementEnd

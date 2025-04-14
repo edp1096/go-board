@@ -14,6 +14,8 @@ import (
 type ReferrerRepository interface {
 	Create(ctx context.Context, stat *models.ReferrerStat) error
 	GetTopReferrers(ctx context.Context, limit int, days int) ([]*models.ReferrerSummary, error)
+	GetTopReferrersByDomain(ctx context.Context, limit int, days int) ([]*models.ReferrerSummary, error)
+	GetReferrersByType(ctx context.Context, days int) ([]*models.ReferrerTypeStats, error)
 	GetReferrersByDate(ctx context.Context, days int) ([]*models.ReferrerTimeStats, error)
 	GetTotal(ctx context.Context, days int) (int, error)
 }
@@ -36,32 +38,31 @@ func (r *referrerRepository) GetTopReferrers(ctx context.Context, limit int, day
 		limit = 10
 	}
 
-	// Calculate the date for filtering
+	// 필터링 날짜 계산
 	startDate := time.Now().AddDate(0, 0, -days)
 
 	var results []struct {
-		ReferrerURL string `bun:"referrer_url"`
-		Count       int    `bun:"count"`
-		UniqueCount int    `bun:"unique_count"`
+		ReferrerURL    string `bun:"referrer_url"`
+		ReferrerDomain string `bun:"referrer_domain"`
+		ReferrerType   string `bun:"referrer_type"`
+		Count          int    `bun:"count"`
+		UniqueCount    int    `bun:"unique_count"`
 	}
 
 	query := r.db.NewSelect().
 		TableExpr("referrer_stats").
 		ColumnExpr("referrer_url").
+		ColumnExpr("referrer_domain").
+		ColumnExpr("referrer_type").
 		ColumnExpr("COUNT(*) AS count")
 
-	// Handle different database dialects for the unique count
-	if utils.IsPostgres(r.db) {
-		query = query.ColumnExpr("COUNT(DISTINCT visitor_ip) AS unique_count")
-	} else if utils.IsSQLite(r.db) {
-		query = query.ColumnExpr("COUNT(DISTINCT visitor_ip) AS unique_count")
-	} else {
-		// MySQL
+	// 데이터베이스별 고유 방문자 카운트 처리
+	if utils.IsPostgres(r.db) || utils.IsSQLite(r.db) || utils.IsMySQL(r.db) {
 		query = query.ColumnExpr("COUNT(DISTINCT visitor_ip) AS unique_count")
 	}
 
 	err := query.Where("visit_time >= ?", startDate).
-		GroupExpr("referrer_url").
+		GroupExpr("referrer_url, referrer_domain, referrer_type").
 		OrderExpr("count DESC").
 		Limit(limit).
 		Scan(ctx, &results)
@@ -70,13 +71,13 @@ func (r *referrerRepository) GetTopReferrers(ctx context.Context, limit int, day
 		return nil, err
 	}
 
-	// Get total count for percentage calculation
+	// 백분율 계산을 위한 총 방문 수
 	total, err := r.GetTotal(ctx, days)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert to summary objects with percentages
+	// 결과 변환
 	summaries := make([]*models.ReferrerSummary, len(results))
 	for i, r := range results {
 		percent := 0.0
@@ -85,24 +86,134 @@ func (r *referrerRepository) GetTopReferrers(ctx context.Context, limit int, day
 		}
 
 		summaries[i] = &models.ReferrerSummary{
-			ReferrerURL:  r.ReferrerURL,
-			Count:        r.Count,
-			UniqueCount:  r.UniqueCount,
-			PercentTotal: percent,
+			ReferrerURL:    r.ReferrerURL,
+			ReferrerDomain: r.ReferrerDomain,
+			ReferrerType:   r.ReferrerType,
+			Count:          r.Count,
+			UniqueCount:    r.UniqueCount,
+			PercentTotal:   percent,
 		}
 	}
 
 	return summaries, nil
 }
 
+func (r *referrerRepository) GetTopReferrersByDomain(ctx context.Context, limit int, days int) ([]*models.ReferrerSummary, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// 필터링 날짜 계산
+	startDate := time.Now().AddDate(0, 0, -days)
+
+	var results []struct {
+		ReferrerDomain string `bun:"referrer_domain"`
+		ReferrerType   string `bun:"referrer_type"`
+		Count          int    `bun:"count"`
+		UniqueCount    int    `bun:"unique_count"`
+	}
+
+	query := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("referrer_domain").
+		ColumnExpr("referrer_type").
+		ColumnExpr("COUNT(*) AS count")
+
+	// 데이터베이스별 고유 방문자 카운트 처리
+	if utils.IsPostgres(r.db) || utils.IsSQLite(r.db) || utils.IsMySQL(r.db) {
+		query = query.ColumnExpr("COUNT(DISTINCT visitor_ip) AS unique_count")
+	}
+
+	err := query.Where("visit_time >= ?", startDate).
+		GroupExpr("referrer_domain, referrer_type").
+		OrderExpr("count DESC").
+		Limit(limit).
+		Scan(ctx, &results)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 백분율 계산을 위한 총 방문 수
+	total, err := r.GetTotal(ctx, days)
+	if err != nil {
+		return nil, err
+	}
+
+	// 결과 변환
+	summaries := make([]*models.ReferrerSummary, len(results))
+	for i, r := range results {
+		percent := 0.0
+		if total > 0 {
+			percent = (float64(r.Count) / float64(total)) * 100
+		}
+
+		summaries[i] = &models.ReferrerSummary{
+			ReferrerDomain: r.ReferrerDomain,
+			ReferrerType:   r.ReferrerType,
+			Count:          r.Count,
+			UniqueCount:    r.UniqueCount,
+			PercentTotal:   percent,
+		}
+	}
+
+	return summaries, nil
+}
+
+func (r *referrerRepository) GetReferrersByType(ctx context.Context, days int) ([]*models.ReferrerTypeStats, error) {
+	// 필터링 날짜 계산
+	startDate := time.Now().AddDate(0, 0, -days)
+
+	var results []struct {
+		Type  string `bun:"referrer_type"`
+		Count int    `bun:"count"`
+	}
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("referrer_type").
+		ColumnExpr("COUNT(*) AS count").
+		Where("visit_time >= ?", startDate).
+		GroupExpr("referrer_type").
+		OrderExpr("count DESC").
+		Scan(ctx, &results)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 백분율 계산을 위한 총 방문 수
+	total, err := r.GetTotal(ctx, days)
+	if err != nil {
+		return nil, err
+	}
+
+	// 결과 변환
+	stats := make([]*models.ReferrerTypeStats, len(results))
+	for i, r := range results {
+		percent := 0.0
+		if total > 0 {
+			percent = (float64(r.Count) / float64(total)) * 100
+		}
+
+		stats[i] = &models.ReferrerTypeStats{
+			Type:         r.Type,
+			Count:        r.Count,
+			PercentTotal: percent,
+		}
+	}
+
+	return stats, nil
+}
+
 func (r *referrerRepository) GetReferrersByDate(ctx context.Context, days int) ([]*models.ReferrerTimeStats, error) {
-	// Calculate the date for filtering
+	// 필터링 날짜 계산
 	startDate := time.Now().AddDate(0, 0, -days)
 
 	var results []*models.ReferrerTimeStats
 	var query *bun.SelectQuery
 
-	// The SQL will be different depending on the database type
+	// 데이터베이스별 날짜 포맷팅
 	if utils.IsPostgres(r.db) {
 		query = r.db.NewSelect().
 			TableExpr("referrer_stats").
@@ -130,7 +241,7 @@ func (r *referrerRepository) GetReferrersByDate(ctx context.Context, days int) (
 }
 
 func (r *referrerRepository) GetTotal(ctx context.Context, days int) (int, error) {
-	// Calculate the date for filtering
+	// 필터링 날짜 계산
 	startDate := time.Now().AddDate(0, 0, -days)
 
 	var count int

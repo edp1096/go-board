@@ -1,97 +1,44 @@
 // web/static/js/pages/admin-referrer-stats.js
 document.addEventListener('DOMContentLoaded', function () {
-    // Set up the form submit event
-    const filterForm = document.getElementById('filter-form');
-    if (filterForm) {
-        filterForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const days = document.getElementById('days').value;
-            const limit = document.getElementById('limit').value;
-            window.location.href = `/admin/referrer-stats?days=${days}&limit=${limit}`;
-        });
-    }
+    // 일별 방문 차트 초기화
+    initDailyChart();
 
-    // Load Chart.js if not already loaded
-    if (typeof Chart === 'undefined') {
-        loadScript('https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js', renderCharts);
-    } else {
-        renderCharts();
-    }
+    // 레퍼러 타입 차트 초기화
+    initReferrerTypeChart();
+
+    // 필터 폼 이벤트 리스너
+    document.getElementById('filter-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const days = document.getElementById('days').value;
+        const limit = document.getElementById('limit').value;
+        const view = document.getElementById('view').value;
+
+        window.location.href = `/admin/referrer-stats?days=${days}&limit=${limit}&view=${view}`;
+    });
 });
 
-// Function to dynamically load a script
-function loadScript(url, callback) {
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = url;
-    script.onload = callback;
-    document.head.appendChild(script);
-}
+// 일별 방문 차트 초기화
+function initDailyChart() {
+    const timeStats = JSON.parse(document.getElementById('time-stats-data').value || '[]');
+    if (timeStats.length === 0) return;
 
-// Function to render all charts
-function renderCharts() {
-    renderDailyChart();
-}
+    // Chart.js 설정
+    const dailyChartEl = document.getElementById('daily-chart');
+    if (!dailyChartEl) return;
 
-// Function to render the daily visits chart
-function renderDailyChart() {
-    const chartContainer = document.getElementById('daily-chart');
-    if (!chartContainer) return;
-
-    // Get time stats data from the template
-    const timeStatsElement = document.getElementById('time-stats-data');
-    let timeStatsData = [];
-
-    if (timeStatsElement) {
-        try {
-            timeStatsData = JSON.parse(timeStatsElement.textContent);
-        } catch (e) {
-            console.error('Error parsing time stats data:', e);
-        }
-    } else {
-        // If the element doesn't exist, try to get data via AJAX
-        fetchTimeStatsData().then(data => {
-            if (data && data.timeStats) {
-                renderDailyChartWithData(data.timeStats);
-            }
-        });
-        return;
-    }
-
-    renderDailyChartWithData(timeStatsData);
-}
-
-// Function to render the daily chart with the provided data
-function renderDailyChartWithData(timeStatsData) {
-    const chartContainer = document.getElementById('daily-chart');
-    if (!chartContainer || !timeStatsData) return;
-
-    if (timeStatsData.length === 0) {
-        chartContainer.innerHTML = '<p class="text-center text-gray-500 mt-8">데이터가 없습니다</p>';
-        return;
-    }
-
-    // Prepare chart data
-    const labels = timeStatsData.map(item => item.date);
-    const counts = timeStatsData.map(item => item.count);
-
-    // Create chart
-    const ctx = document.createElement('canvas');
-    chartContainer.innerHTML = '';
-    chartContainer.appendChild(ctx);
-
+    const ctx = dailyChartEl.getContext('2d');
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: timeStats.map(item => item.date),
             datasets: [{
                 label: '방문 수',
-                data: counts,
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                borderColor: 'rgba(59, 130, 246, 1)',
+                data: timeStats.map(item => item.count),
+                borderColor: 'rgba(59, 130, 246, 1)', // Blue
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderWidth: 2,
-                pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                tension: 0.1
+                tension: 0.3,
+                fill: true
             }]
         },
         options: {
@@ -108,11 +55,8 @@ function renderDailyChartWithData(timeStatsData) {
             plugins: {
                 tooltip: {
                     callbacks: {
-                        title: function (tooltipItems) {
-                            return tooltipItems[0].label;
-                        },
                         label: function (context) {
-                            return `방문 수: ${context.parsed.y}`;
+                            return `방문 수: ${context.raw}`;
                         }
                     }
                 }
@@ -121,23 +65,64 @@ function renderDailyChartWithData(timeStatsData) {
     });
 }
 
-// Function to fetch time stats data via AJAX
-function fetchTimeStatsData() {
-    const days = document.getElementById('days')?.value || 30;
-    const limit = document.getElementById('limit')?.value || 10;
+// 레퍼러 타입 차트 초기화
+function initReferrerTypeChart() {
+    const typeStats = JSON.parse(document.getElementById('type-stats-data').value || '[]');
+    if (typeStats.length === 0) return;
 
-    return fetch(`/api/admin/referrer-stats?days=${days}&limit=${limit}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                return data;
-            } else {
-                console.error('Error fetching referrer stats:', data.message);
-                return null;
+    const typeChartEl = document.getElementById('type-chart');
+    if (!typeChartEl) return;
+
+    // 데이터 매핑 및 색상 설정
+    const labels = typeStats.map(item => {
+        switch (item.type) {
+            case 'direct': return '직접 방문';
+            case 'search': return '검색엔진';
+            case 'social': return '소셜미디어';
+            default: return '기타';
+        }
+    });
+
+    const data = typeStats.map(item => item.count);
+
+    const colors = typeStats.map(item => {
+        switch (item.type) {
+            case 'direct': return 'rgba(107, 114, 128, 0.8)'; // Gray
+            case 'search': return 'rgba(16, 185, 129, 0.8)';  // Green
+            case 'social': return 'rgba(59, 130, 246, 0.8)';  // Blue
+            default: return 'rgba(245, 158, 11, 0.8)';        // Yellow
+        }
+    });
+
+    // 차트 생성
+    const ctx = typeChartEl.getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const percent = typeStats[context.dataIndex].percentTotal.toFixed(1);
+                            return `${value} (${percent}%)`;
+                        }
+                    }
+                }
             }
-        })
-        .catch(error => {
-            console.error('Error fetching referrer stats:', error);
-            return null;
-        });
+        }
+    });
 }
