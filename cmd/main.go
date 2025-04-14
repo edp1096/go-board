@@ -31,7 +31,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.2"
+const APP_VERSION = "v0.0.3"
 
 func main() {
 	// // 시작 시간 기록
@@ -161,6 +161,7 @@ func main() {
 		DisableStartupMessage: true,
 		StreamRequestBody:     true,
 		ReadBufferSize:        8192,
+		ProxyHeader:           "X-Forwarded-For",
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
 		// BodyLimit:             cfg.MaxBodyLimit,

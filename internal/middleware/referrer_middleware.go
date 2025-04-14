@@ -47,8 +47,25 @@ func (m *referrerMiddleware) CaptureReferrer(c *fiber.Ctx) error {
 	// Get target URL
 	targetURL := c.Path()
 
-	// Get visitor IP
-	visitorIP := c.IP()
+	// Get visitor IP - 프록시 환경에 맞게 수정
+	var visitorIP string
+	// X-Forwarded-For 헤더 확인
+	forwardedFor := c.Get("X-Forwarded-For")
+	if forwardedFor != "" {
+		// 여러 IP가 있을 경우 맨 앞의 IP를 사용 (실제 클라이언트 IP)
+		ips := strings.Split(forwardedFor, ",")
+		visitorIP = strings.TrimSpace(ips[0])
+	} else {
+		// X-Real-IP 헤더 확인
+		realIP := c.Get("X-Real-IP")
+		if realIP != "" {
+			visitorIP = realIP
+		} else {
+			// 둘 다 없으면 기본 IP 사용
+			visitorIP = c.IP()
+		}
+	}
+
 	if visitorIP == "" {
 		visitorIP = "unknown"
 	}
