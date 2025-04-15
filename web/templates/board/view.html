@@ -125,13 +125,13 @@
                                                 다운로드
                                             </a>
                                             <!-- 권한이 있는 경우에만 삭제 버튼 표시 -->
-                                            {{$admin := or (eq .user.Role "admin") .isManager}}
                                             {{if .user}}
-                                            <template x-if="{{if or (eq $.user.ID $.post.UserID) {{$admin}}}}{{end}}">
-                                                <button class="font-medium text-red-600 hover:text-red-500 text-xs sm:text-sm" @click="deleteAttachment(file.id)">
-                                                    삭제
-                                                </button>
-                                            </template>
+                                            {{$admin := or (eq .user.Role "admin") .isManager}}
+                                            {{if or (eq $.user.ID $.post.UserID) $admin}}
+                                            <button class="font-medium text-red-600 hover:text-red-500 text-xs sm:text-sm" @click="deleteAttachment(file.id)">
+                                                삭제
+                                            </button>
+                                            {{end}}
                                             {{end}}
                                         </div>
                                     </li>
@@ -159,7 +159,8 @@
                 </div>
 
                 {{if .user}}
-                {{if or (eq .post.UserID .user.ID) (eq .user.Role "admin") .isManager}}
+                {{$admin := or (eq .user.Role "admin") .isManager}}
+                {{if or (eq .post.UserID .user.ID) $admin}}
                 <div class="flex space-x-2">
                     <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         수정
