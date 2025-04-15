@@ -14,9 +14,11 @@ body {
 
 /* 마크다운 렌더링을 위한 Prose 스타일 설정 */
 .prose {
+    display: block;
+    position: relative;
     color: #374151;
-    max-width: 65ch;
-    margin: 0 auto;
+    /* max-width: 65ch; */
+    margin: 0 10px 0 10px;
 }
 
 .prose p {
@@ -293,7 +295,8 @@ p iframe {
 }
 
 p iframe.vertical {
-    aspect-ratio: 9/11;
+    min-width: 360px;
+    aspect-ratio: 9/19;
 }
 
 @media (max-width: 640px) {
@@ -306,9 +309,9 @@ p iframe.vertical {
         height: auto;
         aspect-ratio: 16/9;
     }
-
+    
     p iframe.vertical {
-        aspect-ratio: 9/19;
+        aspect-ratio: 9/20;
     }
 }
 

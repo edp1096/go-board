@@ -103,7 +103,7 @@ document.addEventListener('alpine:init', () => {
                     if (!isEditEditorInitialized) {
                         initEditCommentEditor();
                     }
-                }, 1000);
+                }, 250);
             },
 
             async loadComments() {
@@ -212,7 +212,7 @@ document.addEventListener('alpine:init', () => {
                 // 250ms 후에 포커스 시도 (DOM이 완전히 업데이트된 후)
                 setTimeout(() => {
                     this.focusCommentEditor();
-                }, 250);
+                }, 50);
 
                 // 답글 표시 추가
                 if (this.replyToUser) {
@@ -329,14 +329,14 @@ document.addEventListener('alpine:init', () => {
                             // 에디터 내용 업데이트
                             updateEditCommentContent(content);
                             this.focusEditCommentEditor();
-                        }, 100);
-                    }, 100);
+                        }, 10);
+                    }, 10);
                 } else {
                     // 이미 초기화된 에디터면 내용만 업데이트
                     setTimeout(() => {
                         updateEditCommentContent(content);
                         this.focusEditCommentEditor();
-                    }, 50);
+                    }, 10);
                 }
             },
 
