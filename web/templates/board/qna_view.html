@@ -406,7 +406,7 @@
 
                         <!-- 수정/삭제 버튼 (답변 작성자 또는 관리자만) -->
                         {{$admin := or (eq .user.Role "admin") .isManager}}
-                        <template x-if="answer.userId == '{{.user.ID}}' || {{$admin}}">
+                        <template x-if="'{{.user.ID}}' == answer.userId || {{$admin}}">
                             <div class="flex items-center space-x-2">
                                 <button @click="editComment(answer.id, answer.content)" class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200">
                                     수정
@@ -442,7 +442,7 @@
 
                                             <!-- 수정/삭제 버튼 (답변 작성자 또는 관리자만) -->
                                             {{$admin := or (eq .user.Role "admin") .isManager}}
-                                            <template x-if="reply.userId == '{{.user.ID}}' || {{$admin}}">
+                                            <template x-if="'{{.user.ID}}' == reply.userId || {{$admin}}">
                                                 <div class="flex items-center space-x-2">
                                                     <button class="text-gray-600 hover:text-gray-800" @click="editReply(reply.id, reply.content)">
                                                         수정
