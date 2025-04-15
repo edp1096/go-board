@@ -1,0 +1,15 @@
+{
+  "name": "go-board",
+  "version": "0.0.1",
+  "repository": "https://github.com/edp1096/go-board.git",
+  "author": "edp1096 <edp1096@naver.com>",
+  "license": "MIT",
+  "scripts": {
+    "build": "tailwindcss -i ./web/static/css/input.css -o ./web/static/css/tailwind.css --content \"./web/templates/**/*.html,./web/static/js/**/*.js\" --minify",
+    "watch": "tailwindcss -i ./web/static/css/input.css -o ./web/static/css/tailwind.css --watch --content \"./web/templates/**/*.html,./web/static/js/**/*.js\""
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.4",
+    "tailwindcss": "^4.1.4"
+  }
+}

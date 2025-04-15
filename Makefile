@@ -51,6 +51,7 @@ endif
 dist: cgo-disable build-linux-amd64 build-linux-arm64 build-windows-amd64 env-restore
 
 cgo-disable:
+	go generate ./...
 	@echo "Building application..."
 	@go env -w CGO_ENABLED=0
 

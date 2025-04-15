@@ -1,3 +1,4 @@
+//go:generate npx tailwindcss -i ./web/static/css/input.css -o ./web/static/css/tailwind.css --minify
 package goboard
 
 import (

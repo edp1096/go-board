@@ -178,6 +178,7 @@ body {
 
 /* 게시판 스타일 */
 .board-card {
+    border: 1px solid #e5e7eb;
     transition: all 0.2s ease-in-out;
 }
 

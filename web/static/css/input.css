@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "tailwindcss/utilities";
+
+@import './style.css';
+@import './comments.css';
+@import './modal.css';
