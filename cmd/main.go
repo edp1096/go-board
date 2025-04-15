@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -82,12 +83,21 @@ func main() {
 		"p", "br", "h1", "h2", "h3", "h4", "h5", "h6",
 		"blockquote", "pre", "code", "em", "strong", "del",
 		"ul", "ol", "li", "a", "img", "table", "thead", "tbody",
-		"tr", "th", "td", "hr", "div", "span",
+		"tr", "th", "td", "hr", "div", "span", "iframe",
 	)
 	sanitizer.AllowAttrs("href").OnElements("a")
 	sanitizer.AllowAttrs("src", "alt", "title").OnElements("img")
 	sanitizer.AllowAttrs("class").Globally()
 	sanitizer.AllowAttrs("animate").OnElements("img")
+
+	sanitizer.AllowElements("iframe")
+	sanitizer.AllowAttrs("class").Matching(bluemonday.Number).OnElements("iframe")
+	sanitizer.AllowAttrs("width").Matching(bluemonday.Number).OnElements("iframe")
+	sanitizer.AllowAttrs("height").Matching(bluemonday.Number).OnElements("iframe")
+	sanitizer.AllowAttrs("src").OnElements("iframe")
+	sanitizer.AllowAttrs("frameborder").Matching(bluemonday.Number).OnElements("iframe")
+	sanitizer.AllowAttrs("allow").Matching(regexp.MustCompile(`[a-z; -]*`)).OnElements("iframe")
+	sanitizer.AllowAttrs("allowfullscreen").OnElements("iframe")
 
 	engine.AddFunc("unescape", func(s any) template.HTML {
 		sanitizedString := sanitizer.Sanitize(s.(string))

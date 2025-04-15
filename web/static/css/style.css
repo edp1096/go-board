@@ -291,6 +291,10 @@ p iframe {
     min-height: 360px;
 }
 
+p iframe.vertical {
+    aspect-ratio: 9/11;
+}
+
 @media (max-width: 640px) {
     p iframe {
         max-width: unset;
@@ -300,6 +304,10 @@ p iframe {
         width: 100%;
         height: auto;
         aspect-ratio: 16/9;
+    }
+
+    p iframe.vertical {
+        aspect-ratio: 9/19;
     }
 }
 
