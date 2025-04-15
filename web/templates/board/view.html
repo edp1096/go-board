@@ -125,12 +125,14 @@
                                                 다운로드
                                             </a>
                                             <!-- 권한이 있는 경우에만 삭제 버튼 표시 -->
-                                            {{$admin := eq $.user.Role "admin"}}
-                                            <template x-if="{{if $.user}}{{if or (eq $.user.ID $.post.UserID) ($admin)}}true{{else}}false{{end}}{{else}}false{{end}}">
+                                            {{$admin := or (eq .user.Role "admin") .isManager}}
+                                            {{if .user}}
+                                            <template x-if="{{if or (eq $.user.ID $.post.UserID) {{$admin}}}}{{end}}">
                                                 <button class="font-medium text-red-600 hover:text-red-500 text-xs sm:text-sm" @click="deleteAttachment(file.id)">
                                                     삭제
                                                 </button>
                                             </template>
+                                            {{end}}
                                         </div>
                                     </li>
                                 </template>
@@ -226,7 +228,9 @@
                                 <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.username : '알 수 없음')">
                                     답글
                                 </button>
-                                <template x-if="{{.user.ID}} === comment.userId || {{if eq .user.Role " admin"}}true{{else}}false{{end}}">
+
+                                {{$admin := or (eq .user.Role "admin") .isManager}}
+                                <template x-if="'{{.user.ID}}' === comment.userId || {{$admin}}">
                                     <div class="flex items-center space-x-2">
                                         <button class="text-gray-600 hover:text-gray-800" @click="editComment(comment.id, comment.content)">
                                             수정
@@ -259,13 +263,15 @@
                                         <div class="mt-1 text-sm text-gray-700 prose prose-sm max-w-none" x-html="reply.content.replace(/\n/g, '<br>')"></div>
                                         <div class="mt-2 text-xs text-gray-500 flex items-center space-x-2">
                                             <span x-text="new Date(reply.createdAt).toLocaleString()"></span>
-                                            {{$admin := eq .user.Role "admin"}}
                                             {{if .user}}
-                                            <template x-if="{{.user.ID}} === reply.userId || {{if $admin}} true {{else}} false {{end}}">
+                                            <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.username : '알 수 없음')">
+                                                답글
+                                            </button>
+
+                                            <!-- 수정/삭제 버튼 (답변 작성자 또는 관리자만) -->
+                                            {{$admin := or (eq .user.Role "admin") .isManager}}
+                                            <template x-if="'{{.user.ID}}' === comment.userId || {{$admin}}">
                                                 <div class="flex items-center space-x-2">
-                                                    <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.username : '알 수 없음')">
-                                                        답글
-                                                    </button>
                                                     <button class="text-gray-600 hover:text-gray-800" @click="editComment(reply.id, reply.content)">
                                                         수정
                                                     </button>
