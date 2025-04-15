@@ -32,7 +32,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.9"
+const APP_VERSION = "v0.0.10"
 
 func main() {
 	// // 시작 시간 기록
@@ -85,6 +85,7 @@ func main() {
 		"ul", "ol", "li", "a", "img", "table", "thead", "tbody",
 		"tr", "th", "td", "hr", "div", "span", "iframe",
 	)
+	sanitizer.AllowAttrs("style").OnElements("p")
 	sanitizer.AllowAttrs("href").OnElements("a")
 	sanitizer.AllowAttrs("src", "alt", "title").OnElements("img")
 	sanitizer.AllowAttrs("class").Globally()

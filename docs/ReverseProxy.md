@@ -9,6 +9,10 @@ server {
 
     server_name bbs.enjoytools.net;
 
+    if ($host ~* "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$") {
+        return 444;
+    }
+
     return 301 https://$host$request_uri;
 
 #    client_max_body_size 50M;
@@ -29,9 +33,13 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
 
-    server_name bbs.enjoytools.net;
+    server_name my_website;
 
-    client_max_body_size 50M;
+    if ($host ~* "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$") {
+        return 444;
+    }
+
+    client_max_body_size 20M;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
