@@ -39,7 +39,7 @@ func ConnectDatabase(cfg *Config) (*bun.DB, error) {
 
 	case "mysql", "mariadb":
 		// MySQL/MariaDB 연결 설정
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&collation=utf8mb4_unicode_ci",
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&collation=utf8mb4_unicode_ci&multiStatements=true",
 			cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
 		sqldb, err = sql.Open("mysql", dsn)
 		if err != nil {

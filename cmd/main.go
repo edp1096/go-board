@@ -645,7 +645,7 @@ func setupRoutes(
 
 // startServer는 서버를 시작합니다
 func startServer(app *fiber.App, address string) {
-	fmt.Printf("서버를 시작합니다: %s\n", address)
+	fmt.Printf("서버를 시작합니다: http://%s\n", address)
 	if err := app.Listen(address); err != nil {
 		log.Fatalf("서버 시작 실패: %v", err)
 	}
