@@ -125,7 +125,7 @@
                 <!-- 이전 페이지 -->
                 {{if gt .page 1}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .status}}&status={{.status}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .status}}&status={{.status}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-hover">
                         이전
                     </a>
                 </li>
@@ -134,7 +134,7 @@
                 <!-- 페이지 번호 -->
                 {{range $i := iterate 1 .totalPages}}
                 <li>
-                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md {{if eq $i $.page}}bg-blue-50 text-blue-600 border-blue-500{{else}}text-gray-700 bg-white hover:bg-gray-50{{end}}">
+                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md {{if eq $i $.page}}bg-blue-50 text-blue-600 border-blue-500{{else}}text-gray-700 bg-white hover:bg-hover{{end}}">
                         {{$i}}
                     </a>
                 </li>
@@ -143,7 +143,7 @@
                 <!-- 다음 페이지 -->
                 {{if lt .page .totalPages}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-hover">
                         다음
                     </a>
                 </li>

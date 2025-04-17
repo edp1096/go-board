@@ -161,3 +161,45 @@
     margin-bottom: 1rem;
     color: #b91c1c;
 }
+
+
+/* 다크 모드 스타일 */
+@media (prefers-color-scheme: dark) {
+  .comment-section {
+    border-top: 1px solid #4b5563;
+  }
+
+  .comment-item:hover {
+    background-color: #374151;
+  }
+
+  .comment-avatar {
+    background-color: #4b5563;
+    color: #e5e7eb;
+  }
+
+  .comment-author {
+    color: #e5e7eb;
+  }
+
+  .comment-footer button {
+    color: #9ca3af;
+  }
+
+  .comment-footer button:hover {
+    color: #e5e7eb;
+  }
+
+  /* 추가 다크 모드 스타일... */
+}
+
+/* 수동 다크 모드 클래스 */
+.dark .comment-section {
+  border-top: 1px solid #4b5563;
+}
+
+.dark .comment-item:hover {
+  background-color: #374151;
+}
+
+/* 추가 다크 모드 클래스 스타일... */
