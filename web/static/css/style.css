@@ -314,6 +314,9 @@ p iframe.vertical {
         min-height: unset;
 
         width: 100%;
+    }
+
+    p iframe.video {
         height: auto;
         aspect-ratio: 16/9;
     }
