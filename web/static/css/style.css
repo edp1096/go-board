@@ -294,6 +294,13 @@ p iframe {
     min-height: 360px;
 }
 
+p iframe.sound {
+    max-width: 920px;
+    min-width: 640px;
+    min-height: unset;
+    height: 125px;
+}
+
 p iframe.vertical {
     min-width: 360px;
     aspect-ratio: 9/19;

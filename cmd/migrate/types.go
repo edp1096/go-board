@@ -43,3 +43,10 @@ type ColumnMetadata struct {
 	Nullable bool
 	Default  sql.NullString
 }
+
+// FieldInfo는 모델 필드의 메타데이터를 저장합니다
+type FieldInfo struct {
+	fieldName string
+	fieldType string
+	tags      map[string]string
+}

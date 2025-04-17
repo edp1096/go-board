@@ -56,29 +56,44 @@ func runDataMigration(config *DataMigrationConfig) error {
 		return fmt.Errorf("서비스 생성 실패: %w", err)
 	}
 
-	// 4. 데이터 마이그레이션 실행
+	// 4. 외래 키 제약 조건 비활성화
+	if err := disableForeignKeyConstraints(config); err != nil {
+		log.Printf("경고: 외래 키 제약 조건 비활성화 실패: %v (계속 진행합니다)", err)
+	} else {
+		fmt.Println("외래 키 제약 조건 비활성화됨")
+		// 함수 종료 시 제약 조건 다시 활성화
+		defer func() {
+			if err := enableForeignKeyConstraints(config); err != nil {
+				log.Printf("경고: 외래 키 제약 조건 재활성화 실패: %v", err)
+			} else {
+				fmt.Println("외래 키 제약 조건 재활성화됨")
+			}
+		}()
+	}
+
+	// 5. 데이터 마이그레이션 실행
 	startTime := time.Now()
 
-	// 4.1 기본 테이블 데이터 마이그레이션
+	// 5.1 기본 테이블 데이터 마이그레이션
 	if !config.DynamicTablesOnly {
 		if err := migrateBasicTables(config); err != nil {
 			return fmt.Errorf("기본 테이블 마이그레이션 실패: %w", err)
 		}
 	}
 
-	// 4.2 동적 테이블 데이터 마이그레이션
+	// 5.2 동적 테이블 데이터 마이그레이션
 	if !config.BasicTablesOnly {
 		if err := migrateDynamicTables(config, boardService, dynamicBoardService); err != nil {
 			return fmt.Errorf("동적 테이블 마이그레이션 실패: %w", err)
 		}
 	}
 
-	// 5. 시퀀스/자동증가 값 복구
+	// 6. 시퀀스/자동증가 값 복구
 	if err := resetSequences(config); err != nil {
 		log.Printf("시퀀스 복구 실패: %v (무시하고 계속 진행합니다)", err)
 	}
 
-	// 6. 결과 요약
+	// 7. 결과 요약
 	elapsedTime := time.Since(startTime)
 	fmt.Println("==========================")
 	fmt.Printf("데이터 마이그레이션 완료 (소요 시간: %s)\n", elapsedTime)
@@ -113,20 +128,20 @@ func createBoardServices(config *DataMigrationConfig) (service.BoardService, ser
 	return boardService, dynamicBoardService, nil
 }
 
-// getBasicTables는 기본 테이블 목록을 반환합니다
+// getBasicTables는 기본 테이블 목록을 반환합니다 (외래 키 의존성 순서로 정렬됨)
 func getBasicTables() []string {
 	return []string{
-		"users",
-		"boards",
-		"board_fields",
-		"board_managers",
-		"comments",
-		"attachments",
-		"qna_answers",
-		"qna_question_votes",
-		"qna_answer_votes",
-		"referrer_stats",
-		"system_settings",
+		"users",              // 다른 테이블이 참조하는 기본 테이블
+		"boards",             // 게시판 테이블
+		"board_fields",       // boards 참조
+		"board_managers",     // boards와 users 참조
+		"system_settings",    // 독립 테이블
+		"comments",           // users와 boards 참조
+		"attachments",        // users와 boards 참조
+		"qna_answers",        // users와 boards 참조
+		"qna_question_votes", // users와 boards 참조
+		"qna_answer_votes",   // users와 boards와 qna_answers 참조
+		"referrer_stats",     // users 참조 (선택 사항)
 	}
 }
 
@@ -256,19 +271,23 @@ func ensureDynamicTableExists(config *DataMigrationConfig, board *models.Board, 
 		exists = count > 0
 
 	case "sqlite":
+		// SQLite용 직접 SQL 쿼리로 변경 - 수정된 부분
 		var count int
-		err := config.TargetDB.NewSelect().
-			TableExpr("sqlite_master").
-			Column("COUNT(*)").
-			Where("type = 'table'").
-			Where("name = ?", board.TableName).
-			Scan(ctx, &count)
+		// 테이블 이름이 특수 문자를 포함하는 경우를 고려한 쿼리
+		query := fmt.Sprintf("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='%s'",
+			strings.Replace(board.TableName, "'", "''", -1))
 
+		err := config.TargetDB.QueryRow(query).Scan(&count)
 		if err != nil {
 			return fmt.Errorf("테이블 존재 여부 확인 실패: %w", err)
 		}
 
 		exists = count > 0
+
+		if !exists && config.VerboseLogging {
+			fmt.Printf("    SQLite: 테이블 '%s'가 존재하지 않음\n", board.TableName)
+		}
+
 	default:
 		return fmt.Errorf("지원하지 않는 데이터베이스 드라이버: %s", config.TargetDBConfig.DBDriver)
 	}
@@ -286,13 +305,97 @@ func ensureDynamicTableExists(config *DataMigrationConfig, board *models.Board, 
 			return fmt.Errorf("게시판 필드 가져오기 실패: %w", err)
 		}
 
-		// 대상 DB에 테이블 생성
-		targetDynamicService := service.NewDynamicBoardService(config.TargetDB)
-		if err := targetDynamicService.CreateBoardTable(ctx, board, fields); err != nil {
-			return fmt.Errorf("게시판 테이블 생성 실패: %w", err)
+		if config.VerboseLogging {
+			fmt.Printf("    테이블 '%s'를 위한 %d개 필드 로드됨\n", board.TableName, len(fields))
+		}
+
+		// 대상 DB에 테이블 생성 - SQLite 특별 처리 추가
+		if config.TargetDBConfig.DBDriver == "sqlite" {
+			// SQLite용 테이블 생성 직접 수행
+			if err := createSQLiteDynamicTable(config, board, fields); err != nil {
+				return fmt.Errorf("SQLite 게시판 테이블 생성 실패: %w", err)
+			}
+		} else {
+			// 다른 DB는 기존 서비스 사용
+			targetDynamicService := service.NewDynamicBoardService(config.TargetDB)
+			if err := targetDynamicService.CreateBoardTable(ctx, board, fields); err != nil {
+				return fmt.Errorf("게시판 테이블 생성 실패: %w", err)
+			}
 		}
 
 		fmt.Printf("    게시판 테이블 '%s' 생성됨\n", board.TableName)
+	}
+
+	return nil
+}
+
+// createSQLiteDynamicTable은 SQLite에 동적 게시판 테이블을 생성합니다
+func createSQLiteDynamicTable(config *DataMigrationConfig, board *models.Board, fields []*models.BoardField) error {
+	// 테이블 이름 준비 (이스케이프 처리)
+	tableName := board.TableName
+	safeTableName := tableName
+	if strings.Contains(tableName, "-") || strings.Contains(tableName, ".") {
+		safeTableName = fmt.Sprintf("\"%s\"", tableName)
+	}
+
+	// 기본 컬럼 정의
+	columns := []string{
+		"id INTEGER PRIMARY KEY AUTOINCREMENT",
+		"title TEXT NOT NULL",
+		"content TEXT NOT NULL",
+		"user_id INTEGER NOT NULL",
+		"view_count INTEGER NOT NULL DEFAULT 0",
+		"created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+		"updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+	}
+
+	// 사용자 정의 필드 추가
+	for _, field := range fields {
+		var colType string
+		switch field.FieldType {
+		case models.FieldTypeNumber:
+			colType = "INTEGER"
+		case models.FieldTypeDate:
+			colType = "TIMESTAMP"
+		case models.FieldTypeCheckbox:
+			colType = "INTEGER" // 0 또는 1
+		default:
+			colType = "TEXT" // text, textarea, select, file 등
+		}
+
+		// 컬럼 이름 처리
+		safeColumnName := field.ColumnName
+		if strings.Contains(field.ColumnName, "-") || strings.Contains(field.ColumnName, ".") {
+			safeColumnName = fmt.Sprintf("\"%s\"", field.ColumnName)
+		}
+
+		// 필수 여부에 따라 NOT NULL 추가
+		if field.Required {
+			columns = append(columns, fmt.Sprintf("%s %s NOT NULL", safeColumnName, colType))
+		} else {
+			columns = append(columns, fmt.Sprintf("%s %s", safeColumnName, colType))
+		}
+	}
+
+	// CREATE TABLE 쿼리 구성
+	createQuery := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", safeTableName, strings.Join(columns, ", "))
+
+	// 테이블 생성 실행
+	_, err := config.TargetDB.Exec(createQuery)
+	if err != nil {
+		return fmt.Errorf("테이블 생성 쿼리 실행 실패: %w", err)
+	}
+
+	// 인덱스 이름 및 테이블 이름 안전하게 처리
+	// SQLite에서 하이픈이 포함된 이름 처리
+	safeIndexName := fmt.Sprintf("idx_%s_user_id", strings.Replace(tableName, "-", "_", -1))
+
+	// 인덱스 생성
+	createIndexQuery := fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s (user_id)",
+		safeIndexName, safeTableName)
+	_, err = config.TargetDB.Exec(createIndexQuery)
+	if err != nil {
+		return fmt.Errorf("인덱스 생성 실패: %w", err)
 	}
 
 	return nil
@@ -356,29 +459,35 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 	totalBatches := (totalRows + batchSize - 1) / batchSize
 	processedRows := 0
 
+	// 외래 키 제약 조건 처리
+	if config.TargetDBConfig.DBDriver == "mysql" || config.TargetDBConfig.DBDriver == "mariadb" {
+		_, err = config.TargetDB.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 0;")
+		if err != nil {
+			return fmt.Errorf("외래 키 제약 비활성화 실패: %w", err)
+		}
+		defer func() {
+			_, _ = config.TargetDB.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 1;")
+		}()
+	} else if config.TargetDBConfig.DBDriver == "postgres" {
+		_, err = config.TargetDB.ExecContext(ctx, "SET session_replication_role = 'replica';")
+		if err != nil {
+			return fmt.Errorf("외래 키 제약 비활성화 실패: %w", err)
+		}
+		defer func() {
+			_, _ = config.TargetDB.ExecContext(ctx, "SET session_replication_role = 'origin';")
+		}()
+	} else if config.TargetDBConfig.DBDriver == "sqlite" {
+		_, err = config.TargetDB.ExecContext(ctx, "PRAGMA foreign_keys = OFF;")
+		if err != nil {
+			return fmt.Errorf("외래 키 제약 비활성화 실패: %w", err)
+		}
+		defer func() {
+			_, _ = config.TargetDB.ExecContext(ctx, "PRAGMA foreign_keys = ON;")
+		}()
+	}
+
 	// 대상 테이블의 기존 데이터 삭제 (필요 시)
 	if shouldCleanTableBeforeMigration(tableName) {
-		// MySQL의 외래 키 제약 조건 일시적으로 비활성화
-		if config.TargetDBConfig.DBDriver == "mysql" || config.TargetDBConfig.DBDriver == "mariadb" {
-			_, err = config.TargetDB.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 0;")
-			if err != nil {
-				return fmt.Errorf("외래 키 제약 비활성화 실패: %w", err)
-			}
-			defer func() {
-				// 작업 완료 후 다시 활성화
-				_, _ = config.TargetDB.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 1;")
-			}()
-		} else if config.TargetDBConfig.DBDriver == "postgres" {
-			_, err = config.TargetDB.ExecContext(ctx, "SET session_replication_role = 'replica';")
-			if err != nil {
-				return fmt.Errorf("외래 키 제약 비활성화 실패: %w", err)
-			}
-			defer func() {
-				// 작업 완료 후 다시 활성화
-				_, _ = config.TargetDB.ExecContext(ctx, "SET session_replication_role = 'origin';")
-			}()
-		}
-
 		deleteQuery := fmt.Sprintf("DELETE FROM %s", quoteTableName(config.TargetDBConfig.DBDriver, tableName))
 		_, err = config.TargetDB.ExecContext(ctx, deleteQuery)
 		if err != nil {
@@ -423,6 +532,9 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 			}
 		}
 
+		// 배치 내 오류 추적
+		batchError := false
+
 		// 행별 처리
 		rowsInBatch := 0
 		for sourceRows.Next() {
@@ -446,8 +558,16 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 			if tableName == "users" {
 				var userExists bool
 				idVal := rowValues[0]
-				checkQuery := fmt.Sprintf("SELECT 1 FROM %s WHERE id = ? LIMIT 1",
-					quoteTableName(config.TargetDBConfig.DBDriver, tableName))
+
+				// 대상 DB 드라이버에 따라 다른 파라미터 바인딩 사용
+				var checkQuery string
+				if config.TargetDBConfig.DBDriver == "postgres" {
+					checkQuery = fmt.Sprintf("SELECT 1 FROM %s WHERE id = $1 LIMIT 1",
+						quoteTableName(config.TargetDBConfig.DBDriver, tableName))
+				} else {
+					checkQuery = fmt.Sprintf("SELECT 1 FROM %s WHERE id = ? LIMIT 1",
+						quoteTableName(config.TargetDBConfig.DBDriver, tableName))
+				}
 
 				var exists int
 				var checkErr error
@@ -486,64 +606,194 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 					continue
 				}
 
-				// 모델 기반 타입 변환
-				fieldInfo, hasField := modelInfo[colName]
-				if hasField && config.TargetDBConfig.DBDriver == "postgres" {
-					// 타입에 따른 변환
-					switch fieldInfo.fieldType {
-					case "bool":
-						// 불리언 처리
-						switch v := val.(type) {
-						case int64:
-							if v == 1 {
-								columnValues = append(columnValues, "TRUE")
-							} else {
-								columnValues = append(columnValues, "FALSE")
-							}
-						case int:
-							if v == 1 {
-								columnValues = append(columnValues, "TRUE")
-							} else {
-								columnValues = append(columnValues, "FALSE")
-							}
-						case string:
-							if strings.ToLower(v) == "true" || v == "1" {
-								columnValues = append(columnValues, "TRUE")
-							} else {
-								columnValues = append(columnValues, "FALSE")
-							}
-						case bool:
-							if v {
-								columnValues = append(columnValues, "TRUE")
-							} else {
-								columnValues = append(columnValues, "FALSE")
-							}
-						default:
-							columnValues = append(columnValues, "FALSE")
+				// MySQL/PostgreSQL에서 가져온 인코딩된 데이터 처리
+				if config.SourceDBConfig.DBDriver == "mysql" || config.SourceDBConfig.DBDriver == "postgres" {
+					// 문자열 데이터 처리
+					if strVal, ok := val.(string); ok && strings.HasSuffix(strVal, "==") {
+						// Base64 인코딩된 문자열로 보이는 경우 디코딩 시도
+						decoded, err := tryBase64Decode(strVal)
+						if err == nil {
+							val = decoded
 						}
-						continue
-					case "time.Time":
-						// 시간 처리
-						switch v := val.(type) {
-						case time.Time:
-							columnValues = append(columnValues, fmt.Sprintf("'%s'", v.Format("2006-01-02 15:04:05")))
-						case string:
-							columnValues = append(columnValues, fmt.Sprintf("'%s'", v))
-						default:
-							columnValues = append(columnValues, fmt.Sprintf("'%v'", v))
-						}
-						continue
+					} else if bytes, ok := val.([]byte); ok {
+						// 바이트 배열인 경우 문자열로 변환
+						val = string(bytes)
 					}
 				}
 
-				// 일반 데이터 타입 변환
+				// 모델 기반 타입 변환
+				fieldInfo, hasField := modelInfo[colName]
+
+				// 데이터베이스별 타입 처리
+				switch config.TargetDBConfig.DBDriver {
+				case "postgres":
+					// PostgreSQL 타입 처리
+					if hasField {
+						switch fieldInfo.fieldType {
+						case "bool":
+							// SQLite나 MySQL의 boolean 값을 PostgreSQL boolean으로 변환
+							switch v := val.(type) {
+							case int64:
+								if v == 1 {
+									columnValues = append(columnValues, "TRUE")
+								} else {
+									columnValues = append(columnValues, "FALSE")
+								}
+							case int:
+								if v == 1 {
+									columnValues = append(columnValues, "TRUE")
+								} else {
+									columnValues = append(columnValues, "FALSE")
+								}
+							case string:
+								if strings.ToLower(v) == "true" || v == "1" {
+									columnValues = append(columnValues, "TRUE")
+								} else {
+									columnValues = append(columnValues, "FALSE")
+								}
+							case bool:
+								if v {
+									columnValues = append(columnValues, "TRUE")
+								} else {
+									columnValues = append(columnValues, "FALSE")
+								}
+							default:
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case "time.Time":
+							// 시간 처리
+							switch v := val.(type) {
+							case time.Time:
+								columnValues = append(columnValues, fmt.Sprintf("'%s'", v.Format("2006-01-02 15:04:05")))
+							case string:
+								// 문자열로 된 시간 포맷팅 시도
+								t, err := parseTimeString(v)
+								if err == nil {
+									columnValues = append(columnValues, fmt.Sprintf("'%s'", t.Format("2006-01-02 15:04:05")))
+								} else {
+									columnValues = append(columnValues, fmt.Sprintf("'%s'", v))
+								}
+							default:
+								columnValues = append(columnValues, fmt.Sprintf("'%v'", v))
+							}
+							continue
+						}
+					}
+
+				case "mysql", "mariadb":
+					// MySQL/MariaDB 타입 처리
+					if hasField {
+						switch fieldInfo.fieldType {
+						case "bool":
+							// Boolean 값을 MySQL의 1/0으로 변환
+							switch v := val.(type) {
+							case int64:
+								if v == 1 {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							case int:
+								if v == 1 {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							case string:
+								if strings.ToLower(v) == "true" || v == "1" {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							case bool:
+								if v {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							default:
+								columnValues = append(columnValues, "0")
+							}
+							continue
+						case "time.Time":
+							// 시간 처리
+							switch v := val.(type) {
+							case time.Time:
+								columnValues = append(columnValues, fmt.Sprintf("'%s'", v.Format("2006-01-02 15:04:05")))
+							case string:
+								// 문자열로 된 시간 포맷팅 시도
+								t, err := parseTimeString(v)
+								if err == nil {
+									columnValues = append(columnValues, fmt.Sprintf("'%s'", t.Format("2006-01-02 15:04:05")))
+								} else {
+									columnValues = append(columnValues, fmt.Sprintf("'%s'", v))
+								}
+							default:
+								columnValues = append(columnValues, fmt.Sprintf("'%v'", v))
+							}
+							continue
+						}
+					}
+
+				case "sqlite":
+					// SQLite 타입 처리
+					if hasField {
+						switch fieldInfo.fieldType {
+						case "bool":
+							// Boolean 값을 SQLite의 0/1로 변환
+							switch v := val.(type) {
+							case int64:
+								if v == 1 {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							case int:
+								if v == 1 {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							case string:
+								if strings.ToLower(v) == "true" || v == "1" {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							case bool:
+								if v {
+									columnValues = append(columnValues, "1")
+								} else {
+									columnValues = append(columnValues, "0")
+								}
+							default:
+								columnValues = append(columnValues, "0")
+							}
+							continue
+						}
+					}
+				}
+
+				// 일반 데이터 타입 변환 - 이스케이프 로직 강화
 				switch v := val.(type) {
 				case string:
 					// 문자열은 작은 따옴표로 감싸고 내부 작은 따옴표는 이스케이프
 					escapedVal := strings.Replace(v, "'", "''", -1)
+
+					// 대상 DB가 SQLite이고 HTML 내용이 있는 경우 추가 처리
+					if config.TargetDBConfig.DBDriver == "sqlite" && (strings.Contains(v, "<") || strings.Contains(v, ">")) {
+						columnValues = append(columnValues, fmt.Sprintf("'%s'", escapedVal))
+					} else {
+						columnValues = append(columnValues, fmt.Sprintf("'%s'", escapedVal))
+					}
+				case []byte:
+					// 바이트 배열을 문자열로 변환 후 이스케이프
+					strVal := string(v)
+					escapedVal := strings.Replace(strVal, "'", "''", -1)
 					columnValues = append(columnValues, fmt.Sprintf("'%s'", escapedVal))
 				case bool:
-					// MySQL/MariaDB의 경우 1/0 사용, PostgreSQL은 TRUE/FALSE
+					// DB 종류에 따라 불리언 처리
 					if config.TargetDBConfig.DBDriver == "postgres" {
 						if v {
 							columnValues = append(columnValues, "TRUE")
@@ -551,7 +801,7 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 							columnValues = append(columnValues, "FALSE")
 						}
 					} else {
-						// 다른 DB는 1/0 사용
+						// MySQL, SQLite는 1/0 사용
 						if v {
 							columnValues = append(columnValues, "1")
 						} else {
@@ -573,21 +823,46 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 				strings.Join(columnValues, ", "))
 
 			// 쿼리 실행
-			var err error
+			var execErr error
 			if useTransaction {
-				_, err = tx.ExecContext(ctx, directSQL)
+				_, execErr = tx.ExecContext(ctx, directSQL)
 			} else {
-				_, err = config.TargetDB.ExecContext(ctx, directSQL)
+				_, execErr = config.TargetDB.ExecContext(ctx, directSQL)
 			}
 
-			if err != nil {
-				// JSON으로 행 데이터 직렬화 (디버깅용)
-				rowJSON, _ := json.Marshal(rowValues)
-				sourceRows.Close()
+			if execErr != nil {
+				// 행 실패 기록
+				batchError = true
+				if config.VerboseLogging {
+					rowJSON, _ := json.Marshal(rowValues)
+					log.Printf("행 삽입 실패: %v\n데이터: %s\n쿼리: %s", execErr, rowJSON, directSQL)
+				}
+
+				// 에러 수집하되 진행 계속
+				config.addError(fmt.Errorf("행 삽입 실패 (테이블: %s): %w", tableName, execErr))
+
+				// 최대 오류 수 초과 시 중단
+				if len(config.Errors) > config.MaxErrorsBeforeExit {
+					sourceRows.Close()
+					if useTransaction {
+						tx.Rollback()
+					}
+					return fmt.Errorf("최대 오류 수 초과로 마이그레이션 중단: %w", execErr)
+				}
+
+				// 트랜잭션 사용 중인 경우 롤백 후 계속
 				if useTransaction {
 					tx.Rollback()
+
+					// 새 트랜잭션 시작
+					tx, err = config.TargetDB.DB.Begin()
+					if err != nil {
+						sourceRows.Close()
+						return fmt.Errorf("트랜잭션 재시작 실패: %w", err)
+					}
 				}
-				return fmt.Errorf("행 삽입 실패: %w\n데이터: %s\n쿼리: %s", err, rowJSON, directSQL)
+
+				continue
 			}
 
 			rowsInBatch++
@@ -595,8 +870,8 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 
 		sourceRows.Close()
 
-		// 트랜잭션 커밋 (필요 시)
-		if useTransaction {
+		// 트랜잭션 커밋 (필요 시 그리고 오류가 없을 때만)
+		if useTransaction && !batchError {
 			if err := tx.Commit(); err != nil {
 				return fmt.Errorf("트랜잭션 커밋 실패: %w", err)
 			}
@@ -610,13 +885,6 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 	}
 
 	return nil
-}
-
-// FieldInfo는 모델 필드의 메타데이터를 저장합니다
-type FieldInfo struct {
-	fieldName string
-	fieldType string
-	tags      map[string]string
 }
 
 // getModelInfo는 테이블 이름으로부터 해당 모델의 필드 정보를 가져옵니다
@@ -650,8 +918,6 @@ func getModelInfo(tableName string) map[string]FieldInfo {
 	case "system_settings":
 		modelType = reflect.TypeOf(models.SystemSetting{})
 	default:
-		// 동적 테이블은 기본 PostCommon 구조체 사용
-		// modelType = reflect.TypeOf(models.PostCommon{})
 		// 필수 기본 필드 추가
 		fieldInfoMap["id"] = FieldInfo{fieldName: "ID", fieldType: "int64"}
 		fieldInfoMap["title"] = FieldInfo{fieldName: "Title", fieldType: "string"}
@@ -660,6 +926,7 @@ func getModelInfo(tableName string) map[string]FieldInfo {
 		fieldInfoMap["view_count"] = FieldInfo{fieldName: "ViewCount", fieldType: "int"}
 		fieldInfoMap["created_at"] = FieldInfo{fieldName: "CreatedAt", fieldType: "time.Time"}
 		fieldInfoMap["updated_at"] = FieldInfo{fieldName: "UpdatedAt", fieldType: "time.Time"}
+
 		return fieldInfoMap
 	}
 
@@ -702,42 +969,6 @@ func getModelInfo(tableName string) map[string]FieldInfo {
 	}
 
 	return fieldInfoMap
-}
-
-// parseTags는 bun 태그를 파싱하여 맵으로 반환합니다
-func parseTags(tag string) map[string]string {
-	tagMap := make(map[string]string)
-
-	// 태그 파싱
-	parts := strings.Split(tag, ",")
-	for _, part := range parts {
-		// column:name 형식 처리
-		if strings.Contains(part, ":") {
-			kv := strings.SplitN(part, ":", 2)
-			tagMap[kv[0]] = kv[1]
-		} else if strings.Contains(part, "=") {
-			// column=name 형식 처리
-			kv := strings.SplitN(part, "=", 2)
-			tagMap[kv[0]] = kv[1]
-		} else {
-			// 단일 태그 처리 (pk, notnull 등)
-			tagMap[part] = "true"
-		}
-	}
-
-	return tagMap
-}
-
-// toSnakeCase는 캐멀 케이스 문자열을 스네이크 케이스로 변환합니다
-func toSnakeCase(s string) string {
-	var result strings.Builder
-	for i, r := range s {
-		if i > 0 && r >= 'A' && r <= 'Z' {
-			result.WriteRune('_')
-		}
-		result.WriteRune(r)
-	}
-	return strings.ToLower(result.String())
 }
 
 // getTableColumns는 테이블의 컬럼 정보를 가져옵니다
@@ -822,13 +1053,27 @@ func getTableColumns(db *bun.DB, driver string, tableName string) ([]ColumnMetad
 		}
 
 	case "sqlite":
-		// 테이블 이름에 하이픈이 있는 경우 따옴표로 묶기
-		quotedTableName := tableName
-		if strings.Contains(tableName, "-") {
-			quotedTableName = fmt.Sprintf("\"%s\"", tableName)
+		// SQLite용 테이블 존재 여부 확인 및 컬럼 정보 조회
+		var count int
+		checkQuery := fmt.Sprintf("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='%s'",
+			strings.Replace(tableName, "'", "''", -1))
+		err := db.QueryRow(checkQuery).Scan(&count)
+		if err != nil {
+			return nil, fmt.Errorf("테이블 존재 여부 확인 실패: %w", err)
 		}
 
-		rows, err := db.QueryContext(ctx, fmt.Sprintf("PRAGMA table_info(%s)", quotedTableName))
+		if count == 0 {
+			return nil, fmt.Errorf("테이블이 존재하지 않습니다: %s", tableName)
+		}
+
+		// 테이블 이름 준비
+		safeTableName := tableName
+		if strings.Contains(tableName, "-") || strings.Contains(tableName, ".") {
+			safeTableName = fmt.Sprintf("\"%s\"", tableName)
+		}
+
+		// PRAGMA table_info 쿼리 실행
+		rows, err := db.QueryContext(ctx, fmt.Sprintf("PRAGMA table_info(%s)", safeTableName))
 		if err != nil {
 			return nil, fmt.Errorf("컬럼 정보 조회 실패: %w", err)
 		}
@@ -901,37 +1146,11 @@ func findCommonColumns(sourceColumns, targetColumns []ColumnMetadata) ([]ColumnM
 	return common, sourceNames, targetNames
 }
 
-// quoteTableName은 데이터베이스 드라이버에 따라 테이블 이름을 인용 부호로 묶습니다
-func quoteTableName(driver, tableName string) string {
-	switch driver {
-	case "postgres":
-		// PostgreSQL에서는 항상 따옴표로 감싸기
-		return fmt.Sprintf("\"%s\"", tableName)
-	case "mysql", "mariadb":
-		// MySQL에서는 항상 백틱으로 감싸기
-		return fmt.Sprintf("`%s`", tableName)
-	case "sqlite":
-		// SQLite에서는 특수 문자가 있으면 항상 따옴표로 감싸기
-		if strings.ContainsAny(tableName, "-.") || strings.Contains(tableName, " ") {
-			return fmt.Sprintf("\"%s\"", tableName)
-		}
-		return tableName
-	default:
-		return tableName
-	}
-}
-
-// quoteColumnName은 컬럼 이름을 인용 부호로 묶습니다
-func quoteColumnName(columnName string) string {
-	return columnName
-}
-
 // validateSourceData는 마이그레이션 전 데이터 검증
 func validateSourceData(config *DataMigrationConfig, tableName string) error {
 	// 테이블 존재 여부 확인
 	var count int
-	query := fmt.Sprintf("SELECT COUNT(*) FROM %s LIMIT 1",
-		quoteTableName(config.SourceDBConfig.DBDriver, tableName))
+	query := fmt.Sprintf("SELECT COUNT(*) FROM %s LIMIT 1", quoteTableName(config.SourceDBConfig.DBDriver, tableName))
 
 	err := config.SourceDB.QueryRow(query).Scan(&count)
 	if err != nil {
@@ -960,11 +1179,16 @@ func shouldUseTransactionForTable(tableName string, totalRows int) bool {
 func shouldCleanTableBeforeMigration(tableName string) bool {
 	// 외래 키 제약 조건이 있거나 이력 데이터인 테이블은 정리하지 않음
 	skipCleanTables := map[string]bool{
-		"referrer_stats": true,
-		// "users":          true,
+		"referrer_stats": true,  // 대량 데이터이므로 건너뜀
+		"users":          false, // 사용자 데이터는 초기화
 	}
 
-	return !skipCleanTables[tableName]
+	if skip, exists := skipCleanTables[tableName]; exists {
+		return !skip
+	}
+
+	// 기본값: 테이블 데이터 정리
+	return true
 }
 
 // isTableSkipped는 주어진 테이블이 건너뛰기 목록에 있는지 확인합니다
