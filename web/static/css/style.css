@@ -287,7 +287,7 @@ p img {
 
 
 /* 동영상 */
-p iframe {
+p iframe.video {
     display: inline-block;
     max-width: 920px;
     min-width: 640px;
@@ -307,7 +307,8 @@ p iframe.vertical {
 }
 
 @media (max-width: 640px) {
-    p iframe {
+    p iframe.video,
+    p iframe.sound {
         max-width: unset;
         min-width: unset;
         min-height: unset;
@@ -322,19 +323,6 @@ p iframe.vertical {
     }
 }
 
-
-/* 썸네일 */
-@media (max-width: 640px) {
-    p iframe {
-        max-width: unset;
-        min-width: unset;
-        min-height: unset;
-
-        width: 100%;
-        height: auto;
-        aspect-ratio: 16/9;
-    }
-}
 
 /* 이미지 뷰어 스타일 */
 
