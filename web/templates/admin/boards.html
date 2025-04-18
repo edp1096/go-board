@@ -2,7 +2,7 @@
 <div class="max-w-7xl mx-auto" x-data="boardManagement()">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">게시판 관리</h1>
-        <a href="/admin/boards/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="/admin/boards/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             새 게시판 만들기
         </a>
     </div>
@@ -58,11 +58,11 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         {{if .Active}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full btn-success text-success">
                             활성화
                         </span>
                         {{else}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-error">
                             비활성화
                         </span>
                         {{end}}

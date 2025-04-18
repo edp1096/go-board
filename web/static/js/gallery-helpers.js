@@ -139,15 +139,15 @@ function filterGallery(category) {
 
     // 모든 필터 버튼에서 활성 클래스 제거
     document.querySelectorAll('.gallery-filter-btn').forEach(btn => {
-        btn.classList.remove('active', 'bg-blue-500', 'text-white');
-        btn.classList.add('bg-gray-200', 'text-gray-700');
+        btn.classList.remove('active', 'btn-primary', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-secondary');
     });
 
     // 선택된 필터 버튼에 활성 클래스 추가
     const activeBtn = document.querySelector(`.gallery-filter-btn[data-category="${category}"]`);
     if (activeBtn) {
-        activeBtn.classList.remove('bg-gray-200', 'text-gray-700');
-        activeBtn.classList.add('active', 'bg-blue-500', 'text-white');
+        activeBtn.classList.remove('bg-gray-200', 'text-secondary');
+        activeBtn.classList.add('active', 'btn-primary', 'text-white');
     }
 
     // 갤러리 아이템 필터링

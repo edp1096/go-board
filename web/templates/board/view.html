@@ -8,7 +8,7 @@
             <ol class="flex items-center space-x-4">
                 <li>
                     <div>
-                        <a href="/boards" class="hover:text-gray-500">게시판 목록</a>
+                        <a href="/boards" class="hover:text-secondary">게시판 목록</a>
                     </div>
                 </li>
                 <li>
@@ -16,7 +16,7 @@
                         <svg class="flex-shrink-0 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                             <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
                         </svg>
-                        <a href="/boards/{{.board.ID}}/posts" class="ml-4 hover:text-gray-500">{{.board.Name}}</a>
+                        <a href="/boards/{{.board.ID}}/posts" class="ml-4 hover:text-secondary">{{.board.Name}}</a>
                     </div>
                 </li>
             </ol>
@@ -58,14 +58,14 @@
             <div id="image-viewer" x-data="imageViewer" x-show="show" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/75" @click="closeImageViewer">
                 <div @click.stop class="relative bg-white p-2 max-w-5xl max-h-screen overflow-auto rounded-lg">
                     <!-- 닫기 버튼 -->
-                    <button @click="closeImageViewer" class="absolute top-2 right-2 hover:text-gray-600 bg-white rounded-full p-1">
+                    <button @click="closeImageViewer" class="absolute top-2 right-2 hover:text-secondary bg-white rounded-full p-1">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
 
                     <!-- 새 탭으로 열기 버튼 -->
-                    <a :href="imageSrc" target="_blank" class="absolute top-2 right-12 hover:text-gray-600 bg-white rounded-full p-1" title="새 탭에서 열기" @click.stop>
+                    <a :href="imageSrc" target="_blank" class="absolute top-2 right-12 hover:text-secondary bg-white rounded-full p-1" title="새 탭에서 열기" @click.stop>
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                         </svg>
@@ -86,7 +86,7 @@
                     <div class="mt-1 text-sm">
                         {{if eq $boardField.FieldType "checkbox"}}
                         {{if .Value}}
-                        <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <svg class="h-5 w-5 text-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                         </svg>
                         {{else}}
@@ -127,7 +127,7 @@
                                             <!-- 권한이 있는 경우에만 삭제 버튼 표시 -->
                                             {{$admin := eq $.user.Role "admin"}}
                                             <template x-if="{{if $.user}}{{if or (eq $.user.ID $.post.UserID) ($admin)}}true{{else}}false{{end}}{{else}}false{{end}}">
-                                                <button class="font-medium text-red-600 hover:text-red-500 text-xs sm:text-sm" @click="deleteAttachment(file.id)">
+                                                <button class="font-medium text-error hover:text-error text-xs sm:text-sm" @click="deleteAttachment(file.id)">
                                                     삭제
                                                 </button>
                                             </template>
@@ -162,7 +162,7 @@
                     <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
                         수정
                     </a>
-                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-error bg-white hover:bg-red-50">
                         삭제
                     </button>
                 </div>
@@ -191,19 +191,19 @@
         <div x-show="error" class="bg-red-50 p-4 rounded-md">
             <div class="flex">
                 <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <svg class="h-5 w-5 text-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                     </svg>
                 </div>
                 <div class="ml-3">
-                    <p class="text-sm text-red-700" x-text="error"></p>
+                    <p class="text-sm text-error" x-text="error"></p>
                 </div>
             </div>
         </div>
 
         <!-- 댓글 없음 메시지 -->
         <div x-show="!loading && !error && comments.length === 0" class="text-center">
-            <p class="text-gray-500">아직 댓글이 없습니다. 첫 댓글을 작성해보세요!</p>
+            <p class="text-secondary">아직 댓글이 없습니다. 첫 댓글을 작성해보세요!</p>
         </div>
 
         <!-- 댓글 표시 -->
@@ -230,10 +230,10 @@
                                 {{$admin := or (eq .user.Role "admin") .isManager}}
                                 <template x-if="'{{.user.ID}}' === comment.userId || {{$admin}}">
                                     <div class="flex items-center space-x-2">
-                                        <button class="hover:text-gray-800" @click="editComment(comment.id, comment.content)">
+                                        <button class="hover:text-secondary" @click="editComment(comment.id, comment.content)">
                                             수정
                                         </button>
-                                        <button class="text-red-600 hover:text-red-800" @click="deleteComment(comment.id)">
+                                        <button class="text-error hover:text-error" @click="deleteComment(comment.id)">
                                             삭제
                                         </button>
                                     </div>
@@ -271,10 +271,10 @@
                                             <template x-if="'{{.user.ID}}' === reply.userId || {{$admin}}">
                                                 <div class="flex items-center space-x-2">
 
-                                                    <button class="hover:text-gray-800" @click="editComment(reply.id, reply.content)">
+                                                    <button class="hover:text-secondary" @click="editComment(reply.id, reply.content)">
                                                         수정
                                                     </button>
-                                                    <button class="text-red-600 hover:text-red-800" @click="deleteComment(reply.id, true, comment.id)">
+                                                    <button class="text-error hover:text-error" @click="deleteComment(reply.id, true, comment.id)">
                                                         삭제
                                                     </button>
                                                 </div>
@@ -305,9 +305,9 @@
                     <div>
                         <label for="comment-content" class="sr-only">댓글 내용</label>
                         <input type="hidden" id="comment-content" x-model="commentContent">
-                        <div x-show="replyToUser" class="mb-2 p-2 bg-blue-50 rounded text-sm">
+                        <div x-show="replyToUser" class="mb-2 p-2 btn-primary rounded text-sm">
                             <span class="font-medium">@<span x-text="replyToUser"></span></span>님에게 답글 작성 중...
-                            <button type="button" @click="cancelReply()" class="hover:text-gray-700 ml-2">
+                            <button type="button" @click="cancelReply()" class="hover:text-secondary ml-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -318,12 +318,12 @@
                     <div class="mt-3 flex items-center justify-between">
                         <div>
                             <template x-if="replyToId !== null">
-                                <button type="button" class="text-sm hover:text-gray-700" @click="cancelReply()">
+                                <button type="button" class="text-sm hover:text-secondary" @click="cancelReply()">
                                     답글 취소
                                 </button>
                             </template>
                         </div>
-                        <button type="submit" class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                        <button type="submit" class="inline-flex items-center rounded-md border border-transparent btn-primary px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
                             <span x-show="!submitting">댓글 등록</span>
                             <span x-show="submitting" class="flex items-center">
                                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -361,7 +361,7 @@
                                 <h3 class="text-lg leading-6 font-medium">
                                     댓글 수정
                                 </h3>
-                                <button type="button" @click="closeEditModal()" class="hover:text-gray-500">
+                                <button type="button" @click="closeEditModal()" class="hover:text-secondary">
                                     <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -375,7 +375,7 @@
                     </div>
                 </div>
                 <div class="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" @click="submitEditComment()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" @click="submitEditComment()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 btn-primary text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
                         저장
                     </button>
                     <button type="button" @click="closeEditModal()" class="mt-3 w-full inline-flex justify-center rounded-md border shadow-sm px-4 py-2 bg-white text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">

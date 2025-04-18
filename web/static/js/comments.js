@@ -85,9 +85,9 @@ function setupCommentCharCounter() {
 
         // 남은 글자 수가 적으면 경고 스타일 적용
         if (currentLength > maxLength * 0.9) {
-            commentCharCounter.classList.add('text-red-500');
+            commentCharCounter.classList.add('text-error');
         } else {
-            commentCharCounter.classList.remove('text-red-500');
+            commentCharCounter.classList.remove('text-error');
         }
     };
 

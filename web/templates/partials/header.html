@@ -50,15 +50,15 @@
                 </div>
                 {{else}}
                 <div class="flex space-x-4">
-                    <a href="/auth/login" class="hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">로그인</a>
-                    <a href="/auth/register" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium">회원가입</a>
+                    <a href="/auth/login" class="hover:text-secondary px-3 py-2 rounded-md text-sm font-medium">로그인</a>
+                    <a href="/auth/register" class="btn-primary text-white px-3 py-2 rounded-md text-sm font-medium">회원가입</a>
                 </div>
                 {{end}}
             </div>
 
             <!-- 모바일 메뉴 버튼 -->
             <div class="-mr-2 flex items-center sm:hidden" x-data="{ open: false }">
-                <button @click="open = !open" type="button" class="bg-white inline-flex items-center justify-center p-2 rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-controls="mobile-menu" aria-expanded="false">
+                <button @click="open = !open" type="button" class="bg-white inline-flex items-center justify-center p-2 rounded-md hover:text-secondary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-controls="mobile-menu" aria-expanded="false">
                     <span class="sr-only">메뉴 열기</span>
                     <svg x-show="!open" class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -71,26 +71,26 @@
                 <!-- 모바일 메뉴 -->
                 <div x-show="open" class="sm:hidden absolute top-16 right-0 left-0 bg-white shadow-md z-50" id="mobile-menu">
                     <div class="pt-2 pb-3 space-y-1">
-                        <a href="/boards" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-gray-800">
+                        <a href="/boards" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
                             게시판 목록
                         </a>
                         {{if .user}}
                         {{if eq .user.Role "admin"}}
-                        <a href="/admin" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-gray-800">
+                        <a href="/admin" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
                             관리자
                         </a>
                         {{end}}
-                        <a href="/user/profile" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-gray-800">
+                        <a href="/user/profile" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
                             내 프로필
                         </a>
-                        <a href="/auth/logout" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-gray-800">
+                        <a href="/auth/logout" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
                             로그아웃
                         </a>
                         {{else}}
-                        <a href="/auth/login" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-gray-800">
+                        <a href="/auth/login" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
                             로그인
                         </a>
-                        <a href="/auth/register" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-gray-800">
+                        <a href="/auth/register" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
                             회원가입
                         </a>
                         {{end}}

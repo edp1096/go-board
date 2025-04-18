@@ -1,0 +1,177 @@
+/* web/static/css/utilities.css */
+/* 배경색 관련 */
+.bg-base {
+    background-color: var(--color-bg-primary);
+}
+
+.bg-secondary {
+    background-color: var(--color-bg-secondary);
+}
+
+.bg-accent {
+    background-color: var(--color-bg-accent);
+}
+
+.bg-accent-light {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.bg-info {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.bg-success {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.bg-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.bg-error {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* 텍스트 색상 관련 */
+.text-base {
+    color: var(--color-text-primary);
+}
+
+.text-secondary {
+    color: var(--color-text-secondary);
+}
+
+.text-muted {
+    color: var(--color-text-accent);
+}
+
+.text-accent {
+    color: var(--color-button-primary);
+}
+
+.text-accent-hover:hover {
+    color: var(--color-button-hover);
+}
+
+.text-success {
+    color: #10b981;
+}
+
+.text-error {
+    color: var(--color-action-delete);
+}
+
+/* 버튼 클래스 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--color-button-primary);
+    color: white;
+    border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+    background-color: var(--color-button-hover);
+}
+
+.btn-secondary {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-primary);
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border-secondary);
+}
+
+.btn-error {
+    background-color: var(--color-action-delete);
+    color: white;
+    border: 1px solid transparent;
+}
+
+.btn-error:hover {
+    background-color: var(--color-action-delete-hover);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--color-border-primary);
+    color: var(--color-text-primary);
+}
+
+.btn-outline:hover {
+    background-color: var(--color-bg-secondary);
+}
+
+/* 테두리 관련 */
+.border-base {
+    border-color: var(--color-border-primary);
+}
+
+.border-secondary {
+    border-color: var(--color-border-secondary);
+}
+
+/* 그림자 관련 */
+.shadow-custom {
+    box-shadow: 0 1px 3px 0 var(--color-shadow);
+}
+
+.shadow-custom-md {
+    box-shadow: 0 4px 6px -1px var(--color-shadow), 0 2px 4px -1px var(--color-shadow);
+}
+
+.shadow-custom-lg {
+    box-shadow: 0 10px 15px -3px var(--color-shadow), 0 4px 6px -2px var(--color-shadow);
+}
+
+/* 카드 스타일 */
+.card {
+    background-color: var(--color-bg-primary);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 var(--color-shadow);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border-primary);
+    background-color: var(--color-bg-primary);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border-primary);
+    background-color: var(--color-bg-primary);
+}
+
+/* 폼 관련 */
+.form-input {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 0.375rem;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--color-button-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}

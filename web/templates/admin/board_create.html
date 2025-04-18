@@ -10,7 +10,7 @@
 
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
-                            <label for="name" class="block text-sm font-medium">게시판 이름 <span class="text-red-500">*</span></label>
+                            <label for="name" class="block text-sm font-medium">게시판 이름 <span class="text-error">*</span></label>
                             <input type="text" name="name" id="name" required class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
                         </div>
 
@@ -26,7 +26,7 @@
                         </div>
 
                         <div>
-                            <label for="board_type" class="block text-sm font-medium">게시판 유형 <span class="text-red-500">*</span></label>
+                            <label for="board_type" class="block text-sm font-medium">게시판 유형 <span class="text-error">*</span></label>
                             <select name="board_type" id="board_type" required x-model="board_type" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
                                 {{range .boardTypes}}
                                 <option value="{{.}}">
@@ -49,7 +49,7 @@
                         </label>
                     </div>
                     <p class="mt-1 text-xs">이 게시판에 댓글 작성 기능을 활성화합니다.</p>
-                    <p class="mt-1 text-xs text-red-500" x-show="board_type === 'qna'">질문/답변 게시판에서는 댓글 기능이 자동으로 활성화됩니다.</p>
+                    <p class="mt-1 text-xs text-error" x-show="board_type === 'qna'">질문/답변 게시판에서는 댓글 기능이 자동으로 활성화됩니다.</p>
                 </div>
 
                 <div>
@@ -105,7 +105,7 @@
                                             (<span x-text="manager.email"></span>)
                                             <input type="hidden" :name="'manager_ids[]'" :value="manager.id">
                                         </div>
-                                        <button type="button" @click="removeManager(index)" class="text-red-600 hover:text-red-800">
+                                        <button type="button" @click="removeManager(index)" class="text-error hover:text-error">
                                             삭제
                                         </button>
                                     </li>
@@ -121,7 +121,7 @@
                 <div class="mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-medium">필드 정보</h2>
-                        <button type="button" @click="addField" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <button type="button" @click="addField" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-blue-700 btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             + 필드 추가
                         </button>
                     </div>
@@ -131,26 +131,26 @@
                             <div class="p-4 rounded-lg">
                                 <div class="flex justify-between mb-4">
                                     <h3 class="text-md font-medium" x-text="field.displayName || '새 필드'"></h3>
-                                    <button type="button" @click="removeField(index)" class="text-red-600 hover:text-red-900">
+                                    <button type="button" @click="removeField(index)" class="text-error hover:text-error">
                                         삭제
                                     </button>
                                 </div>
 
                                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div>
-                                        <label :for="'field_name_' + index" class="block text-sm font-medium">필드 이름 <span class="text-red-500">*</span></label>
+                                        <label :for="'field_name_' + index" class="block text-sm font-medium">필드 이름 <span class="text-error">*</span></label>
                                         <input type="text" :name="'field_name_' + index" :id="'field_name_' + index" x-model="field.name" required class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
                                         <p class="mt-1 text-xs">영문, 숫자, 언더스코어(_)만 사용 가능합니다.</p>
-                                        <p class="mt-1 text-xs text-red-500">주의: id, title, content, user_id, view_count, created_at, updated_at은 시스템 예약어로 사용할 수 없습니다.</p>
+                                        <p class="mt-1 text-xs text-error">주의: id, title, content, user_id, view_count, created_at, updated_at은 시스템 예약어로 사용할 수 없습니다.</p>
                                     </div>
 
                                     <div>
-                                        <label :for="'display_name_' + index" class="block text-sm font-medium">표시 이름 <span class="text-red-500">*</span></label>
+                                        <label :for="'display_name_' + index" class="block text-sm font-medium">표시 이름 <span class="text-error">*</span></label>
                                         <input type="text" :name="'display_name_' + index" :id="'display_name_' + index" x-model="field.displayName" required class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
                                     </div>
 
                                     <div>
-                                        <label :for="'field_type_' + index" class="block text-sm font-medium">필드 유형 <span class="text-red-500">*</span></label>
+                                        <label :for="'field_type_' + index" class="block text-sm font-medium">필드 유형 <span class="text-error">*</span></label>
                                         <select :name="'field_type_' + index" :id="'field_type_' + index" x-model="field.fieldType" required class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
                                             {{range .fieldTypes}}
                                             <option value="{{.}}">
@@ -168,7 +168,7 @@
                                     </div>
 
                                     <div x-show="field.fieldType === 'select'">
-                                        <label :for="'options_' + index" class="block text-sm font-medium">옵션 <span class="text-red-500">*</span></label>
+                                        <label :for="'options_' + index" class="block text-sm font-medium">옵션 <span class="text-error">*</span></label>
                                         <textarea :name="'options_' + index" :id="'options_' + index" x-model="field.options" :required="field.fieldType === 'select'" rows="3" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm" placeholder='[{"value":"option1","label":"옵션 1"},{"value":"option2","label":"옵션 2"}]'></textarea>
                                         <p class="mt-1 text-xs">JSON 형식으로 입력해주세요.</p>
                                     </div>
@@ -212,7 +212,7 @@
                 <a href="/admin/boards" class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
                     취소
                 </a>
-                <button type="button" @click="submitForm()" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                <button type="button" @click="submitForm()" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
                     <span x-show="!submitting">등록</span>
                     <span x-show="submitting" class="flex items-center">
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

@@ -4,10 +4,10 @@
 
     {{if not .boards}}
     <div class="bg-white shadow rounded-lg p-6 text-center">
-        <p class="text-gray-500">등록된 게시판이 없습니다.</p>
+        <p class="text-secondary">등록된 게시판이 없습니다.</p>
         {{if .user}}
         {{if eq .user.Role "admin"}}
-        <a href="/admin/boards/create" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="/admin/boards/create" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             게시판 만들기
         </a>
         {{end}}

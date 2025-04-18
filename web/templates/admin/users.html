@@ -2,7 +2,7 @@
 <div class="max-w-7xl mx-auto">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">사용자 관리</h1>
-        <a href="/admin/users/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="/admin/users/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             새 사용자 추가
         </a>
     </div>
@@ -21,7 +21,7 @@
             <div>
                 <button 
                     type="submit" 
-                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="btn-primary text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     검색
                 </button>
             </div>
@@ -68,16 +68,16 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm">{{.FullName}}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         {{if eq .Role "admin"}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">관리자</span>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full btn-primary text-blue-800">관리자</span>
                         {{else}}
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">일반사용자</span>
                         {{end}}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         {{if .Active}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">활성화</span>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full btn-success text-success">활성화</span>
                         {{else}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">비활성화</span>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-error">비활성화</span>
                         {{end}}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">{{.CreatedAt.Format "2006-01-02"}}</td>
@@ -91,13 +91,13 @@
                             {{$admin := eq .Role "admin"}}
                             <button
                                 onclick="toggleUserRole('{{.ID}}', '{{.Role}}')"
-                                class="{{if $admin}}bg-yellow-500{{else}}bg-blue-500{{end}} text-white px-2 py-1 rounded-md text-xs"
+                                class="{{if $admin}}bg-yellow-500{{else}}btn-primary{{end}} text-white px-2 py-1 rounded-md text-xs"
                                 title="{{if $admin}}관리자 권한 해제{{else}}관리자 권한 부여{{end}}">
                                 {{if eq .Role "admin"}}해제{{else}}승급{{end}}
                             </button>
                             <button
                                 onclick="toggleUserStatus('{{.ID}}', '{{.Active}}')"
-                                class="{{if .Active}}bg-red-500{{else}}bg-green-500{{end}} text-white px-2 py-1 rounded-md text-xs"
+                                class="{{if .Active}}bg-red-500{{else}}btn-success{{end}} text-white px-2 py-1 rounded-md text-xs"
                                 title="{{if .Active}}계정 비활성화{{else}}계정 활성화{{end}}">
                                 {{if .Active}}정지{{else}}복구{{end}}
                             </button>
@@ -122,7 +122,7 @@
             {{range $i := iterate 1 .totalPages}}
             <a 
                 href="/admin/users?page={{$i}}{{if $.search}}&search={{$.search}}{{end}}" 
-                class="px-3 py-1 rounded-md {{if eq $i $.currentPage}}bg-blue-600 text-white{{else}}bg-gray-200 hover:bg-gray-300{{end}}"
+                class="px-3 py-1 rounded-md {{if eq $i $.currentPage}}btn-primary text-white{{else}}bg-gray-200 hover:bg-gray-300{{end}}"
             >
                 {{$i}}
             </a>
