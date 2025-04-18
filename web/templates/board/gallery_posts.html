@@ -12,14 +12,14 @@
 
     {{if .board.Description}}
     <div class="bg-white shadow rounded-lg p-4 mb-6">
-        <p class="text-gray-600">{{.board.Description}}</p>
+        <p>{{.board.Description}}</p>
     </div>
     {{end}}
 
     <!-- 검색 폼 -->
     <div class="mb-6">
         <form action="/boards/{{.board.ID}}/posts" method="GET" class="flex">
-            <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+            <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
             <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 검색
             </button>
@@ -35,24 +35,24 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {{range .posts}}
         <a href="/boards/{{$.board.ID}}/posts/{{.ID}}" class="block bg-white overflow-hidden rounded-lg shadow-md hover:shadow-lg transition duration-300">
-            <div class="relative pb-[75%] bg-gray-100"> <!-- 4:3 비율 이미지 컨테이너 -->
+            <div class="relative pb-[75%]"> <!-- 4:3 비율 이미지 컨테이너 -->
                 {{if .RawData.ThumbnailURL}}
                 <img src="{{.RawData.ThumbnailURL}}" alt="{{toUTF8 .Title}}" class="absolute inset-0 w-full h-full object-cover">
                 {{else}}
                 <div class="absolute inset-0 flex items-center justify-center bg-gray-200">
-                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
                 </div>
                 {{end}}
             </div>
             <div class="p-4">
-                <h3 class="text-sm font-medium text-gray-900 truncate">{{toUTF8 .Title}}</h3>
+                <h3 class="text-sm font-medium truncate">{{toUTF8 .Title}}</h3>
                 <div class="mt-2 flex items-center justify-between">
-                    <p class="text-xs text-gray-500">{{.Username}}</p>
-                    <p class="text-xs text-gray-500">{{.CreatedAt.Format "2006-01-02"}}</p>
+                    <p class="text-xs">{{.Username}}</p>
+                    <p class="text-xs">{{.CreatedAt.Format "2006-01-02"}}</p>
                 </div>
-                <div class="mt-1 flex items-center text-xs text-gray-500">
+                <div class="mt-1 flex items-center text-xs">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -72,7 +72,7 @@
                 <!-- 이전 페이지 -->
                 {{if gt .page 1}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-hover">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
                         이전
                     </a>
                 </li>
@@ -81,7 +81,7 @@
                 <!-- 페이지 번호 -->
                 {{range $i := iterate 1 .totalPages}}
                 <li>
-                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md {{if eq $i $.page}}bg-blue-50 text-blue-600 border-blue-500{{else}}text-gray-700 bg-white hover:bg-hover{{end}}">
+                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md {{if eq $i $.page}}bg-blue-50 text-blue-600 border-blue-500{{else}}text-gray-700 bg-white{{end}}">
                         {{$i}}
                     </a>
                 </li>
@@ -90,7 +90,7 @@
                 <!-- 다음 페이지 -->
                 {{if lt .page .totalPages}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-hover">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
                         다음
                     </a>
                 </li>

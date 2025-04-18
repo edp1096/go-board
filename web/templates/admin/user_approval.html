@@ -2,34 +2,34 @@
 <div class="max-w-7xl mx-auto">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">사용자 승인 관리</h1>
-        <a href="/admin" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-hover focus:outline-none">
+        <a href="/admin" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
             대시보드로 돌아가기
         </a>
     </div>
 
     <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
         <div class="px-4 py-5 sm:px-6">
-            <h2 class="text-lg font-medium text-gray-900">승인 대기 중인 사용자</h2>
-            <p class="mt-1 max-w-2xl text-sm text-gray-500">가입 신청한 사용자를 승인하거나 거부할 수 있습니다.</p>
+            <h2 class="text-lg font-medium">승인 대기 중인 사용자</h2>
+            <p class="mt-1 max-w-2xl text-sm">가입 신청한 사용자를 승인하거나 거부할 수 있습니다.</p>
         </div>
 
         <div class="border-t border-gray-200">
             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead>
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                             사용자명
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                             이메일
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                             이름
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                             가입일
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                             작업
                         </th>
                     </tr>
@@ -37,10 +37,10 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     {{range .users}}
                     <tr id="user-row-{{.ID}}">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Username}}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Email}}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.FullName}}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{.Username}}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">{{.Email}}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">{{.FullName}}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex space-x-2">
                                 <button onclick="approveUser('{{.ID}}')" class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
@@ -54,7 +54,7 @@
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-center">
                             승인 대기 중인 사용자가 없습니다.
                         </td>
                     </tr>

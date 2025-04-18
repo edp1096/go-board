@@ -661,7 +661,7 @@ func handleShutdown(app *fiber.App) {
 	fmt.Println("서버를 종료합니다..")
 	shutdownTimeout := 1 * time.Second
 	if err := app.ShutdownWithTimeout(shutdownTimeout); err != nil {
-		log.Fatalf("서버 종료 실패: %v", err)
+		// log.Fatalf("서버 종료 실패: %v", err)
 	}
-	fmt.Println("서버가 안전하게 종료되었습니다.")
+	// fmt.Println("서버가 안전하게 종료되었습니다.")
 }

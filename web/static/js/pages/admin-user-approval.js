@@ -86,7 +86,7 @@ function checkEmptyTable() {
         // 모든 행이 제거된 경우 메시지 표시
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-            <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+            <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-center">
                 승인 대기 중인 사용자가 없습니다.
             </td>
         `;

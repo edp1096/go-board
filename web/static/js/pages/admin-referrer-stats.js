@@ -83,9 +83,9 @@ function formatJsonDisplay(jsonData) {
     // 접을 수 있는 원본 JSON 데이터 섹션 생성
     const collapsibleSection = `
         <div class="mt-4">
-            <details class="bg-gray-50 rounded p-2">
-                <summary class="cursor-pointer font-medium text-sm text-gray-700 py-1">원본 JSON 데이터 보기</summary>
-                <pre class="text-xs overflow-auto mt-2 p-2 bg-gray-100 rounded max-h-64">${JSON.stringify(jsonData, null, 2)}</pre>
+            <detailsclass="rounded p-2">
+                <summary class="cursor-pointer font-medium text-sm py-1">원본 JSON 데이터 보기</summary>
+                <pre class="text-xs overflow-auto mt-2 p-2 rounded max-h-64">${JSON.stringify(jsonData, null, 2)}</pre>
             </details>
         </div>
     `;
@@ -95,8 +95,20 @@ function formatJsonDisplay(jsonData) {
 
 // JSON 데이터에서 중요 정보 추출 및 표 형식으로 변환
 function extractImportantInfo(jsonData) {
-    let result = '<div class="overflow-x-auto"><table class="min-w-full text-sm">';
-    result += '<thead><tr class="bg-gray-100"><th class="text-left py-2 px-3 w-1/3">속성</th><th class="text-left py-2 px-3">값</th></tr></thead><tbody>';
+    let result = `
+<div class="overflow-x-auto">
+    <table class="min-w-full text-sm">`;
+
+    result += `
+<thead>
+    <tr>
+        <th class="text-left py-2 px-3 w-1/3">속성</th><th class="text-left py-2 px-3">
+            값
+        </th>
+    </tr>
+</thead>
+<tbody>
+`;
 
     // IP 정보용 주요 필드 추출
     if (jsonData.ipVersion) {
@@ -138,8 +150,8 @@ function extractImportantInfo(jsonData) {
 // 테이블 행 생성 헬퍼 함수
 function addTableRow(label, value) {
     return `<tr class="border-t border-gray-200">
-        <td class="py-2 px-3 align-top font-medium text-gray-600">${label}</td>
-        <td class="py-2 px-3 align-top text-gray-800">${value}</td>
+        <td class="py-2 px-3 align-top font-medium">${label}</td>
+        <td class="py-2 px-3 align-top">${value}</td>
     </tr>`;
 }
 
@@ -152,19 +164,19 @@ function displayWhoisInfo(data, type, container) {
         const ipInfoHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <p class="text-xs text-gray-500">IP 주소</p>
+                    <p class="text-xs">IP 주소</p>
                     <p class="font-medium">${data.ipAddress || data.query || '-'}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">위치</p>
+                    <p class="text-xs">위치</p>
                     <p class="font-medium">${data.country || '-'}${data.city ? ', ' + data.city : ''}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">네트워크</p>
+                    <p class="text-xs">네트워크</p>
                     <p class="font-medium">${data.network || data.asn || '-'}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">조직</p>
+                    <p class="text-xs">조직</p>
                     <p class="font-medium">${data.organization || data.isp || '-'}</p>
                 </div>
             </div>
@@ -175,27 +187,27 @@ function displayWhoisInfo(data, type, container) {
         const domainInfoHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <p class="text-xs text-gray-500">도메인</p>
+                    <p class="text-xs">도메인</p>
                     <p class="font-medium">${data.domain || '-'}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">등록기관</p>
+                    <p class="text-xs">등록기관</p>
                     <p class="font-medium">${data.registrar || '-'}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">생성일</p>
+                    <p class="text-xs">생성일</p>
                     <p class="font-medium">${data.createdDate || '-'}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500">만료일</p>
+                    <p class="text-xs">만료일</p>
                     <p class="font-medium">${data.expiryDate || '-'}</p>
                 </div>
                 <div class="md:col-span-2">
-                    <p class="text-xs text-gray-500">네임서버</p>
+                    <p class="text-xs">네임서버</p>
                     <p class="font-medium">${Array.isArray(data.nameServers) ? data.nameServers.join(', ') : (data.nameServers || '-')}</p>
                 </div>
                 <div class="md:col-span-2">
-                    <p class="text-xs text-gray-500">상태</p>
+                    <p class="text-xs">상태</p>
                     <p class="font-medium">${Array.isArray(data.status) ? data.status.join(', ') : (data.status || '-')}</p>
                 </div>
             </div>

@@ -22,29 +22,29 @@
             <input type="hidden" name="csrf" value="{{.csrf}}">
 
             <div class="mb-4">
-                <label for="username" class="block text-gray-700 text-sm font-medium mb-2">아이디 <span class="text-red-500">*</span></label>
-                <input id="username" name="username" type="text" required class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" value="{{.username}}">
+                <label for="username" class="block text-sm font-medium mb-2">아이디 <span class="text-red-500">*</span></label>
+                <input id="username" name="username" type="text" required class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md" value="{{.username}}">
             </div>
 
             <div class="mb-4">
-                <label for="email" class="block text-gray-700 text-sm font-medium mb-2">이메일 <span class="text-red-500">*</span></label>
-                <input id="email" name="email" type="email" required class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" value="{{.email}}">
+                <label for="email" class="block text-sm font-medium mb-2">이메일 <span class="text-red-500">*</span></label>
+                <input id="email" name="email" type="email" required class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md" value="{{.email}}">
             </div>
 
             <div class="mb-4">
-                <label for="password" class="block text-gray-700 text-sm font-medium mb-2">비밀번호 <span class="text-red-500">*</span></label>
-                <input id="password" name="password" type="password" required x-model="password" @input="passwordMatch = (password === passwordConfirm) || passwordConfirm === ''" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <label for="password" class="block text-sm font-medium mb-2">비밀번호 <span class="text-red-500">*</span></label>
+                <input id="password" name="password" type="password" required x-model="password" @input="passwordMatch = (password === passwordConfirm) || passwordConfirm === ''" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
             </div>
 
             <div class="mb-4">
-                <label for="password_confirm" class="block text-gray-700 text-sm font-medium mb-2">비밀번호 확인 <span class="text-red-500">*</span></label>
-                <input id="password_confirm" name="password_confirm" type="password" required x-model="passwordConfirm" @input="passwordMatch = (password === passwordConfirm)" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" :class="{ 'border-red-500': !passwordMatch }">
+                <label for="password_confirm" class="block text-sm font-medium mb-2">비밀번호 확인 <span class="text-red-500">*</span></label>
+                <input id="password_confirm" name="password_confirm" type="password" required x-model="passwordConfirm" @input="passwordMatch = (password === passwordConfirm)" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md" :class="{ 'border-red-500': !passwordMatch }">
                 <p x-show="!passwordMatch" class="mt-1 text-sm text-red-600">비밀번호가 일치하지 않습니다.</p>
             </div>
 
             <div class="mb-6">
-                <label for="full_name" class="block text-gray-700 text-sm font-medium mb-2">이름</label>
-                <input id="full_name" name="full_name" type="text" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" value="{{.fullName}}">
+                <label for="full_name" class="block text-sm font-medium mb-2">이름</label>
+                <input id="full_name" name="full_name" type="text" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md" value="{{.fullName}}">
             </div>
 
             <div>

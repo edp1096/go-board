@@ -2,7 +2,7 @@
 <div class="max-w-7xl mx-auto">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">사용자 정보 수정</h1>
-        <a href="/admin/users" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-hover focus:outline-none">
+        <a href="/admin/users" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
             사용자 목록으로 돌아가기
         </a>
     </div>
@@ -13,43 +13,43 @@
             
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">사용자명 *</label>
+                    <label for="username" class="block text-sm font-medium">사용자명 *</label>
                     <input type="text" id="username" name="username" value="{{.user.Username}}" required
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                    <p class="mt-1 text-xs text-gray-500">로그인에 사용될 고유한 사용자명입니다.</p>
+                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <p class="mt-1 text-xs">로그인에 사용될 고유한 사용자명입니다.</p>
                 </div>
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">이메일 *</label>
+                    <label for="email" class="block text-sm font-medium">이메일 *</label>
                     <input type="email" id="email" name="email" value="{{.user.Email}}" required
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">새 비밀번호</label>
+                    <label for="password" class="block text-sm font-medium">새 비밀번호</label>
                     <input type="password" id="password" name="password"
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                    <p class="mt-1 text-xs text-gray-500">변경하려면 입력하세요. 빈칸으로 두면 기존 비밀번호가 유지됩니다.</p>
+                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <p class="mt-1 text-xs">변경하려면 입력하세요. 빈칸으로 두면 기존 비밀번호가 유지됩니다.</p>
                 </div>
 
                 <div>
-                    <label for="password_confirm" class="block text-sm font-medium text-gray-700">새 비밀번호 확인</label>
+                    <label for="password_confirm" class="block text-sm font-medium">새 비밀번호 확인</label>
                     <input type="password" id="password_confirm" name="password_confirm"
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
-                    <label for="full_name" class="block text-sm font-medium text-gray-700">이름</label>
+                    <label for="full_name" class="block text-sm font-medium">이름</label>
                     <input type="text" id="full_name" name="full_name" value="{{.user.FullName}}"
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
                     {{$admin := eq .user.Role "admin"}}
                     {{$user := eq .user.Role "user"}}
-                    <label for="role" class="block text-sm font-medium text-gray-700">역할</label>
+                    <label for="role" class="block text-sm font-medium">역할</label>
                     <select id="role" name="role"
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         <option value="user" {{if $user}}selected{{end}}>일반 사용자</option>
                         <option value="admin" {{if $admin}}selected{{end}}>관리자</option>
                     </select>
@@ -58,15 +58,15 @@
 
             <div class="flex items-center">
                 <input id="active" name="active" type="checkbox" {{if .user.Active}}checked{{end}}
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <label for="active" class="ml-2 block text-sm text-gray-900">
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded">
+                <label for="active" class="ml-2 block text-sm">
                     계정 활성화
                 </label>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">계정 정보</label>
-                <div class="mt-1 text-sm text-gray-500">
+                <label class="block text-sm font-medium">계정 정보</label>
+                <div class="mt-1 text-sm">
                     <p>생성일: {{.user.CreatedAt.Format "2006-01-02 15:04:05"}}</p>
                     <p>마지막 수정일: {{.user.UpdatedAt.Format "2006-01-02 15:04:05"}}</p>
                 </div>

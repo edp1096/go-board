@@ -12,14 +12,14 @@
 
     {{if .board.Description}}
     <div class="bg-white shadow rounded-lg p-4 mb-6">
-        <p class="text-gray-600">{{.board.Description}}</p>
+        <p>{{.board.Description}}</p>
     </div>
     {{end}}
 
     <!-- 검색 폼 -->
     <div class="mb-6">
         <form action="/boards/{{.board.ID}}/posts" method="GET" class="flex">
-            <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+            <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
             <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 검색
             </button>
@@ -36,14 +36,14 @@
         <ul class="divide-y divide-gray-200">
             {{range .posts}}
             <li>
-                <a href="/boards/{{$.board.ID}}/posts/{{.ID}}" class="block hover:bg-hover">
+                <a href="/boards/{{$.board.ID}}/posts/{{.ID}}" class="block">
                     <div class="px-4 py-4 sm:px-6">
                         <div class="flex items-center justify-between">
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-blue-600 truncate">
                                     {{toUTF8 .Title}}
                                 </p>
-                                <p class="mt-1 text-xs text-gray-500 truncate">
+                                <p class="mt-1 text-xs truncate">
                                     {{.Username}} · 조회수 {{.ViewCount}}
                                 </p>
                             </div>
@@ -68,7 +68,7 @@
                 <!-- 이전 페이지 -->
                 {{if gt .page 1}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-hover">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
                         이전
                     </a>
                 </li>
@@ -77,7 +77,7 @@
                 <!-- 페이지 번호 -->
                 {{range $i := iterate 1 .totalPages}}
                 <li>
-                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md {{if eq $i $.page}}bg-blue-50 text-blue-600 border-blue-500{{else}}text-gray-700 bg-white hover:bg-hover{{end}}">
+                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md {{if eq $i $.page}}bg-blue-50 text-blue-600 border-blue-500{{else}}text-gray-700 bg-white{{end}}">
                         {{$i}}
                     </a>
                 </li>
@@ -86,7 +86,7 @@
                 <!-- 다음 페이지 -->
                 {{if lt .page .totalPages}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-hover">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
                         다음
                     </a>
                 </li>
