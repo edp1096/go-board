@@ -2,11 +2,8 @@
 :root {
     /* 라이트 모드 기본 변수 */
     --color-bg-primary: #ffffff;
-    /* 흰색 */
     --color-bg-secondary: #f0f0f0;
-    /* 밝은 회색 - 더 눈에 띄게 조정 */
     --color-bg-accent: #bfdbfe;
-    /* 확실한 파란색 계열 - 명확히 구분 */
 
     --color-text-primary: #1f2937;
     --color-text-secondary: #4b5563;
@@ -17,35 +14,23 @@
 
     --color-button-primary: #3b82f6;
     --color-button-hover: #2563eb;
-    /* 확실히 더 진한 파랑 */
 
     --color-hover-bg: #e5edff;
-    /* 호버 시 배경색 - 명확한 구분 */
-    --color-shadow: rgba(0, 0, 0, 0.1);
+    --color-shadow: rgba(10, 10, 10, 0.1);
 
     --color-action-view: #2563eb;
-    /* blue-600 */
     --color-action-view-hover: #1e40af;
-    /* blue-900 */
     --color-action-edit: #4f46e5;
-    /* indigo-600 */
     --color-action-edit-hover: #312e81;
-    /* indigo-900 */
     --color-action-delete: #dc2626;
-    /* red-600 */
     --color-action-delete-hover: #7f1d1d;
-    /* red-900 */
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        /* 다크 모드 변수 */
         --color-bg-primary: #1f2937;
-        /* 다크 그레이 */
         --color-bg-secondary: #111827;
-        /* 더 어두운 그레이 */
         --color-bg-accent: #3b82f6;
-        /* 밝은 파란색 - 확실한 대비 */
 
         --color-text-primary: #f9fafb;
         --color-text-secondary: #e5e7eb;
@@ -56,24 +41,16 @@
 
         --color-button-primary: #60a5fa;
         --color-button-hover: #93c5fd;
-        /* 확실히 더 밝은 파랑 */
 
         --color-hover-bg: #2563eb;
-        /* 호버 시 배경색 - 명확한 구분 */
-        --color-shadow: rgba(255, 255, 255, 1.0);
+        --color-shadow: rgba(255, 255, 255, 0.4);
 
         --color-action-view: #60a5fa;
-        /* blue-400 */
         --color-action-view-hover: #93c5fd;
-        /* blue-300 */
         --color-action-edit: #818cf8;
-        /* indigo-400 */
         --color-action-edit-hover: #a5b4fc;
-        /* indigo-300 */
         --color-action-delete: #f87171;
-        /* red-400 */
         --color-action-delete-hover: #fca5a5;
-        /* red-300 */
     }
 }
 
