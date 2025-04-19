@@ -11,7 +11,7 @@ CREATE TABLE attachments (
     file_path TEXT NOT NULL,
     file_size INTEGER NOT NULL,
     mime_type TEXT NOT NULL,
-    is_image INTEGER NOT NULL DEFAULT 0,
+    is_image TINYINT NOT NULL DEFAULT 0,
     download_url TEXT NOT NULL,
     thumbnail_url TEXT DEFAULT NULL,
     download_count INTEGER DEFAULT 0,

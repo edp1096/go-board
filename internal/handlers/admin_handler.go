@@ -1372,3 +1372,61 @@ func (h *AdminHandler) RejectUser(c *fiber.Ctx) error {
 		"message": "사용자 승인이 거부되었습니다",
 	})
 }
+
+// ChangeOrder 게시판 표시 순서 변경
+func (h *AdminHandler) ChangeOrder(c *fiber.Ctx) error {
+	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 게시판 ID입니다",
+		})
+	}
+
+	// 게시판 정보 조회
+	// board, err := h.boardService.GetBoardByID(c.Context(), boardID)
+	_, err = h.boardService.GetBoardByID(c.Context(), boardID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "게시판을 찾을 수 없습니다",
+		})
+	}
+
+	// 요청 본문 파싱
+	var body struct {
+		Direction string `json:"direction"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 데이터 파싱에 실패했습니다",
+		})
+	}
+
+	// 방향에 따라 순서 변경
+	switch body.Direction {
+	case "up":
+		err = h.boardService.MoveBoardOrder(c.Context(), boardID, true)
+	case "down":
+		err = h.boardService.MoveBoardOrder(c.Context(), boardID, false)
+	default:
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "유효하지 않은 방향입니다. 'up' 또는 'down'이어야 합니다.",
+		})
+	}
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "게시판 순서 변경에 실패했습니다: " + err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "게시판 순서가 변경되었습니다",
+	})
+}

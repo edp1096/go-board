@@ -31,6 +31,7 @@ type BoardService interface {
 	UpdateBoard(ctx context.Context, board *models.Board) error
 	DeleteBoard(ctx context.Context, id int64) error
 	ListBoards(ctx context.Context, onlyActive bool) ([]*models.Board, error)
+	MoveBoardOrder(ctx context.Context, boardID int64, moveUp bool) error
 
 	// 매니저 관련 메서드
 	GetBoardManagers(ctx context.Context, boardID int64) ([]*models.User, error)
@@ -111,6 +112,126 @@ func (s *boardService) DeleteBoard(ctx context.Context, id int64) error {
 
 func (s *boardService) ListBoards(ctx context.Context, onlyActive bool) ([]*models.Board, error) {
 	return s.boardRepo.List(ctx, onlyActive)
+}
+
+func (s *boardService) MoveBoardOrder(ctx context.Context, boardID int64, moveUp bool) error {
+	// 전체 게시판 목록을 정렬 순서와 ID로 정렬하여 가져옴
+	var boards []*models.Board
+	query := s.db.NewSelect().
+		Model(&boards).
+		// Order("sort_order ASC, id ASC")
+		Order("sort_order ASC")
+
+	if err := query.Scan(ctx); err != nil {
+		return fmt.Errorf("게시판 목록 조회 실패: %w", err)
+	}
+
+	// 게시판이 1개뿐이면 순서 변경 불필요
+	if len(boards) <= 1 {
+		return nil
+	}
+
+	// 현재 게시판의 인덱스 찾기
+	currentIndex := -1
+	for i, b := range boards {
+		if b.ID == boardID {
+			currentIndex = i
+			break
+		}
+	}
+
+	if currentIndex == -1 {
+		return fmt.Errorf("게시판을 목록에서 찾을 수 없습니다")
+	}
+
+	// 이동할 인덱스 계산
+	var targetIndex int
+	if moveUp {
+		// 위로 이동
+		if currentIndex == 0 {
+			// 이미 가장 위에 있으면 변경 없음
+			return nil
+		}
+		targetIndex = currentIndex - 1
+	} else {
+		// 아래로 이동
+		if currentIndex == len(boards)-1 {
+			// 이미 가장 아래에 있으면 변경 없음
+			return nil
+		}
+		targetIndex = currentIndex + 1
+	}
+
+	// 트랜잭션 시작
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("트랜잭션 시작 실패: %w", err)
+	}
+	defer tx.Rollback()
+
+	// 현재 게시판과 대상 게시판의 sort_order를 서로 교환
+	currentBoard := boards[currentIndex]
+	targetBoard := boards[targetIndex]
+
+	// 만약 모든 게시판의 sort_order가 같다면, 새로운 순서 부여
+	if currentBoard.SortOrder == targetBoard.SortOrder {
+		// 게시판 순서를 10 단위로 다시 할당
+		for i, board := range boards {
+			// 현재 루프의 게시판 순서 = 인덱스 * 10
+			newOrder := i * 10
+
+			// 이동 중인 게시판들은 순서를 서로 교환
+			if i == currentIndex {
+				newOrder = targetIndex * 10
+			} else if i == targetIndex {
+				newOrder = currentIndex * 10
+			}
+
+			// 게시판 순서 업데이트
+			_, err = tx.NewUpdate().
+				Table("boards").
+				Set("sort_order = ?", newOrder).
+				Set("updated_at = ?", time.Now()).
+				Where("id = ?", board.ID).
+				Exec(ctx)
+
+			if err != nil {
+				return fmt.Errorf("게시판 순서 업데이트 실패 (ID: %d): %w", board.ID, err)
+			}
+		}
+	} else {
+		// 일반적인 경우: 두 게시판의 sort_order만 교환
+		// 현재 게시판의 순서 업데이트
+		_, err = tx.NewUpdate().
+			Table("boards").
+			Set("sort_order = ?", targetBoard.SortOrder).
+			Set("updated_at = ?", time.Now()).
+			Where("id = ?", currentBoard.ID).
+			Exec(ctx)
+
+		if err != nil {
+			return fmt.Errorf("게시판 순서 업데이트 실패 (ID: %d): %w", currentBoard.ID, err)
+		}
+
+		// 대상 게시판의 순서 업데이트
+		_, err = tx.NewUpdate().
+			Table("boards").
+			Set("sort_order = ?", currentBoard.SortOrder).
+			Set("updated_at = ?", time.Now()).
+			Where("id = ?", targetBoard.ID).
+			Exec(ctx)
+
+		if err != nil {
+			return fmt.Errorf("게시판 순서 업데이트 실패 (ID: %d): %w", targetBoard.ID, err)
+		}
+	}
+
+	// 트랜잭션 커밋
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("트랜잭션 커밋 실패: %w", err)
+	}
+
+	return nil
 }
 
 // 매니저 관련

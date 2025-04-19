@@ -31,6 +31,9 @@
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                         생성일
                     </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        표시순서
+                    </th>
                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
                         관리
                     </th>
@@ -69,6 +72,21 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         {{.CreatedAt.Format "2006-01-02"}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <div class="flex space-x-2">
+                            <button @click="changeOrder({{.ID}}, 'up')" class="focus:outline-none" title="위로 이동">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            <!-- <span>{{.SortOrder}}</span> -->
+                            <button @click="changeOrder({{.ID}}, 'down')" class="focus:outline-none" title="아래로 이동">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div class="flex justify-end space-x-2">

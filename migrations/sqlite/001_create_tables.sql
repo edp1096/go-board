@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     full_name TEXT,
     role TEXT NOT NULL DEFAULT 'user',
-    active INTEGER NOT NULL DEFAULT 1, -- SQLite는 BOOLEAN이 없음 (1=true, 0=false)
+    active TINYINT NOT NULL DEFAULT 1, -- SQLite는 BOOLEAN이 없음 (1=true, 0=false)
     approval_status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected
     approval_due TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -24,10 +24,10 @@ CREATE TABLE IF NOT EXISTS boards (
     description TEXT,
     board_type TEXT NOT NULL,
     table_name TEXT NOT NULL UNIQUE,
-    active INTEGER NOT NULL DEFAULT 1,
-    comments_enabled INTEGER NOT NULL DEFAULT 1,
-    allow_anonymous INTEGER NOT NULL DEFAULT 0,
-    allow_private INTEGER NOT NULL DEFAULT 0,
+    active TINYINT NOT NULL DEFAULT 1,
+    comments_enabled TINYINT NOT NULL DEFAULT 1,
+    allow_anonymous TINYINT NOT NULL DEFAULT 0,
+    allow_private TINYINT NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS board_fields (
     column_name TEXT NOT NULL,
     display_name TEXT NOT NULL,
     field_type TEXT NOT NULL,
-    required INTEGER NOT NULL DEFAULT 0,
-    sortable INTEGER NOT NULL DEFAULT 0,
-    searchable INTEGER NOT NULL DEFAULT 0,
+    required TINYINT NOT NULL DEFAULT 0,
+    sortable TINYINT NOT NULL DEFAULT 0,
+    searchable TINYINT NOT NULL DEFAULT 0,
     options TEXT,
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

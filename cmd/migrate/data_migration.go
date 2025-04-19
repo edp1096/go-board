@@ -345,6 +345,7 @@ func createSQLiteDynamicTable(config *DataMigrationConfig, board *models.Board, 
 		"content TEXT NOT NULL",
 		"user_id INTEGER NOT NULL",
 		"view_count INTEGER NOT NULL DEFAULT 0",
+		"is_private TINYINT NOT NULL DEFAULT 0",
 		"created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 		"updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 	}
@@ -358,7 +359,7 @@ func createSQLiteDynamicTable(config *DataMigrationConfig, board *models.Board, 
 		case models.FieldTypeDate:
 			colType = "TIMESTAMP"
 		case models.FieldTypeCheckbox:
-			colType = "INTEGER" // 0 또는 1
+			colType = "TINYINT" // 0 또는 1
 		default:
 			colType = "TEXT" // text, textarea, select, file 등
 		}

@@ -581,6 +581,7 @@ func setupRoutes(
 	answerAPI.Post("/vote", authMiddleware.RequireAuth, qnaHandler.VoteAnswer)
 
 	adminAPI := api.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
+	adminAPI.Put("/boards/:boardID/order", adminHandler.ChangeOrder)
 	adminAPI.Get("/users/search", adminHandler.SearchUsers)
 	adminAPI.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
 
