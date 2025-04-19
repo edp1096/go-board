@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS boards (
     active BOOLEAN NOT NULL DEFAULT TRUE,
     comments_enabled BOOLEAN NOT NULL DEFAULT true,
     allow_anonymous BOOLEAN NOT NULL DEFAULT false,
-    default_private BOOLEAN NOT NULL DEFAULT false,
+    allow_private BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

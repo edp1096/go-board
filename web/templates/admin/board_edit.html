@@ -79,7 +79,7 @@
 
                         <div>
                             <div class="flex items-center">
-                                <input id="allow_private" name="allow_private" type="checkbox" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
+                                <input id="allow_private" name="allow_private" type="checkbox"  {{if .board.AllowPrivate}}checked{{end}} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
                                 <label for="allow_private" class="ml-2 block text-sm">
                                     비밀글 설정 허용
                                 </label>

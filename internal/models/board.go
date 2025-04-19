@@ -42,7 +42,7 @@ type Board struct {
 	Active          bool      `bun:"active,notnull" json:"active"`                    // 게시판 활성화 여부
 	CommentsEnabled bool      `bun:"comments_enabled,notnull" json:"commentsEnabled"` // 댓글 기능 활성화 여부
 	AllowAnonymous  bool      `bun:"allow_anonymous,notnull" json:"allowAnonymous"`   // 익명 사용자 접근 허용 여부
-	DefaultPrivate  bool      `bun:"default_private,notnull" json:"defaultPrivate"`   // 비밀글 기본값 설정
+	AllowPrivate    bool      `bun:"allow_private,notnull" json:"allowPrivate"`       // 비밀글 기본값 설정
 	CreatedAt       time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
 	UpdatedAt       time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
 

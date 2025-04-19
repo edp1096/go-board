@@ -239,6 +239,12 @@ async function createOrSelectBoard(page) {
         console.log('익명 접근 허용 체크박스를 찾을 수 없습니다.');
     }
 
+    if (await allowPrivate.count() > 0) {
+        await allowPrivate.check();
+    } else {
+        console.log('비밀글 허용 체크박스를 찾을 수 없습니다.');
+    }
+
     // 페이지의 모든 버튼 텍스트 로깅 (디버깅용)
     const buttons = await page.locator('button').all();
     console.log('페이지의 버튼들:');

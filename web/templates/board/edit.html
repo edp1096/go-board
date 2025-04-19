@@ -19,7 +19,7 @@
                     <editor-other id="editor" data-idx="1"></editor-other>
                 </div>
 
-                {{if .board.DefaultPrivate}}
+                {{if .board.AllowPrivate}}
                 <div class="mb-4">
                     <div class="flex items-center">
                         <input id="is_private" name="is_private" type="checkbox" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" {{if .post.IsPrivate}}checked{{end}}>
