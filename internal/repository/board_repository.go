@@ -85,7 +85,7 @@ func (r *boardRepository) List(ctx context.Context, onlyActive bool) ([]*models.
 		query = query.Where("active = ?", true)
 	}
 
-	err := query.Order("name ASC").Scan(ctx)
+	err := query.Order("id ASC").Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
