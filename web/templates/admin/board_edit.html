@@ -191,7 +191,7 @@
                                         <label :for="'field_type_' + index" class="block text-sm font-medium">필드 유형 <span class="text-error">*</span></label>
                                         <select :name="'field_type_' + index" :id="'field_type_' + index" x-model="field.fieldType" required :disabled="!field.isNew" :class="{ 'bg-secondary': !field.isNew }" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
                                             {{range .fieldTypes}}
-                                            <option value="{{.}}">
+                                            <option value="{{.}}" class="bg-secondary">
                                                 {{if eq . "text"}}텍스트
                                                 {{else if eq . "textarea"}}텍스트 영역
                                                 {{else if eq . "number"}}숫자

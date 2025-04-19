@@ -41,6 +41,19 @@ migrate -h
 ```
 
 
+## 빌드
+
+* 요구사항
+    * Go 1.24
+    * PostgreSQL 13 / MariaDB 10.11
+    * tailwindcss 4.1
+    * yarn classic
+
+```sh
+make
+```
+
+
 ----
 
 ai 써서 만들었습니다.
