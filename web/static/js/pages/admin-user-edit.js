@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // ...existing code...
     const form = document.getElementById('editUserForm');
     const errorMessage = document.getElementById('error-message');
     const successMessage = document.getElementById('success-message');

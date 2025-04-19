@@ -79,6 +79,30 @@ func InterfaceToInt(val any) int {
 	return int(InterfaceToInt64(val))
 }
 
+// InterfaceToBool converts an any to bool safely
+func InterfaceToBool(val any) bool {
+	if val == nil {
+		return false
+	}
+
+	switch v := val.(type) {
+	case bool:
+		return v
+	case int:
+		return v != 0
+	case int64:
+		return v != 0
+	case float64:
+		return v != 0
+	case string:
+		return v == "true" || v == "1" || v == "yes" || v == "y" || v == "on"
+	default:
+		// 마지막 수단으로 문자열 변환 시도
+		s := fmt.Sprintf("%v", v)
+		return s == "true" || s == "1" || s == "yes" || s == "y" || s == "on"
+	}
+}
+
 // InterfaceToTime converts an any to time.Time safely
 func InterfaceToTime(val any, defaultTime time.Time) time.Time {
 	if val == nil {

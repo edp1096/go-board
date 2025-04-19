@@ -62,6 +62,16 @@
                     <p class="mt-1 text-xs">로그인하지 않은 사용자도 게시물을 볼 수 있게 합니다.</p>
                 </div>
 
+                <div>
+                    <div class="flex items-center">
+                        <input id="allow_private" name="allow_private" type="checkbox" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
+                        <label for="allow_private" class="ml-2 block text-sm">
+                            비밀글 설정 허용
+                        </label>
+                    </div>
+                    <p class="mt-1 text-xs">이 게시판에서 작성자가 비밀글로 설정할 수 있게 합니다. 비밀글은 작성자와 관리자만 볼 수 있습니다.</p>
+                </div>
+
                 <div class="mb-6">
                     <h2 class="text-lg font-medium mb-4">게시판 매니저</h2>
                     <div class="space-y-4">
@@ -74,7 +84,7 @@
                                 </button>
                             </div>
                         </div>
-                
+
                         <div class="border rounded-md p-4" x-show="showSearchResults">
                             <h3 class="font-medium mb-2">검색 결과</h3>
                             <ul class="divide-y divide-gray-200 max-h-40 overflow-y-auto">
@@ -94,7 +104,7 @@
                                 검색 결과가 없습니다
                             </div>
                         </div>
-                
+
                         <div>
                             <h3 class="font-medium mb-2">선택된 매니저</h3>
                             <ul class="divide-y divide-gray-200 border rounded-md p-4">

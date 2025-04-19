@@ -88,6 +88,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 	slugStr := c.FormValue("slug")
 	commentsEnabled := c.FormValue("comments_enabled") == "on"
 	allowAnonymous := c.FormValue("allow_anonymous") == "on"
+	defaultPrivate := c.FormValue("default_private") == "on"
 
 	// 유효성 검사
 	if name == "" {
@@ -115,6 +116,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 		Active:          true,
 		CommentsEnabled: commentsEnabled,
 		AllowAnonymous:  allowAnonymous,
+		DefaultPrivate:  defaultPrivate,
 	}
 
 	// 필드 정보 파싱
@@ -1110,7 +1112,7 @@ func (h *AdminHandler) EditUserPage(c *fiber.Ctx) error {
 
 	return utils.RenderWithUser(c, "admin/user_edit", fiber.Map{
 		"title":          "사용자 정보 수정",
-		"user":           user,
+		"userInfo":       user,
 		"pageScriptPath": "/static/js/pages/admin-user-edit.js",
 	})
 }

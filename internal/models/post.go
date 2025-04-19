@@ -26,6 +26,7 @@ type DynamicPost struct {
 	UserID    int64     // 작성자 ID
 	Username  string    // 작성자 이름 (조인 데이터)
 	ViewCount int       // 조회수
+	IsPrivate bool      // 비밀글 여부
 	CreatedAt time.Time // 생성일
 	UpdatedAt time.Time // 수정일
 

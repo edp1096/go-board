@@ -205,6 +205,7 @@ func (s *boardService) CreatePost(ctx context.Context, boardID int64, post *mode
 		"title":      post.Title,
 		"content":    post.Content,
 		"user_id":    post.UserID,
+		"is_private": post.IsPrivate,
 		"created_at": time.Now(),
 		"updated_at": time.Now(),
 	}
@@ -325,6 +326,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 		UserID:    utils.InterfaceToInt64(row["user_id"]),
 		Username:  utils.InterfaceToString(row["username"]),
 		ViewCount: viewCount + 1, // 방금 증가한 조회수 반영
+		IsPrivate: utils.InterfaceToBool(row["is_private"]),
 		CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
 		UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
 		Fields:    make(map[string]models.DynamicField),
@@ -358,6 +360,7 @@ func (s *boardService) UpdatePost(ctx context.Context, boardID int64, post *mode
 	values := map[string]any{
 		"title":      post.Title,
 		"content":    post.Content,
+		"is_private": post.IsPrivate,
 		"updated_at": time.Now(),
 	}
 
@@ -490,6 +493,7 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 			UserID:    utils.InterfaceToInt64(row["user_id"]),
 			Username:  utils.InterfaceToString(row["username"]),
 			ViewCount: utils.InterfaceToInt(row["view_count"]),
+			IsPrivate: utils.InterfaceToBool(row["is_private"]),
 			CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
 			UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
 			Fields:    make(map[string]models.DynamicField),

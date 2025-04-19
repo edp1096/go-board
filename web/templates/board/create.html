@@ -18,6 +18,17 @@
                     <editor-other id="editor" data-idx="1"></editor-other>
                 </div>
 
+                {{if .board.DefaultPrivate}}
+                <div class="mb-4">
+                    <div class="flex items-center">
+                        <input id="is_private" name="is_private" type="checkbox" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
+                        <label for="is_private" class="ml-2 block text-sm font-medium">
+                            비밀글로 설정 (작성자와 관리자만 볼 수 있음)
+                        </label>
+                    </div>
+                </div>
+                {{end}}
+
                 {{if .board.Fields}}
                 <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {{range .board.Fields}}

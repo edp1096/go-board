@@ -158,6 +158,37 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 		})
 	}
 
+	// 현재 로그인한 사용자 정보
+	user := c.Locals("user")
+	var userID int64
+	var isAdmin bool
+	var isManager bool
+
+	if user != nil {
+		userObj := user.(*models.User)
+		userID = userObj.ID
+		isAdmin = (userObj.Role == models.RoleAdmin)
+		isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userID)
+	}
+
+	// 비밀글 필터링
+	filteredPosts := make([]*models.DynamicPost, 0, len(posts))
+	for _, post := range posts {
+		// 비밀글이 아니면 바로 추가
+		if !post.IsPrivate {
+			filteredPosts = append(filteredPosts, post)
+			continue
+		}
+
+		// 비밀글인 경우 접근 권한 확인
+		if user != nil && (post.UserID == userID || isAdmin || isManager) {
+			filteredPosts = append(filteredPosts, post)
+		}
+	}
+
+	// 비밀글 필터링 후 게시물 목록 갱신
+	posts = filteredPosts
+
 	// 페이지네이션 계산
 	totalPages := (total + pageSize - 1) / pageSize
 
@@ -252,11 +283,49 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	user := c.Locals("user")
 	isManager := false
 
-	// 사용자가 로그인한 경우 매니저 여부 확인
-	if user != nil {
-		userObj := user.(*models.User)
-		isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
+	// 비밀글 접근 권한 확인
+	if post.IsPrivate {
+		// 권한이 없는 경우
+		hasAccess := false
+
+		if user != nil {
+			userObj := user.(*models.User)
+
+			// 1. 작성자인 경우
+			if userObj.ID == post.UserID {
+				hasAccess = true
+			} else if userObj.Role == models.RoleAdmin {
+				// 2. 관리자인 경우
+				hasAccess = true
+			} else {
+				// 3. 게시판 매니저인 경우
+				isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
+				if isManager {
+					hasAccess = true
+				}
+			}
+		}
+
+		// 접근 권한이 없으면 오류 페이지 표시
+		if !hasAccess {
+			return utils.RenderWithUser(c, "error", fiber.Map{
+				"title":   "접근 제한",
+				"message": "비밀글은 작성자와 관리자만 볼 수 있습니다.",
+			})
+		}
+	} else {
+		// 사용자가 로그인한 경우 매니저 여부 확인
+		if user != nil {
+			userObj := user.(*models.User)
+			isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
+		}
 	}
+
+	// // 사용자가 로그인한 경우 매니저 여부 확인
+	// if user != nil {
+	// 	userObj := user.(*models.User)
+	// 	isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
+	// }
 
 	// 템플릿 선택 - gallery_view는 없음
 	templateName := "board/view"
@@ -368,6 +437,7 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 	// 기본 필드 가져오기
 	title := c.FormValue("title")
 	content := c.FormValue("content")
+	isPrivate := c.FormValue("is_private") == "on"
 
 	if title == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -378,10 +448,11 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 
 	// 동적 게시물 객체 생성
 	post := &models.DynamicPost{
-		Title:   title,
-		Content: content,
-		UserID:  user.ID,
-		Fields:  make(map[string]models.DynamicField),
+		Title:     title,
+		Content:   content,
+		UserID:    user.ID,
+		IsPrivate: isPrivate,
+		Fields:    make(map[string]models.DynamicField),
 	}
 
 	// 동적 필드 처리
@@ -648,6 +719,7 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	// 기본 필드 가져오기
 	title := c.FormValue("title")
 	content := c.FormValue("content")
+	isPrivate := c.FormValue("is_private") == "on"
 
 	if title == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -659,6 +731,7 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	// 기본 필드 업데이트
 	post.Title = title
 	post.Content = content
+	post.IsPrivate = isPrivate
 
 	// 삭제할 첨부 파일 목록 가져오기
 	deleteAttachments := c.FormValue("delete_attachments[]")

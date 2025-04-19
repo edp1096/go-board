@@ -9,47 +9,41 @@
 
     <div class="bg-white shadow-md rounded-lg p-6">
         <form id="editUserForm" class="space-y-6">
-            <input type="hidden" name="id" value="{{.user.ID}}">
-            
+            <input type="hidden" name="id" value="{{.userInfo.ID}}">
+
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                     <label for="username" class="block text-sm font-medium">사용자명 *</label>
-                    <input type="text" id="username" name="username" value="{{.user.Username}}" required
-                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="text" id="username" name="username" value="{{.userInfo.Username}}" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     <p class="mt-1 text-xs">로그인에 사용될 고유한 사용자명입니다.</p>
                 </div>
 
                 <div>
                     <label for="email" class="block text-sm font-medium">이메일 *</label>
-                    <input type="email" id="email" name="email" value="{{.user.Email}}" required
-                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="email" id="email" name="email" value="{{.userInfo.Email}}" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
                     <label for="password" class="block text-sm font-medium">새 비밀번호</label>
-                    <input type="password" id="password" name="password"
-                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="password" id="password" name="password" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     <p class="mt-1 text-xs">변경하려면 입력하세요. 빈칸으로 두면 기존 비밀번호가 유지됩니다.</p>
                 </div>
 
                 <div>
                     <label for="password_confirm" class="block text-sm font-medium">새 비밀번호 확인</label>
-                    <input type="password" id="password_confirm" name="password_confirm"
-                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="password" id="password_confirm" name="password_confirm" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
                     <label for="full_name" class="block text-sm font-medium">이름</label>
-                    <input type="text" id="full_name" name="full_name" value="{{.user.FullName}}"
-                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="text" id="full_name" name="full_name" value="{{.userInfo.FullName}}" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
-                    {{$admin := eq .user.Role "admin"}}
-                    {{$user := eq .user.Role "user"}}
+                    {{$admin := eq .userInfo.Role "admin"}}
+                    {{$user := eq .userInfo.Role "user"}}
                     <label for="role" class="block text-sm font-medium">역할</label>
-                    <select id="role" name="role"
-                        class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <select id="role" name="role" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         <option value="user" {{if $user}}selected{{end}}>일반 사용자</option>
                         <option value="admin" {{if $admin}}selected{{end}}>관리자</option>
                     </select>
@@ -57,8 +51,7 @@
             </div>
 
             <div class="flex items-center">
-                <input id="active" name="active" type="checkbox" {{if .user.Active}}checked{{end}}
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded">
+                <input id="active" name="active" type="checkbox" {{if .userInfo.Active}}checked{{end}} class="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded">
                 <label for="active" class="ml-2 block text-sm">
                     계정 활성화
                 </label>
@@ -67,8 +60,8 @@
             <div>
                 <label class="block text-sm font-medium">계정 정보</label>
                 <div class="mt-1 text-sm">
-                    <p>생성일: {{.user.CreatedAt.Format "2006-01-02 15:04:05"}}</p>
-                    <p>마지막 수정일: {{.user.UpdatedAt.Format "2006-01-02 15:04:05"}}</p>
+                    <p>생성일: {{.userInfo.CreatedAt.Format "2006-01-02 15:04:05"}}</p>
+                    <p>마지막 수정일: {{.userInfo.UpdatedAt.Format "2006-01-02 15:04:05"}}</p>
                 </div>
             </div>
 
@@ -76,13 +69,11 @@
             <div id="success-message" class="text-success text-sm hidden"></div>
 
             <div class="flex justify-between">
-                <button type="button" id="deleteUserBtn"
-                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <button type="button" id="deleteUserBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     사용자 삭제
                 </button>
-                
-                <button type="submit"
-                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     변경사항 저장
                 </button>
             </div>

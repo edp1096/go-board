@@ -69,7 +69,7 @@ function toggleUserStatus(userId, currentStatus) {
     // CSRF 토큰 가져오기
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    fetch(`/admin/users/${userIdInt}/status`, {
+    fetch(`/api/admin/users/${userIdInt}/status`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',

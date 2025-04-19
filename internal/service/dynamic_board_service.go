@@ -96,6 +96,7 @@ func (s *dynamicBoardService) getBaseColumns() []string {
 		"content TEXT NOT NULL",
 		"user_id INTEGER NOT NULL REFERENCES users(id)",
 		"view_count INTEGER NOT NULL DEFAULT 0",
+		"is_private BOOLEAN NOT NULL DEFAULT false",
 		"created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 		"updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 	}
