@@ -166,8 +166,8 @@ func migrateBasicTables(config *DataMigrationConfig) error {
 			continue
 		}
 
-		// 테이블 데이터 복사
-		err := migrateTableData(config, tableName)
+		// 테이블 데이터 복사 - 기본 테이블은 필드 타입 정보 없음
+		err := migrateTableData(config, tableName, nil)
 		if err != nil {
 			config.addError(fmt.Errorf("테이블 '%s' 마이그레이션 실패: %w", tableName, err))
 			if len(config.Errors) > config.MaxErrorsBeforeExit {
@@ -214,8 +214,26 @@ func migrateDynamicTables(config *DataMigrationConfig, boardService service.Boar
 			continue
 		}
 
-		// 테이블 데이터 복사
-		err := migrateTableData(config, board.TableName)
+		// 게시판 필드 정보 가져오기
+		var fields []*models.BoardField
+		err := config.SourceDB.NewSelect().
+			Model(&fields).
+			Where("board_id = ?", board.ID).
+			Order("sort_order ASC").
+			Scan(context.Background())
+		if err != nil {
+			config.addError(fmt.Errorf("게시판 '%s' 필드 정보 가져오기 실패: %w", board.Name, err))
+			continue
+		}
+
+		// 필드 타입 정보를 맵으로 변환 (컬럼명 -> 필드타입)
+		fieldTypeMap := make(map[string]models.FieldType)
+		for _, field := range fields {
+			fieldTypeMap[field.ColumnName] = field.FieldType
+		}
+
+		// 테이블 데이터 복사 - 필드 타입 정보 전달
+		err = migrateTableData(config, board.TableName, fieldTypeMap)
 		if err != nil {
 			config.addError(fmt.Errorf("게시판 '%s' 데이터 마이그레이션 실패: %w", board.Name, err))
 			if len(config.Errors) > config.MaxErrorsBeforeExit {
@@ -403,7 +421,7 @@ func createSQLiteDynamicTable(config *DataMigrationConfig, board *models.Board, 
 }
 
 // migrateTableData는 테이블 데이터를 마이그레이션합니다
-func migrateTableData(config *DataMigrationConfig, tableName string) error {
+func migrateTableData(config *DataMigrationConfig, tableName string, fieldTypeMap map[string]models.FieldType) error {
 	ctx := context.Background()
 
 	if config.VerboseLogging {
@@ -450,6 +468,17 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 
 	// 테이블 모델 정보 가져오기
 	modelInfo := getModelInfo(tableName)
+
+	// 테이블 컬럼 타입 정보 준비
+	columnDataTypeMap := make(map[string]string)
+	for _, col := range targetColumns {
+		columnDataTypeMap[col.Name] = col.Type
+	}
+
+	// 알려진 boolean 필드 - 동적 테이블에서 일반적으로 boolean으로 처리해야 하는 필드
+	booleanFields := map[string]bool{
+		"is_private": true,
+	}
 
 	// 데이터 배치 처리
 	batchSize := config.BatchSize
@@ -540,8 +569,8 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 		rowsInBatch := 0
 		for sourceRows.Next() {
 			// 행 데이터 변수 준비
-			rowValues := make([]interface{}, len(commonColumns))
-			valuePtrs := make([]interface{}, len(commonColumns))
+			rowValues := make([]any, len(commonColumns))
+			valuePtrs := make([]any, len(commonColumns))
 			for i := range rowValues {
 				valuePtrs[i] = &rowValues[i]
 			}
@@ -619,6 +648,95 @@ func migrateTableData(config *DataMigrationConfig, tableName string) error {
 					} else if bytes, ok := val.([]byte); ok {
 						// 바이트 배열인 경우 문자열로 변환
 						val = string(bytes)
+					}
+				}
+
+				// ===== 필드 타입 처리 로직 수정 =====
+				// 대상 DB가 PostgreSQL이고 필드 타입이 boolean인 경우 처리
+				if config.TargetDBConfig.DBDriver == "postgres" {
+					targetColumnType := columnDataTypeMap[colName]
+					isBooleanField := false
+
+					// 1. 컬럼 타입이 boolean인지 확인
+					if strings.Contains(targetColumnType, "bool") {
+						isBooleanField = true
+					}
+
+					// 2. 알려진 boolean 필드인지 확인
+					if booleanFields[colName] {
+						isBooleanField = true
+					}
+
+					// 3. 동적 테이블의 경우 필드 타입 정보 활용
+					if fieldTypeMap != nil {
+						if fieldType, exists := fieldTypeMap[colName]; exists && fieldType == models.FieldTypeCheckbox {
+							isBooleanField = true
+						}
+					}
+
+					// boolean 필드면 적절히 변환
+					if isBooleanField {
+						switch v := val.(type) {
+						case int64:
+							if v == 1 {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case int:
+							if v == 1 {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case int32:
+							if v == 1 {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case int16:
+							if v == 1 {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case int8:
+							if v == 1 {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case uint64, uint32, uint16, uint8, uint:
+							// 숫자를 문자열로 변환하여 비교
+							valStr := fmt.Sprintf("%v", v)
+							if valStr == "1" {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case string:
+							lowerVal := strings.ToLower(v)
+							if lowerVal == "1" || lowerVal == "true" || lowerVal == "t" || lowerVal == "y" || lowerVal == "yes" {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						case bool:
+							if v {
+								columnValues = append(columnValues, "TRUE")
+							} else {
+								columnValues = append(columnValues, "FALSE")
+							}
+							continue
+						}
 					}
 				}
 

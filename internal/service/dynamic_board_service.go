@@ -110,7 +110,7 @@ var columnNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 
 // 시스템 예약 컬럼 이름 목록
 var reservedColumnNames = []string{
-	"id", "title", "content", "user_id", "view_count", "created_at", "updated_at",
+	"id", "title", "content", "user_id", "is_private", "view_count", "created_at", "updated_at",
 }
 
 // 컬럼 이름이 예약되어 있는지 확인하는 함수
