@@ -355,6 +355,12 @@ func (s *qnaService) VoteQuestion(ctx context.Context, boardID, questionID, user
 		return 0, fmt.Errorf("질문 조회 실패: %w", err)
 	}
 
+	// 게시판 정보 조회
+	board, err := s.boardRepo.GetByID(ctx, boardID)
+	if err != nil {
+		return 0, ErrBoardNotFound
+	}
+
 	// 트랜잭션 시작
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -428,20 +434,13 @@ func (s *qnaService) VoteQuestion(ctx context.Context, boardID, questionID, user
 		return 0, err
 	}
 
-	// 게시판 정보 조회
-	board, err := s.boardRepo.GetByID(ctx, boardID)
-	if err != nil {
-		return 0, ErrBoardNotFound
-	}
-
-	// 질문의 vote_count 필드 업데이트
-	_, err = s.db.NewUpdate().
+	// 질문의 vote_count 필드 업데이트 - tx를 사용하여 트랜잭션 내에서 업데이트
+	_, err = tx.NewUpdate().
 		Table(board.TableName).
 		Set("vote_count = ?", voteSum).
 		Where("id = ?", questionID).
 		Exec(ctx)
 	if err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("투표 수 업데이트 실패: %w", err)
 	}
 
