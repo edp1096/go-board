@@ -54,6 +54,9 @@
                     </svg>
                     {{end}}
                     {{toUTF8 .Title}}
+                    {{if gt .CommentCount 0}}
+                    <span class="text-xs">[{{.CommentCount}}]</span>
+                    {{end}}
                 </h3>
                 <div class="mt-2 flex items-center justify-between">
                     <p class="text-xs">{{.Username}}</p>

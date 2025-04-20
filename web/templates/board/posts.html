@@ -47,6 +47,9 @@
                                     </svg>
                                     {{end}}
                                     {{toUTF8 .Title}}
+                                    {{if gt .CommentCount 0}}
+                                    <span class="text-xs">[{{.CommentCount}}]</span>
+                                    {{end}}
                                 </p>
                                 <p class="mt-1 text-xs truncate">
                                     {{.Username}} · 조회수 {{.ViewCount}}

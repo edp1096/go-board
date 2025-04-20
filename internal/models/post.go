@@ -20,15 +20,16 @@ type DynamicField struct {
 // 게시물 생성/조회에 사용할 동적 구조체
 type DynamicPost struct {
 	// 기본 필드
-	ID        int64     // 게시물 ID
-	Title     string    // 제목
-	Content   string    // 내용
-	UserID    int64     // 작성자 ID
-	Username  string    // 작성자 이름 (조인 데이터)
-	ViewCount int       // 조회수
-	IsPrivate bool      // 비밀글 여부
-	CreatedAt time.Time // 생성일
-	UpdatedAt time.Time // 수정일
+	ID           int64     // 게시물 ID
+	Title        string    // 제목
+	Content      string    // 내용
+	UserID       int64     // 작성자 ID
+	Username     string    // 작성자 이름 (조인 데이터)
+	ViewCount    int       // 조회수
+	CommentCount int       // 댓글수
+	IsPrivate    bool      // 비밀글 여부
+	CreatedAt    time.Time // 생성일
+	UpdatedAt    time.Time // 수정일
 
 	// 동적 필드 (키-값 쌍으로 저장)
 	Fields map[string]DynamicField // 필드 이름 -> 필드 값

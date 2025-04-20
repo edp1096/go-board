@@ -87,6 +87,9 @@ func (s *commentService) CreateComment(ctx context.Context, boardID, postID, use
 		return nil, err
 	}
 
+	// 댓글 저장 후 게시물의 댓글 수 업데이트
+	s.updatePostCommentCount(ctx, boardID, postID)
+
 	// 저장된 댓글 다시 조회 (사용자 정보 포함)
 	return s.commentRepo.GetByID(ctx, comment.ID)
 }
@@ -144,10 +147,31 @@ func (s *commentService) DeleteComment(ctx context.Context, id, userID int64, is
 		return ErrNoPermission
 	}
 
+	// 게시물의 댓글 수 업데이트
+	s.updatePostCommentCount(ctx, comment.BoardID, comment.PostID)
+
 	return s.commentRepo.Delete(ctx, id)
 }
 
-// DeleteCommentsByPostID - 게시물에 속한 모든 댓글 삭제
+// DeleteCommentsByPostID 메서드 수정
 func (s *commentService) DeleteCommentsByPostID(ctx context.Context, boardID, postID int64) error {
-	return s.commentRepo.DeleteByPostID(ctx, boardID, postID)
+	err := s.commentRepo.DeleteByPostID(ctx, boardID, postID)
+	if err != nil {
+		return err
+	}
+
+	// 게시물의 댓글 수를 0으로 업데이트
+	return s.commentRepo.UpdatePostCommentCount(ctx, boardID, postID, 0)
+}
+
+// 게시물의 댓글 수 업데이트
+func (s *commentService) updatePostCommentCount(ctx context.Context, boardID, postID int64) error {
+	// 댓글 수 조회
+	count, err := s.commentRepo.CountByPostID(ctx, boardID, postID)
+	if err != nil {
+		return err
+	}
+
+	// 게시물 댓글 수 업데이트
+	return s.commentRepo.UpdatePostCommentCount(ctx, boardID, postID, count)
 }

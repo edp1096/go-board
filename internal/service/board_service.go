@@ -441,17 +441,18 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 
 	// DynamicPost 객체 생성
 	post := &models.DynamicPost{
-		ID:        postID,
-		Title:     utils.InterfaceToString(row["title"]),
-		Content:   utils.InterfaceToString(row["content"]),
-		UserID:    utils.InterfaceToInt64(row["user_id"]),
-		Username:  utils.InterfaceToString(row["username"]),
-		ViewCount: viewCount + 1, // 방금 증가한 조회수 반영
-		IsPrivate: utils.InterfaceToBool(row["is_private"]),
-		CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
-		UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
-		Fields:    make(map[string]models.DynamicField),
-		RawData:   row,
+		ID:           postID,
+		Title:        utils.InterfaceToString(row["title"]),
+		Content:      utils.InterfaceToString(row["content"]),
+		UserID:       utils.InterfaceToInt64(row["user_id"]),
+		Username:     utils.InterfaceToString(row["username"]),
+		ViewCount:    viewCount + 1, // 방금 증가한 조회수 반영
+		CommentCount: utils.InterfaceToInt(row["comment_count"]),
+		IsPrivate:    utils.InterfaceToBool(row["is_private"]),
+		CreatedAt:    utils.InterfaceToTime(row["created_at"], time.Now()),
+		UpdatedAt:    utils.InterfaceToTime(row["updated_at"], time.Now()),
+		Fields:       make(map[string]models.DynamicField),
+		RawData:      row,
 	}
 
 	// 동적 필드 처리
@@ -608,17 +609,18 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 		}
 
 		post := &models.DynamicPost{
-			ID:        postID,
-			Title:     utils.InterfaceToString(row["title"]),
-			Content:   utils.InterfaceToString(row["content"]),
-			UserID:    utils.InterfaceToInt64(row["user_id"]),
-			Username:  utils.InterfaceToString(row["username"]),
-			ViewCount: utils.InterfaceToInt(row["view_count"]),
-			IsPrivate: utils.InterfaceToBool(row["is_private"]),
-			CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
-			UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
-			Fields:    make(map[string]models.DynamicField),
-			RawData:   row,
+			ID:           postID,
+			Title:        utils.InterfaceToString(row["title"]),
+			Content:      utils.InterfaceToString(row["content"]),
+			UserID:       utils.InterfaceToInt64(row["user_id"]),
+			Username:     utils.InterfaceToString(row["username"]),
+			ViewCount:    utils.InterfaceToInt(row["view_count"]),
+			CommentCount: utils.InterfaceToInt(row["comment_count"]),
+			IsPrivate:    utils.InterfaceToBool(row["is_private"]),
+			CreatedAt:    utils.InterfaceToTime(row["created_at"], time.Now()),
+			UpdatedAt:    utils.InterfaceToTime(row["updated_at"], time.Now()),
+			Fields:       make(map[string]models.DynamicField),
+			RawData:      row,
 		}
 
 		// 동적 필드 처리

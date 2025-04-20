@@ -3,8 +3,10 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/uptrace/bun"
 )
@@ -17,6 +19,9 @@ type CommentRepository interface {
 	Update(ctx context.Context, comment *models.Comment) error
 	Delete(ctx context.Context, id int64) error
 	DeleteByPostID(ctx context.Context, boardID, postID int64) error
+
+	CountByPostID(ctx context.Context, boardID, postID int64) (int, error)
+	UpdatePostCommentCount(ctx context.Context, boardID, postID int64, count int) error
 }
 
 // commentRepository 구현체
@@ -134,5 +139,43 @@ func (r *commentRepository) DeleteByPostID(ctx context.Context, boardID, postID 
 		Where("board_id = ?", boardID).
 		Where("post_id = ?", postID).
 		Exec(ctx)
+	return err
+}
+
+// CountByPostID - 특정 게시물의 댓글 수 조회
+func (r *commentRepository) CountByPostID(ctx context.Context, boardID, postID int64) (int, error) {
+	count, err := r.db.NewSelect().
+		Model((*models.Comment)(nil)).
+		Where("board_id = ?", boardID).
+		Where("post_id = ?", postID).
+		Count(ctx)
+
+	return count, err
+}
+
+// UpdatePostCommentCount - 게시물의 댓글 수 업데이트
+func (r *commentRepository) UpdatePostCommentCount(ctx context.Context, boardID, postID int64, count int) error {
+	// 게시판 정보 조회를 위한 쿼리
+	var board models.Board
+	err := r.db.NewSelect().
+		Model(&board).
+		Where("id = ?", boardID).
+		Scan(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	// 게시물 테이블 업데이트
+	tableName := board.TableName
+	var query string
+
+	if utils.IsPostgres(r.db) {
+		query = fmt.Sprintf("UPDATE \"%s\" SET comment_count = ? WHERE id = ?", tableName)
+	} else {
+		query = fmt.Sprintf("UPDATE `%s` SET comment_count = ? WHERE id = ?", tableName)
+	}
+
+	_, err = r.db.Exec(query, count, postID)
 	return err
 }
