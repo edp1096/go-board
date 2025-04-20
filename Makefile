@@ -41,6 +41,8 @@ ifeq ($(DETECTED_ARCH),amd64)
 	@$(MAKE) build-linux-amd64
 else ifeq ($(DETECTED_ARCH),arm64)
 	@$(MAKE) build-linux-arm64
+else ifeq ($(DETECTED_ARCH),arm)
+	@$(MAKE) build-linux-arm
 endif
 else
 	@echo "Unknown platform: $(DETECTED_OS)_$(DETECTED_ARCH), falling back to Linux AMD64"
@@ -48,7 +50,7 @@ else
 endif
 
 
-dist: cgo-disable build-linux-amd64 build-linux-arm64 build-windows-amd64 env-restore
+dist: cgo-disable build-linux-amd64 build-linux-arm64 build-linux-arm build-windows-amd64 env-restore
 
 cgo-disable:
 	go generate ./...
@@ -77,6 +79,12 @@ build-linux-arm64:
 	@go env -w GOARCH=arm64
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_arm64 ./cmd
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_arm64 ./cmd/migrate
+
+build-linux-arm:
+	@go env -w GOOS=linux
+	@go env -w GOARCH=arm
+	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_arm ./cmd
+	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_arm ./cmd/migrate
 
 dev:
 	@echo "Running in development mode..."
