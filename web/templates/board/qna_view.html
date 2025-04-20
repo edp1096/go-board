@@ -181,10 +181,10 @@
                 {{$admin := or (eq .user.Role "admin") .isManager}}
                 {{if or (eq .user.ID .post.UserID) $admin}}
                 <div class="flex space-x-2">
-                    <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                    <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-3 py-2 border text-sm font-medium rounded-md bg-white">
                         수정
                     </a>
-                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-error bg-white hover:bg-red-50">
+                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-error bg-white hover:bg-red-50">
                         삭제
                     </button>
 
@@ -192,7 +192,7 @@
                     {{if eq .user.ID .post.UserID}}
                     <!-- 드롭다운 부모 요소 -->
                     <div class="dropdown relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                        <button @click="open = !open" class="inline-flex items-center px-3 py-2 border text-sm font-medium rounded-md bg-white">
                             상태 변경
                             <svg class="ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
