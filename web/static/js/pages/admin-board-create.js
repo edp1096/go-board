@@ -6,6 +6,7 @@ document.addEventListener('alpine:init', () => {
         fieldCount: 0,
         board_type: 'normal',
         previousCommentCheckbox: false,
+        previousPrivateCheckbox: false, // 비밀글 설정 상태 저장 변수 추가
 
         // 매니저 관련 속성 추가
         managers: [],
@@ -21,13 +22,26 @@ document.addEventListener('alpine:init', () => {
             // board_type의 변경을 감시
             this.$watch('board_type', value => {
                 const commentsCheckbox = document.getElementById('comments_enabled');
+                const privateCheckbox = document.getElementById('allow_private'); // 비밀글 설정 체크박스
+
                 if (value === 'qna') {
+                    // 댓글 기능 설정 - 체크 및 비활성화
                     this.previousCommentCheckbox = commentsCheckbox.checked;
                     commentsCheckbox.checked = true;
                     commentsCheckbox.disabled = true;
+
+                    // 비밀글 설정 - 체크 해제 및 비활성화
+                    this.previousPrivateCheckbox = privateCheckbox.checked;
+                    privateCheckbox.checked = false;
+                    privateCheckbox.disabled = true;
                 } else {
+                    // 댓글 기능 설정 - 이전 상태로 복원
                     commentsCheckbox.checked = this.previousCommentCheckbox;
                     commentsCheckbox.disabled = false;
+
+                    // 비밀글 설정 - 이전 상태로 복원
+                    privateCheckbox.checked = this.previousPrivateCheckbox;
+                    privateCheckbox.disabled = false;
                 }
             });
         },
@@ -106,17 +120,28 @@ document.addEventListener('alpine:init', () => {
             const form = document.getElementById('board-create-form');
 
             const commentsCheckbox = document.getElementById('comments_enabled');
-            const wasDisabled = commentsCheckbox.disabled;
-            if (wasDisabled) {
+            const privateCheckbox = document.getElementById('allow_private');
+            const wasCommentsDisabled = commentsCheckbox.disabled;
+            const wasPrivateDisabled = privateCheckbox.disabled;
+
+            // 비활성화된 체크박스를 일시적으로 활성화해서 값이 전송되도록 함
+            if (wasCommentsDisabled) {
                 commentsCheckbox.disabled = false;
+            }
+            if (wasPrivateDisabled) {
+                privateCheckbox.disabled = false;
             }
 
             // FormData 객체 생성
             const formData = new FormData(form);
             formData.append('field_count', this.fields.length);
 
-            if (wasDisabled) {
+            // 비활성화 상태 복원
+            if (wasCommentsDisabled) {
                 commentsCheckbox.disabled = true;
+            }
+            if (wasPrivateDisabled) {
+                privateCheckbox.disabled = true;
             }
 
             // 매니저 ID를 폼에 추가

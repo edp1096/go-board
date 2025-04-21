@@ -3,8 +3,9 @@
 예시: https://bbs.enjoytools.net
 
 
-## 처음 실행
+## 실행
 
+* 처음
 ```sh
 go-board export-env
 mv .env.example .env
@@ -12,9 +13,7 @@ migrate
 go-board
 ```
 
-
-## 실행
-
+* 나중
 ```sh
 go-board
 ```
@@ -49,6 +48,13 @@ migrate -h
     * tailwindcss 4.1
     * yarn classic
 
+* 처음
+```sh
+yarn
+make
+```
+
+* 나중
 ```sh
 make
 ```
@@ -58,7 +64,7 @@ make
 
 ai 써서 만들었습니다.
 
-`클로드 프로`를 사용했고, 참고용으로 대화내역을 `claude`폴더에 올려두었습니다.
+`클로드 프로`를 사용했고, 참고용으로 대화내역을 `docs/claude`폴더에 올려두었습니다.
 
 `goose` 마이그레이션 모듈과 `tailwindcss`는 사전지식 없이 ai의 제안을 그대로 반영했습니다.
 

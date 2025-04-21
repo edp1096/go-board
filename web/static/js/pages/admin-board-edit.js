@@ -27,6 +27,13 @@ document.addEventListener('alpine:init', () => {
                     commentsCheckbox.checked = document.getElementById('comments_enabled').checked ? true : false;
                     commentsCheckbox.disabled = true;
                 }
+
+                // QnA 게시판이면 비밀글 설정 체크박스 해제 및 비활성화
+                const privateCheckbox = document.getElementById('allow_private');
+                if (privateCheckbox) {
+                    privateCheckbox.checked = false;
+                    privateCheckbox.disabled = true;
+                }
             }
 
             // 스크립트 태그에서 필드 데이터 초기화
@@ -182,17 +189,28 @@ document.addEventListener('alpine:init', () => {
             const form = document.getElementById('board-edit-form');
 
             const commentsCheckbox = document.getElementById('comments_enabled');
-            const wasDisabled = commentsCheckbox.disabled;
-            if (wasDisabled) {
+            const privateCheckbox = document.getElementById('allow_private');
+            const wasCommentsDisabled = commentsCheckbox.disabled;
+            const wasPrivateDisabled = privateCheckbox.disabled;
+
+            // 비활성화된 체크박스를 일시적으로 활성화해서 값이 전송되도록 함
+            if (wasCommentsDisabled) {
                 commentsCheckbox.disabled = false;
+            }
+            if (wasPrivateDisabled) {
+                privateCheckbox.disabled = false;
             }
 
             // FormData 객체 생성
             const formData = new FormData(form);
             formData.append('field_count', this.fields.length);
 
-            if (wasDisabled) {
+            // 비활성화 상태 복원
+            if (wasCommentsDisabled) {
                 commentsCheckbox.disabled = true;
+            }
+            if (wasPrivateDisabled) {
+                privateCheckbox.disabled = true;
             }
 
             // 매니저 ID를 폼에 추가
