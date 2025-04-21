@@ -1,29 +1,29 @@
 /* image-viewer.js */
 // 이미지 뷰어 컴포넌트 및 관련 기능
 
-// Alpine 컴포넌트 먼저 정의
-if (typeof Alpine !== 'undefined') {
-    Alpine.data('imageViewer', () => ({
-        show: false,
-        imageSrc: '',
-        imageAlt: '',
+// // Alpine 컴포넌트 먼저 정의
+// if (typeof Alpine !== 'undefined') {
+//     Alpine.data('imageViewer', () => ({
+//         show: false,
+//         imageSrc: '',
+//         imageAlt: '',
 
-        openImageViewer(src, alt) {
-            this.imageSrc = src;
-            this.imageAlt = alt || 'Image';
-            this.show = true;
+//         openImageViewer(src, alt) {
+//             this.imageSrc = src;
+//             this.imageAlt = alt || 'Image';
+//             this.show = true;
 
-            // 스크롤 방지
-            document.body.style.overflow = 'hidden';
-        },
+//             // 스크롤 방지
+//             document.body.style.overflow = 'hidden';
+//         },
 
-        closeImageViewer() {
-            this.show = false;
-            // 스크롤 복원
-            document.body.style.overflow = '';
-        }
-    }));
-}
+//         closeImageViewer() {
+//             this.show = false;
+//             // 스크롤 복원
+//             document.body.style.overflow = '';
+//         }
+//     }));
+// }
 
 document.addEventListener('DOMContentLoaded', function () {
     // Alpine.js 로드 여부 확인 및 초기화

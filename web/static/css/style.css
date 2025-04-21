@@ -29,7 +29,7 @@
 @media (prefers-color-scheme: dark) {
     :root {
         --color-bg-primary: #1f2937;
-        --color-bg-secondary: #111827;
+        --color-bg-secondary: #111;
         --color-bg-accent: #3b82f6;
 
         --color-text-primary: #f9fafb;
