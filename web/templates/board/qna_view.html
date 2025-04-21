@@ -67,7 +67,8 @@
 
             <!-- 태그 표시 -->
             {{if .post.Fields.tags}}
-            {{$tagsStr := .post.Fields.tags.Value}}
+            <!-- {{$tagsStr := .post.Fields.tags.Value}} -->
+            {{$tagsStr := getNullString .post.Fields.tags.Value}}
             {{if $tagsStr}}
             <div class="mt-2 flex flex-wrap gap-2">
                 {{$tags := split $tagsStr ","}}

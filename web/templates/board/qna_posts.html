@@ -94,7 +94,8 @@
 
                                 <!-- 태그 표시 (있을 경우) -->
                                 {{if .Fields.tags}}
-                                {{$tagsStr := .Fields.tags.Value}}
+                                <!-- {{$tagsStr := .Fields.tags.Value}} -->
+                                {{$tagsStr := getNullString .Fields.tags.Value}}
                                 {{$tags := split $tagsStr ","}}
                                 {{range $tag := $tags}}
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full btn-primary text-blue-800">

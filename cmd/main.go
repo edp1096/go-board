@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -32,7 +33,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.18"
+const APP_VERSION = "v0.0.19"
 
 func main() {
 	// // 시작 시간 기록
@@ -162,6 +163,24 @@ func main() {
 
 	engine.AddFunc("cssPath", func(fileName string) string {
 		return "/static/css/" + fileName
+	})
+
+	// NullString 처리 헬퍼 함수
+	engine.AddFunc("getNullString", func(v any) string {
+		if v == nil {
+			return ""
+		}
+
+		// sql.NullString 처리
+		if ns, ok := v.(sql.NullString); ok {
+			if ns.Valid {
+				return ns.String
+			}
+			return ""
+		}
+
+		// 일반 문자열 처리
+		return fmt.Sprintf("%v", v)
 	})
 
 	// Fiber 앱 생성
