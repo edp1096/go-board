@@ -32,7 +32,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.17"
+const APP_VERSION = "v0.0.18"
 
 func main() {
 	// // 시작 시간 기록

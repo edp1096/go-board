@@ -123,7 +123,7 @@ document.addEventListener('alpine:init', () => {
                 if (!isEditEditorInitialized) {
                     initEditCommentEditor();
                 }
-            }, 1000);
+            }, 250);
         },
 
         loadAnswers() {

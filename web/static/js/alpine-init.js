@@ -13,7 +13,7 @@ document.addEventListener('alpine:init', () => {
             if (this.visible && autoClose) {
                 setTimeout(() => {
                     this.visible = false;
-                }, 5000);
+                }, 250);
             }
         },
 
