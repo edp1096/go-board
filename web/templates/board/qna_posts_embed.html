@@ -5,7 +5,7 @@
         <h1 class="text-2xl font-bold">&nbsp;</h1>
 
         {{if .user}}
-        <a href="/boards/{{.board.ID}}/posts/create" class="inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="/boards/{{.board.ID}}/posts/create" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             질문하기
         </a>
         {{end}}
@@ -22,7 +22,7 @@
         <form action="/boards/{{.board.ID}}/posts" method="GET" class="space-y-4">
             <div class="flex">
                 <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
-                <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     검색
                 </button>
             </div>
@@ -32,7 +32,7 @@
                     <option value="solved" {{if eq .status "solved" }}selected{{end}}>해결됨</option>
                     <option value="unsolved" {{if eq .status "unsolved" }}selected{{end}}>미해결</option>
                 </select>
-                <button type="submit" class="inline-flex items-center px-3 py-1 border border-current/25 border-transparent text-sm font-medium rounded-md text-blue-700 btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" class="inline-flex items-center px-3 py-1 border border-current/25 text-sm font-medium rounded-md text-blue-700 btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     필터 적용
                 </button>
             </div> -->
