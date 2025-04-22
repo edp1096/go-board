@@ -79,15 +79,15 @@
                             <label for="manager_search" class="block text-sm font-medium">사용자 검색</label>
                             <div class="mt-1 flex rounded-md shadow-sm">
                                 <input type="text" name="manager_search" id="manager_search" class="block w-full rounded-none rounded-l-md sm:text-sm" placeholder="사용자명 또는 이메일 입력">
-                                <button type="button" @click="searchUsers" class="inline-flex items-center rounded-r-md border border-l-0px-3 text-sm">
+                                <button type="button" @click="searchUsers" class="inline-flex items-center rounded-r-md border border-current/25 border-l-0px-3 text-sm">
                                     검색
                                 </button>
                             </div>
                         </div>
 
-                        <div class="border rounded-md p-4" x-show="showSearchResults">
+                        <div class="border border-current/25 rounded-md p-4" x-show="showSearchResults">
                             <h3 class="font-medium mb-2">검색 결과</h3>
-                            <ul class="divide-y divide-gray-200 max-h-40 overflow-y-auto">
+                            <ul class="divide-y divide-current/25 max-h-40 overflow-y-auto">
                                 <template x-for="user in searchResults" :key="user.id">
                                     <li class="py-2 flex justify-between">
                                         <div>
@@ -107,7 +107,7 @@
 
                         <div>
                             <h3 class="font-medium mb-2">선택된 매니저</h3>
-                            <ul class="divide-y divide-gray-200 border rounded-md p-4">
+                            <ul class="divide-y divide-current/25 border border-current/25 rounded-md p-4">
                                 <template x-for="(manager, index) in managers" :key="manager.id">
                                     <li class="py-2 flex justify-between">
                                         <div>
@@ -131,7 +131,7 @@
                 <div class="mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-medium">필드 정보</h2>
-                        <button type="button" @click="addField" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-blue-700 btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <button type="button" @click="addField" class="inline-flex items-center px-3 py-1 border border-current/25 border-transparent text-sm font-medium rounded text-blue-700 btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             + 필드 추가
                         </button>
                     </div>
@@ -219,10 +219,10 @@
             </div>
 
             <div class="px-6 py-3border-t border-gray-200 flex justify-between">
-                <a href="/admin/boards" class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                <a href="/admin/boards" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                     취소
                 </a>
-                <button type="button" @click="submitForm()" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                <button type="button" @click="submitForm()" class="inline-flex justify-center py-2 px-4 border border-current/25 border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
                     <span x-show="!submitting">등록</span>
                     <span x-show="submitting" class="flex items-center">
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

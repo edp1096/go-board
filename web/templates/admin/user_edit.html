@@ -2,7 +2,7 @@
 <div class="max-w-7xl mx-auto">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">사용자 정보 수정</h1>
-        <a href="/admin/users" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
+        <a href="/admin/users" class="inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
             사용자 목록으로 돌아가기
         </a>
     </div>
@@ -14,36 +14,36 @@
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                     <label for="username" class="block text-sm font-medium">사용자명 *</label>
-                    <input type="text" id="username" name="username" value="{{.userInfo.Username}}" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="text" id="username" name="username" value="{{.userInfo.Username}}" required class="mt-1 block w-full border border-current/25 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     <p class="mt-1 text-xs">로그인에 사용될 고유한 사용자명입니다.</p>
                 </div>
 
                 <div>
                     <label for="email" class="block text-sm font-medium">이메일 *</label>
-                    <input type="email" id="email" name="email" value="{{.userInfo.Email}}" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="email" id="email" name="email" value="{{.userInfo.Email}}" required class="mt-1 block w-full border border-current/25 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
                     <label for="password" class="block text-sm font-medium">새 비밀번호</label>
-                    <input type="password" id="password" name="password" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="password" id="password" name="password" class="mt-1 block w-full border border-current/25 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     <p class="mt-1 text-xs">변경하려면 입력하세요. 빈칸으로 두면 기존 비밀번호가 유지됩니다.</p>
                 </div>
 
                 <div>
                     <label for="password_confirm" class="block text-sm font-medium">새 비밀번호 확인</label>
-                    <input type="password" id="password_confirm" name="password_confirm" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="password" id="password_confirm" name="password_confirm" class="mt-1 block w-full border border-current/25 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
                     <label for="full_name" class="block text-sm font-medium">이름</label>
-                    <input type="text" id="full_name" name="full_name" value="{{.userInfo.FullName}}" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <input type="text" id="full_name" name="full_name" value="{{.userInfo.FullName}}" class="mt-1 block w-full border border-current/25 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
 
                 <div>
                     {{$admin := eq .userInfo.Role "admin"}}
                     {{$user := eq .userInfo.Role "user"}}
                     <label for="role" class="block text-sm font-medium">역할</label>
-                    <select id="role" name="role" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <select id="role" name="role" class="mt-1 block w-full border border-current/25 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         <option value="user" {{if $user}}selected{{end}}>일반 사용자</option>
                         <option value="admin" {{if $admin}}selected{{end}}>관리자</option>
                     </select>
@@ -69,11 +69,11 @@
             <div id="success-message" class="text-success text-sm hidden"></div>
 
             <div class="flex justify-between">
-                <button type="button" id="deleteUserBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <button type="button" id="deleteUserBtn" class="inline-flex justify-center py-2 px-4 border border-current/25 border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     사용자 삭제
                 </button>
 
-                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-current/25 border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     변경사항 저장
                 </button>
             </div>

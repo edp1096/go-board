@@ -83,7 +83,7 @@
                                 <div x-show="attachments.length === 0 && deletedFiles.length === 0" class="text-sm">
                                     첨부 파일이 없습니다.
                                 </div>
-                                <ul x-show="attachments.length > 0" class="border border-gray-200 rounded-md divide-y divide-gray-200">
+                                <ul x-show="attachments.length > 0" class="border border-current/25 rounded-md divide-y divide-current/25">
                                     <template x-for="file in attachments" :key="file.id">
                                         <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
                                             <div class="flex-1 flex items-center">
@@ -105,7 +105,7 @@
                                 <!-- 삭제 표시된 파일 목록 (취소 가능) -->
                                 <div x-show="deletedFiles.length > 0" class="mt-4">
                                     <h4 class="text-sm font-medium mb-2">삭제 예정 파일</h4>
-                                    <ul class="border border-gray-200 border-dashed rounded-md divide-y divide-gray-200 bg-gray-50">
+                                    <ul class="border border-current/25 border-dashed rounded-md divide-y divide-current/25 bg-gray-50">
                                         <template x-for="file in deletedFiles" :key="file.id">
                                             <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm line-through">
                                                 <div class="flex-1 flex items-center">
@@ -128,7 +128,7 @@
                                 <!-- 선택된 새 파일 목록 표시 -->
                                 <div class="mt-4" x-show="fileNames.length > 0">
                                     <h4 class="text-sm font-medium mb-2">추가할 파일</h4>
-                                    <ul class="border border-gray-200 rounded-md divide-y divide-gray-200 btn-success">
+                                    <ul class="border border-current/25 rounded-md divide-y divide-current/25 btn-success">
                                         <template x-for="(name, index) in fileNames" :key="index">
                                             <li class="pl-3 pr-4 py-3 flex items-center text-sm">
                                                 <svg class="flex-shrink-0 h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,10 +149,10 @@
             </div>
 
             <div class="px-6 py-3border-t border-gray-200 flex justify-between">
-                <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}" class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                     취소
                 </a>
-                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-current/25 border-transparent shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
                     <span x-show="!submitting">저장</span>
                     <span x-show="submitting" class="flex items-center">
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

@@ -7,7 +7,7 @@
         <p class="text-secondary">등록된 게시판이 없습니다.</p>
         {{if .user}}
         {{if eq .user.Role "admin"}}
-        <a href="/admin/boards/create" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="/admin/boards/create" class="mt-4 inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             게시판 만들기
         </a>
         {{end}}
@@ -16,7 +16,7 @@
     {{else}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {{range .boards}}
-        <a href="/boards/{{.ID}}/posts" class="block bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
+        <a href="/boards/{{.ID}}/posts" class="block bg-white border border-current/25 rounded-lg overflow-hidden hover:shadow-md transition">
             <div class="p-6">
                 <h2 class="text-xl font-semibold mb-2">{{.Name}}</h2>
                 <p class="mb-4 line-clamp-2">{{if .Description}}{{.Description}}{{else}}게시판 설명이 없습니다.{{end}}</p>

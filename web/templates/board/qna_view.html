@@ -144,7 +144,7 @@
             <div class="mt-4" x-data="attachmentManager({{$.board.ID}}, {{$.post.ID}})">
                 <div x-show="attachments.length > 0">
                     <h4 class="text-sm font-medium mb-2">첨부 파일</h4>
-                    <ul class="border border-gray-200 rounded-md divide-y divide-gray-200">
+                    <ul class="border border-current/25 rounded-md divide-y divide-current/25">
                         <template x-for="file in attachments" :key="file.id">
                             <li class="pl-3 pr-4 py-3 flex items-center justify-between text-sm">
                                 <div class="flex items-center">
@@ -173,7 +173,7 @@
         <div class="px-6 py-4border-t border-gray-200">
             <div class="flex justify-between">
                 <div>
-                    <a href="/boards/{{.board.ID}}/posts" class="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                    <a href="/boards/{{.board.ID}}/posts" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                         목록
                     </a>
                 </div>
@@ -182,10 +182,10 @@
                 {{$admin := or (eq .user.Role "admin") .isManager}}
                 {{if or (eq .user.ID .post.UserID) $admin}}
                 <div class="flex space-x-2">
-                    <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-3 py-2 border text-sm font-medium rounded-md bg-white">
+                    <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-3 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                         수정
                     </a>
-                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-error bg-white hover:bg-red-50">
+                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-3 py-2 border border-current/25 border-red-300 text-sm font-medium rounded-md text-error bg-white hover:bg-red-50">
                         삭제
                     </button>
 
@@ -193,7 +193,7 @@
                     {{if eq .user.ID .post.UserID}}
                     <!-- 드롭다운 부모 요소 -->
                     <div class="dropdown relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="inline-flex items-center px-3 py-2 border text-sm font-medium rounded-md bg-white">
+                        <button @click="open = !open" class="inline-flex items-center px-3 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                             상태 변경
                             <svg class="ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -396,14 +396,14 @@
                         <!-- 베스트 답변 선택 버튼 (질문 작성자만) -->
                         {{if eq .user.ID .post.UserID}}
                         <template x-if="!answer.isBestAnswer">
-                            <button @click="selectBestAnswer(answer.id)" class="mr-2 inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-success btn-success hover:btn-success">
+                            <button @click="selectBestAnswer(answer.id)" class="mr-2 inline-flex items-center px-2 py-1 border border-current/25 border-transparent text-xs font-medium rounded text-success btn-success hover:btn-success">
                                 베스트 답변으로 선택
                             </button>
                         </template>
                         {{end}}
 
                         {{if .user}}
-                        <button @click="setReplyInfo(answer.id, answer.user ? answer.user.username : '알 수 없음')" class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 btn-primary">
+                        <button @click="setReplyInfo(answer.id, answer.user ? answer.user.username : '알 수 없음')" class="inline-flex items-center px-2 py-1 border border-current/25 border-transparent text-xs font-medium rounded text-blue-700 btn-primary">
                             답글
                         </button>
 
@@ -411,10 +411,10 @@
                         {{$admin := or (eq .user.Role "admin") .isManager}}
                         <template x-if="'{{.user.ID}}' == answer.userId || {{$admin}}">
                             <div class="flex items-center space-x-2">
-                                <button @click="editComment(answer.id, answer.content)" class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 btn-primary">
+                                <button @click="editComment(answer.id, answer.content)" class="inline-flex items-center px-2 py-1 border border-current/25 border-transparent text-xs font-medium rounded text-blue-700 btn-primary">
                                     수정
                                 </button>
-                                <button @click="deleteAnswer(answer.id)" class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-error bg-red-100 hover:bg-red-200">
+                                <button @click="deleteAnswer(answer.id)" class="inline-flex items-center px-2 py-1 border border-current/25 border-transparent text-xs font-medium rounded text-error bg-red-100 hover:bg-red-200">
                                     삭제
                                 </button>
                             </div>
@@ -472,7 +472,7 @@
                                     <div class="min-w-0 flex-1">
                                         <div class="text-sm font-medium" x-text="reply.user ? reply.user.username : '알 수 없음'"></div>
                                         <div class="mt-1">
-                                            <textarea x-model="editContent" class="edit-textarea w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="답글 내용을 수정하세요"></textarea>
+                                            <textarea x-model="editContent" class="edit-textarea w-full px-3 py-2 text-sm border border-current/25 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="답글 내용을 수정하세요"></textarea>
                                         </div>
                                         <div class="mt-2 flex justify-end space-x-2">
                                             <button @click="cancelEdit()" class="px-3 py-1 text-xs hover:bg-gray-200 rounded-md">
@@ -517,7 +517,7 @@
                                         <textarea x-model="replyContent" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md" placeholder="답글을 입력하세요" rows="3"></textarea>
                                     </div>
                                     <div class="flex justify-end">
-                                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                             <span x-show="!submittingReply">답글 등록</span>
                                             <span x-show="submittingReply" class="flex items-center">
                                                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -548,7 +548,7 @@
                 <editor-comment id="answer-editor" data-idx="answer"></editor-comment>
             </div>
             <div class="flex justify-end">
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
                     <span x-show="!submitting">답변 등록</span>
                     <span x-show="submitting" class="flex items-center">
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -598,10 +598,10 @@
                     </div>
                 </div>
                 <div class="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" @click="submitEditComment()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 btn-primary text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" @click="submitEditComment()" class="w-full inline-flex justify-center rounded-md border border-current/25 border-transparent shadow-sm px-4 py-2 btn-primary text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
                         저장
                     </button>
-                    <button type="button" @click="closeEditModal()" class="mt-3 w-full inline-flex justify-center rounded-md border shadow-sm px-4 py-2 bg-white text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" @click="closeEditModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-current/25 shadow-sm px-4 py-2 bg-white text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                         취소
                     </button>
                 </div>

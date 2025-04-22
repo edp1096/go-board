@@ -4,7 +4,7 @@
         <h1 class="text-2xl font-bold">{{.board.Name}}</h1>
 
         {{if .user}}
-        <a href="/boards/{{.board.ID}}/posts/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <a href="/boards/{{.board.ID}}/posts/create" class="inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             질문하기
         </a>
         {{end}}
@@ -21,7 +21,7 @@
         <form action="/boards/{{.board.ID}}/posts" method="GET" class="space-y-4">
             <div class="flex">
                 <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
-                <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-current/25 border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     검색
                 </button>
             </div>
@@ -31,7 +31,7 @@
                     <option value="solved" {{if eq .status "solved" }}selected{{end}}>해결됨</option>
                     <option value="unsolved" {{if eq .status "unsolved" }}selected{{end}}>미해결</option>
                 </select>
-                <button type="submit" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button type="submit" class="inline-flex items-center px-3 py-1 border border-current/25 border-transparent text-sm font-medium rounded-md text-blue-700 btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     필터 적용
                 </button>
             </div>
@@ -126,7 +126,7 @@
                 <!-- 이전 페이지 -->
                 {{if gt .page 1}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .status}}&status={{.status}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .status}}&status={{.status}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                         이전
                     </a>
                 </li>
@@ -135,7 +135,7 @@
                 <!-- 페이지 번호 -->
                 {{range $i := iterate 1 .totalPages}}
                 <li>
-                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md {{if eq $i $.page}}btn-primary text-blue-600 border-blue-500{{else}}text-secondary bg-white{{end}}">
+                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md {{if eq $i $.page}}btn-primary text-blue-600 border-blue-500{{else}}text-secondary bg-white{{end}}">
                         {{$i}}
                     </a>
                 </li>
@@ -144,7 +144,7 @@
                 <!-- 다음 페이지 -->
                 {{if lt .page .totalPages}}
                 <li>
-                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{$.query}}{{end}}{{if $.status}}&status={{$.status}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                         다음
                     </a>
                 </li>
