@@ -1,8 +1,7 @@
 // WHOIS 모달 관련 자바스크립트 함수들
 
-// showIPDetails - IP 클릭 시 상세 정보 모달 표시
-// IP 상세 정보 모달 표시 함수 (수정된 버전)
-function showIPDetail(ip, userAgent, isBot, reverseDNS) {
+// IP 클릭 시 상세 정보 모달 표시 (수정된 버전)
+function showIPDetail(ip, userAgent, isBot) {
     const modal = document.getElementById('whois-modal');
     const modalTitle = document.getElementById('whois-modal-title');
     const loading = document.getElementById('whois-loading');
@@ -24,7 +23,7 @@ function showIPDetail(ip, userAgent, isBot, reverseDNS) {
         error.style.display = 'none';
         content.style.display = 'none';
 
-        // WHOIS API 호출
+        // WHOIS API 호출 - API에서 역DNS 정보도 함께 가져옴
         fetch(`/api/whois?ip=${ip}`)
             .then(response => {
                 if (!response.ok) {
@@ -43,12 +42,15 @@ function showIPDetail(ip, userAgent, isBot, reverseDNS) {
                 // WHOIS 정보 표시
                 displayWhoisInfo(data.data, 'ip', summary);
 
+                // API에서 받아온 역DNS 정보 추가
+                const reverseDNS = data.data.reverseDns || '-';
+
                 // IP와 User-Agent 추가 정보
                 const additionalInfoHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 p-3 border-t border-gray-200">
                         <div>
                             <p class="text-xs">역DNS</p>
-                            <p class="font-medium">${reverseDNS || '-'}</p>
+                            <p class="font-medium">${reverseDNS}</p>
                         </div>
                         <div>
                             <p class="text-xs">봇 여부</p>
@@ -110,6 +112,9 @@ function showIPDetail(ip, userAgent, isBot, reverseDNS) {
 
 // 봇/사람 비율 차트 초기화
 function initVisitorTypeChart() {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#ddd' : '#222';
+
     // 선택된 레퍼러에서 봇/사람 수 집계
     const botCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.botCount || 0), 0);
     const humanCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.humanCount || 0), 0);
@@ -133,7 +138,14 @@ function initVisitorTypeChart() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right'
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        },
+                        color: textColor
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -152,6 +164,9 @@ function initVisitorTypeChart() {
 
 // 브라우저 분포 차트 초기화
 function initBrowserChart() {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#ddd' : '#222';
+
     // 브라우저 데이터 집계
     const browsers = {};
 
@@ -166,23 +181,157 @@ function initBrowserChart() {
     const labels = Object.keys(browsers);
     const data = Object.values(browsers);
 
-    // 색상 맵
+    // 색상 맵 - 투명도 없이 변경
     const browserColors = {
-        'Chrome': 'rgba(66, 133, 244, 0.8)', // Google Blue
-        'Firefox': 'rgba(255, 89, 0, 0.8)',  // Firefox Orange
-        'Safari': 'rgba(0, 122, 255, 0.8)',  // Safari Blue
-        'Edge': 'rgba(0, 120, 215, 0.8)',    // Edge Blue
-        'IE': 'rgba(0, 120, 215, 0.8)',      // IE Blue
-        'Bot': 'rgba(128, 128, 128, 0.8)',   // Gray for bots
-        'Unknown': 'rgba(169, 169, 169, 0.8)' // Dark Gray for unknown
+        'Edge': '#0078D7',     // Edge Blue
+        'Chrome': '#4285F4',   // Google Blue
+        'Firefox': '#FF5500',  // Firefox Orange
+        'Safari': '#007AFF',   // Safari Blue
+        'IE': '#0078D7',       // IE Blue
+        'Bot': '#808080',      // Gray for bots
+        'Unknown': '#A9A9A9'   // Dark Gray for unknown
     };
 
     // 색상 배열 생성
     const colors = labels.map(browser =>
-        browserColors[browser] || 'rgba(83, 166, 131, 0.8)' // Default Green
+        browserColors[browser] || '#53A683' // Default Green
     );
 
+    // 호버 색상
+    const hoverColors = colors.map(color => color + 'CC'); // 80% 불투명도 추가
+
     const ctx = document.getElementById('browser-chart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                hoverBackgroundColor: hoverColors,
+                borderColor: '#ffffff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        },
+                        color: textColor
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = data.reduce((sum, val) => sum + val, 0);
+                            const percent = Math.round((value / total) * 100);
+                            return `${context.label}: ${value} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 운영체제 분포 차트 초기화
+function initOSChart() {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#ddd' : '#222';
+
+    // OS 데이터 집계
+    const osData = {};
+
+    topReferrers.forEach(ref => {
+        if (ref.uaStats?.oses) { // OSes -> oses로 수정 (소문자)
+            Object.entries(ref.uaStats.oses).forEach(([os, count]) => {
+                // 빈 문자열이나 null 처리
+                const osName = os && os !== "" ? os : "Unknown";
+                osData[osName] = (osData[osName] || 0) + count;
+            });
+        }
+    });
+
+    // 데이터가 없으면 처리하지 않음
+    if (Object.keys(osData).length === 0) {
+        // 데이터가 없을 때 placeholder 표시
+        const ctx = document.getElementById('os-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['데이터 없음'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['rgba(200, 200, 200, 0.5)'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            }
+        });
+        return;
+    }
+
+    // 데이터 정렬 및 상위 항목만 표시
+    const sortedEntries = Object.entries(osData).sort((a, b) => b[1] - a[1]);
+    const TOP_ITEMS = 6; // 상위 X개 항목만 표시
+
+    let labels = [];
+    let data = [];
+    let otherCount = 0;
+
+    sortedEntries.forEach((entry, index) => {
+        if (index < TOP_ITEMS) {
+            labels.push(entry[0] === "Unknown" ? "알 수 없음" : entry[0]);
+            data.push(entry[1]);
+        } else {
+            otherCount += entry[1];
+        }
+    });
+
+    // 기타 항목이 있으면 추가
+    if (otherCount > 0) {
+        labels.push("기타");
+        data.push(otherCount);
+    }
+
+    // 색상 맵
+    const osColors = {
+        'Windows': 'rgba(0, 120, 215, 0.8)',   // Windows Blue
+        'macOS': 'rgba(170, 170, 170, 0.8)',   // macOS Silver
+        'iOS': 'rgba(0, 122, 255, 0.8)',       // iOS Blue
+        'Android': 'rgba(164, 198, 57, 0.8)',  // Android Green
+        'Linux': 'rgba(255, 153, 0, 0.8)',     // Linux Orange
+        'Ubuntu': 'rgba(233, 84, 32, 0.8)',    // Ubuntu Orange
+        'Unknown': 'rgba(169, 169, 169, 0.8)', // Gray for unknown
+        '알 수 없음': 'rgba(169, 169, 169, 0.8)', // Gray for Korean "알 수 없음"
+        '기타': 'rgba(120, 120, 120, 0.8)'      // Dark gray for others
+    };
+
+    // 색상 배열 생성
+    const colors = labels.map(os => {
+        return osColors[os] || 'rgba(100, 149, 237, 0.8)'; // Default blue
+    });
+
+    const ctx = document.getElementById('os-chart').getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -198,7 +347,14 @@ function initBrowserChart() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right'
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        },
+                        color: textColor
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -217,6 +373,9 @@ function initBrowserChart() {
 
 // 모바일/PC 비율 차트 초기화
 function initDeviceChart() {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#ddd' : '#222';
+
     // 디바이스 유형 집계
     const mobileCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.mobileCount || 0), 0);
     const desktopCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.desktopCount || 0), 0);
@@ -240,7 +399,14 @@ function initDeviceChart() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right'
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        },
+                        color: textColor
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -317,7 +483,7 @@ function showWhoisInfo(value, type, ua) {
                 }
 
                 whoisRawData.innerHTML = formattedData;
-                uaRawData.innerHTML = ua.toString();
+                uaRawData.innerHTML = ua ? (Array.isArray(ua) ? ua.join('<br>') : ua) : '';
 
                 // 내용 표시
                 content.style.display = 'block';
@@ -493,14 +659,14 @@ function closeWhoisModal() {
 
 // 일별 방문 차트 초기화
 function initDailyChart() {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#ddd' : '#222';
+    const gridColor = isDarkMode ? '#999' : '#666';
+
     const timeStats = JSON.parse(document.getElementById('time-stats-data').value || '[]');
     if (timeStats.length === 0) return;
+    const ctx = document.getElementById('daily-chart').getContext('2d');
 
-    // Chart.js 설정
-    const dailyChartEl = document.getElementById('daily-chart');
-    if (!dailyChartEl) return;
-
-    const ctx = dailyChartEl.getContext('2d');
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -508,7 +674,7 @@ function initDailyChart() {
             datasets: [{
                 label: '방문 수',
                 data: timeStats.map(item => item.count),
-                borderColor: 'rgba(59, 130, 246, 1)', // Blue
+                borderColor: 'rgba(59, 130, 246, 1)',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderWidth: 2,
                 tension: 0.3,
@@ -519,28 +685,52 @@ function initDailyChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
+                x: {
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
+                    }
+                },
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        precision: 0
+                        precision: 0,
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
                     }
                 }
             },
             plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 10 },
+                        color: textColor
+                    }
+                },
                 tooltip: {
                     callbacks: {
-                        label: function (context) {
-                            return `방문 수: ${context.raw}`;
-                        }
-                    }
+                        label: ctx => `방문 수: ${ctx.raw}`
+                    },
+                    titleColor: textColor,
+                    bodyColor: textColor
                 }
             }
         }
     });
 }
 
+
 // 레퍼러 타입 차트 초기화
 function initReferrerTypeChart() {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#ddd' : '#222';
+
     const typeStats = JSON.parse(document.getElementById('type-stats-data').value || '[]');
     if (typeStats.length === 0) return;
 
@@ -585,7 +775,14 @@ function initReferrerTypeChart() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'right'
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        },
+                        color: textColor
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -642,6 +839,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // 새로운 차트 초기화
                 initVisitorTypeChart();
                 initBrowserChart();
+                initOSChart();
                 initDeviceChart();
             }
         })

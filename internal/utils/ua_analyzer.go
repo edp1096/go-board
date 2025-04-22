@@ -34,7 +34,7 @@ var botPatterns = map[string]*regexp.Regexp{
 
 // 브라우저 패턴 정의
 var browserPatterns = map[string]*regexp.Regexp{
-	"Edge":      regexp.MustCompile(`(?i)Edge\/([0-9.]+)`),
+	"Edge":      regexp.MustCompile(`(?i)Edg\/([0-9.]+)`),
 	"Samsung":   regexp.MustCompile(`(?i)SamsungBrowser\/([0-9.]+)`),
 	"Opera":     regexp.MustCompile(`(?i)Opera\/([0-9.]+)`),
 	"UCBrowser": regexp.MustCompile(`(?i)UCBrowser\/([0-9.]+)`),

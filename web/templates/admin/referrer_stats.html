@@ -114,7 +114,7 @@
         </div>
 
         <div class="w-full mt-8 mb-6 lg:col-span-2">
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                 <!-- 레퍼러 타입 차트 -->
                 <div class="bg-white shadow rounded-lg p-4">
                     <h2 class="text-lg font-semibold mb-3">레퍼러 타입 분포</h2>
@@ -136,6 +136,14 @@
                     <h2 class="text-lg font-semibold mb-3">브라우저 분포</h2>
                     <div class="h-48 relative">
                         <canvas id="browser-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 운영체제 분포 차트 추가 -->
+                <div class="bg-white shadow rounded-lg p-4">
+                    <h2 class="text-lg font-semibold mb-3">운영체제 분포</h2>
+                    <div class="h-48 relative">
+                        <canvas id="os-chart"></canvas>
                     </div>
                 </div>
 
@@ -232,9 +240,6 @@
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                                 IP 주소
                             </th>
-                            <!-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                역DNS
-                            </th> -->
                             {{end}}
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                                 비율
@@ -307,7 +312,7 @@
                                 <div class="w-40 max-h-32 overflow-y-auto">
                                     {{range $index, $ipDetail := .IPDetails}}
                                     <div class="mb-1">
-                                        <a href="#" class="hover:text-blue-600" onclick="showIPDetail('{{$ipDetail.IP}}', '{{$ipDetail.UserAgent}}', JSON.parse('{{$ipDetail.IsBot}}'), '{{$ipDetail.ReverseDNS}}'); return false;">
+                                        <a href="#" class="hover:text-blue-600" onclick="showIPDetail('{{$ipDetail.IP}}', '{{$ipDetail.UserAgent}}', JSON.parse('{{$ipDetail.IsBot}}')); return false;">
                                             {{if $ipDetail.IsBot}}
                                             <i class="fas fa-robot text-blue-500 mr-1" title="봇"></i>
                                             {{else}}
@@ -331,15 +336,6 @@
                                 </div>
                                 {{else}}-{{end}}
                             </td>
-                            <!-- <td class="px-4 py-2 whitespace-nowrap text-sm overflow-x: scroll">
-                                {{if .IPDetails}}
-                                {{if gt (len .IPDetails) 0}}
-                                {{with index .IPDetails 0}}
-                                {{if .ReverseDNS}}{{.ReverseDNS}}{{else}}-{{end}}
-                                {{else}}-{{end}}
-                                {{else}}-{{end}}
-                                {{else if .ReverseDNS}}{{.ReverseDNS}}{{else}}-{{end}}
-                            </td> -->
                             {{end}}
 
                             <td class="px-4 py-2 whitespace-nowrap text-sm">
@@ -348,7 +344,7 @@
                         </tr>
                         {{else}}
                         <tr>
-                            <td colspan="8" class="px-4 py-2 whitespace-nowrap text-sm text-center">
+                            <td colspan="7" class="px-4 py-2 whitespace-nowrap text-sm text-center">
                                 데이터가 없습니다
                             </td>
                         </tr>

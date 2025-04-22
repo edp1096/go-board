@@ -223,6 +223,7 @@ func (s *referrerService) GetTotal(ctx context.Context, days int) (int, error) {
 }
 
 // EnrichReferrerData는 레퍼러 데이터에 DNS 조회 정보와 타겟 URL 정보를 추가합니다.
+// 페이지 로딩 시에는 역DNS 정보를 조회하지 않고 필수 정보만 로드합니다.
 func (s *referrerService) EnrichReferrerData(referrers []*models.ReferrerSummary) {
 	// 병렬 처리를 위한 워커 풀 구현
 	type dnsTask struct {
@@ -252,26 +253,13 @@ func (s *referrerService) EnrichReferrerData(referrers []*models.ReferrerSummary
 			for task := range taskCh {
 				ref := task.ref
 
-				// 1. IP별 역DNS 조회 (개선된 방식)
-				for i, ipDetail := range ref.IPDetails {
-					if ipDetail.IP != "" && ipDetail.IP != "unknown" {
-						ptr, _ := utils.LookupPTR(ipDetail.IP)
-						ref.IPDetails[i].ReverseDNS = ptr
-
-						// 첫 번째 IP에 대한 역DNS를 기존 필드에도 유지 (호환성)
-						if i == 0 {
-							ref.ReverseDNS = ptr
-						}
-					}
-				}
-
-				// 2. 레퍼러 도메인에 대한 정DNS 조회
+				// 레퍼러 도메인에 대한 정DNS 조회
 				if ref.ReferrerDomain != "" && ref.ReferrerDomain != "direct" && ref.ReferrerDomain != "unknown" {
 					ips := utils.GetDomainInfo(ref.ReferrerDomain)
 					ref.ForwardDNS = ips
 				}
 
-				// 3. 타겟 URL 정보 추가
+				// 타겟 URL 정보 추가
 				if ref.ReferrerURL != "" && ref.ReferrerURL != "direct" && len(ref.TargetURLs) == 0 {
 					// 기본적으로 30일 데이터 사용
 					startDate := time.Now().AddDate(0, 0, -30)
@@ -287,6 +275,7 @@ func (s *referrerService) EnrichReferrerData(referrers []*models.ReferrerSummary
 	wg.Wait()
 }
 
+// GetIPDetails 함수는 모달 클릭 시 사용되며, 역DNS 조회를 포함합니다
 func (s *referrerService) GetIPDetails(ctx context.Context, ipAddress string, startDate time.Time) (*models.IPDetail, error) {
 	// 저장소에서 기본 IP 정보 가져오기
 	detail, err := s.referrerRepo.GetIPDetails(ctx, ipAddress, startDate)
@@ -320,7 +309,7 @@ func (s *referrerService) GetIPDetails(ctx context.Context, ipAddress string, st
 		}
 	}
 
-	// DNS 정보 추가 (비동기로 처리해도 됨)
+	// 모달을 통해 요청될 때만 역DNS 정보 추가 (API 호출 시)
 	ptr, _ := utils.LookupPTR(ipAddress)
 	detail.ReverseDNS = ptr
 
