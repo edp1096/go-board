@@ -327,38 +327,11 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	// 	isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
 	// }
 
-	// 템플릿 선택 - gallery_view는 없음
-	templateName := "board/view"
-	if board.BoardType == models.BoardTypeQnA {
-		templateName = "board/qna_view"
-	}
-
-	// 메타 데이터 추출
-	// metaDescription := ""
-	// if len(post.Content) > 150 {
-	// 	metaDescription = utils.PlainText(post.Content[:150]) + "..."
-	// } else {
-	// 	metaDescription = utils.PlainText(post.Content)
-	// }
-	metaDescription := utils.TruncateText(post.Content, 150)
-
-	// 썸네일 URL 처리
-	var thumbnailURL string
+	pageSize := 20 // 페이지당 게시물 수
 	if board.BoardType == models.BoardTypeGallery {
-		thumbnails, _ := h.boardService.GetPostThumbnails(c.Context(), boardID, []int64{postID})
-		if url, ok := thumbnails[postID]; ok {
-			thumbnailURL = url
-		}
+		pageSize = 16 // 갤러리는 한 페이지에 16개 항목으로 조정
 	}
-
-	// // 서버 주소 가져오기
-	// serverURL := "https://" + h.config.ServerAddress
-	// if h.config.Environment == "development" {
-	// 	serverURL = "http://" + h.config.ServerAddress
-	// }
-
 	page := 1                 // 첫 페이지만 표시
-	pageSize := 10            // 10개 항목만 표시
 	sortField := "created_at" // 생성일 기준
 	sortDir := "desc"         // 내림차순 (최신순)
 
@@ -395,6 +368,36 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 
 	// 페이지네이션 계산
 	totalPages := (total + pageSize - 1) / pageSize
+
+	// 템플릿 선택 - gallery_view는 없음
+	templateName := "board/view"
+	if board.BoardType == models.BoardTypeQnA {
+		templateName = "board/qna_view"
+	}
+
+	// 메타 데이터 추출
+	// metaDescription := ""
+	// if len(post.Content) > 150 {
+	// 	metaDescription = utils.PlainText(post.Content[:150]) + "..."
+	// } else {
+	// 	metaDescription = utils.PlainText(post.Content)
+	// }
+	metaDescription := utils.TruncateText(post.Content, 150)
+
+	// 썸네일 URL 처리
+	var thumbnailURL string
+	if board.BoardType == models.BoardTypeGallery {
+		thumbnails, _ := h.boardService.GetPostThumbnails(c.Context(), boardID, []int64{postID})
+		if url, ok := thumbnails[postID]; ok {
+			thumbnailURL = url
+		}
+	}
+
+	// // 서버 주소 가져오기
+	// serverURL := "https://" + h.config.ServerAddress
+	// if h.config.Environment == "development" {
+	// 	serverURL = "http://" + h.config.ServerAddress
+	// }
 
 	return utils.RenderWithUser(c, templateName, fiber.Map{
 		"title":       post.Title,
