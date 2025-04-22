@@ -61,7 +61,7 @@ func (s *referrerService) GetTopReferrers(ctx context.Context, limit, days int) 
 	// 타겟 URL과 User-Agent 분석 정보 추가
 	startDate := time.Now().AddDate(0, 0, -days)
 	for _, ref := range referrers {
-		// 타겟 URL 정보 추가 (기존 코드)
+		// 타겟 URL 정보 추가
 		if ref.ReferrerURL != "direct" && ref.ReferrerURL != "" {
 			targetURLs, err := s.referrerRepo.GetTargetURLsForReferrer(ctx, ref.ReferrerURL, startDate)
 			if err == nil {
@@ -69,40 +69,145 @@ func (s *referrerService) GetTopReferrers(ctx context.Context, limit, days int) 
 			}
 		}
 
+		// IP별 User-Agent 정보 조회 (새로운 방식)
+		ipDetails, err := s.referrerRepo.GetUniqueIPsWithUA(ctx, ref.ReferrerURL, startDate)
+		if err == nil {
+			ref.IPDetails = ipDetails
+
+			// 기존 호환성을 위한 필드도 유지
+			ips := make([]string, 0, len(ipDetails))
+			uas := make([]string, 0, len(ipDetails))
+
+			for _, detail := range ipDetails {
+				ips = append(ips, detail.IP)
+				uas = append(uas, detail.UserAgent)
+			}
+
+			ref.VisitorIPs = ips
+			ref.UserAgents = uas
+		} else {
+			// 호환성을 위해 기존 방식으로 대체
+			ips, uas, _ := s.referrerRepo.GetUniqueIPsForReferrer(ctx, ref.ReferrerURL, startDate)
+			ref.VisitorIPs = ips
+			ref.UserAgents = uas
+		}
+
 		// User-Agent 통계 초기화
 		ref.UAStats.Browsers = make(map[string]int)
 		ref.UAStats.OSes = make(map[string]int)
 
 		// User-Agent 분석
-		for _, ua := range ref.UserAgents {
-			uaInfo := utils.AnalyzeUserAgent(ua)
+		botCount := 0
+		humanCount := 0
+		mobileCount := 0
+		desktopCount := 0
+
+		// IP별 User-Agent 정보 기반 통계 계산
+		for _, detail := range ref.IPDetails {
+			uaInfo := utils.AnalyzeUserAgent(detail.UserAgent)
 
 			// 봇/사람 카운트
 			if uaInfo.IsBot {
-				ref.UAStats.BotCount++
+				botCount++
 				ref.UAStats.Browsers["Bot"]++
 			} else {
-				ref.UAStats.HumanCount++
+				humanCount++
 				ref.UAStats.Browsers[uaInfo.Browser]++
 			}
 
 			// 모바일/데스크톱 카운트
 			if uaInfo.IsMobile {
-				ref.UAStats.MobileCount++
+				mobileCount++
 			} else {
-				ref.UAStats.DesktopCount++
+				desktopCount++
 			}
 
 			// OS 카운트
 			ref.UAStats.OSes[uaInfo.OS]++
 		}
+
+		ref.UAStats.BotCount = botCount
+		ref.UAStats.HumanCount = humanCount
+		ref.UAStats.MobileCount = mobileCount
+		ref.UAStats.DesktopCount = desktopCount
 	}
 
 	return referrers, nil
 }
 
 func (s *referrerService) GetTopReferrersByDomain(ctx context.Context, limit, days int) ([]*models.ReferrerSummary, error) {
-	return s.referrerRepo.GetTopReferrersByDomain(ctx, limit, days)
+	referrers, err := s.referrerRepo.GetTopReferrersByDomain(ctx, limit, days)
+	if err != nil {
+		return nil, err
+	}
+
+	// 타겟 URL과 User-Agent 분석 정보 추가
+	startDate := time.Now().AddDate(0, 0, -days)
+	for _, ref := range referrers {
+		// IP별 User-Agent 정보 조회 (새로운 방식)
+		ipDetails, err := s.referrerRepo.GetUniqueIPsWithUAForDomain(ctx, ref.ReferrerDomain, startDate)
+		if err == nil {
+			ref.IPDetails = ipDetails
+
+			// 기존 호환성을 위한 필드도 유지
+			ips := make([]string, 0, len(ipDetails))
+			uas := make([]string, 0, len(ipDetails))
+
+			for _, detail := range ipDetails {
+				ips = append(ips, detail.IP)
+				uas = append(uas, detail.UserAgent)
+			}
+
+			ref.VisitorIPs = ips
+			ref.UserAgents = uas
+		} else {
+			// 호환성을 위해 기존 방식으로 대체
+			ips, uas, _ := s.referrerRepo.GetUniqueIPsForDomain(ctx, ref.ReferrerDomain, startDate)
+			ref.VisitorIPs = ips
+			ref.UserAgents = uas
+		}
+
+		// User-Agent 통계 초기화
+		ref.UAStats.Browsers = make(map[string]int)
+		ref.UAStats.OSes = make(map[string]int)
+
+		// User-Agent 분석
+		botCount := 0
+		humanCount := 0
+		mobileCount := 0
+		desktopCount := 0
+
+		// IP별 User-Agent 정보 기반 통계 계산
+		for _, detail := range ref.IPDetails {
+			uaInfo := utils.AnalyzeUserAgent(detail.UserAgent)
+
+			// 봇/사람 카운트
+			if uaInfo.IsBot {
+				botCount++
+				ref.UAStats.Browsers["Bot"]++
+			} else {
+				humanCount++
+				ref.UAStats.Browsers[uaInfo.Browser]++
+			}
+
+			// 모바일/데스크톱 카운트
+			if uaInfo.IsMobile {
+				mobileCount++
+			} else {
+				desktopCount++
+			}
+
+			// OS 카운트
+			ref.UAStats.OSes[uaInfo.OS]++
+		}
+
+		ref.UAStats.BotCount = botCount
+		ref.UAStats.HumanCount = humanCount
+		ref.UAStats.MobileCount = mobileCount
+		ref.UAStats.DesktopCount = desktopCount
+	}
+
+	return referrers, nil
 }
 
 func (s *referrerService) GetReferrersByType(ctx context.Context, days int) ([]*models.ReferrerTypeStats, error) {
@@ -147,13 +252,16 @@ func (s *referrerService) EnrichReferrerData(referrers []*models.ReferrerSummary
 			for task := range taskCh {
 				ref := task.ref
 
-				// 1. 방문자 IP 목록에 대한 역DNS 조회
-				if len(ref.VisitorIPs) > 0 {
-					// 첫 번째 IP에 대해서만 역DNS 조회 (성능상 이유로)
-					firstIP := ref.VisitorIPs[0]
-					if firstIP != "" && firstIP != "unknown" {
-						ptr, _ := utils.LookupPTR(firstIP)
-						ref.ReverseDNS = ptr
+				// 1. IP별 역DNS 조회 (개선된 방식)
+				for i, ipDetail := range ref.IPDetails {
+					if ipDetail.IP != "" && ipDetail.IP != "unknown" {
+						ptr, _ := utils.LookupPTR(ipDetail.IP)
+						ref.IPDetails[i].ReverseDNS = ptr
+
+						// 첫 번째 IP에 대한 역DNS를 기존 필드에도 유지 (호환성)
+						if i == 0 {
+							ref.ReverseDNS = ptr
+						}
 					}
 				}
 

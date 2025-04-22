@@ -33,22 +33,20 @@
             </div>
 
             <div id="whois-content" style="display: none;">
+
+                <h4 class="text-sm font-medium mb-2">User agent</h4>
+                <div class="rounded-lg p-3 overflow-x-auto">
+                    <pre id="ua-raw-data" class="text-xs"></pre>
+                </div>
+
+                <h4 class="text-sm font-medium mb-2">IP 정보</h4>
                 <div id="whois-summary">
                     <!-- WHOIS 요약 정보가 여기에 표시됩니다 -->
                 </div>
 
-                <div>
-                    <h4 class="text-sm font-medium mb-2">상세 정보</h4>
-                    <div class="rounded-lg p-3 overflow-x-auto">
-                        <pre id="whois-raw-data" class="text-xs"></pre>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 class="text-sm font-medium mb-2">User agent</h4>
-                    <div class="rounded-lg p-3 overflow-x-auto">
-                        <pre id="ua-raw-data" class="text-xs"></pre>
-                    </div>
+                <h4 class="text-sm font-medium mb-2">Whois 정보</h4>
+                <div class="rounded-lg p-3 overflow-x-auto">
+                    <pre id="whois-raw-data" class="text-xs"></pre>
                 </div>
             </div>
         </div>
@@ -107,19 +105,98 @@
             <p class="mt-1">지난 {{.days}}일 동안의 총 방문 수</p>
         </div>
 
-        <!-- 레퍼러 타입 차트 -->
-        <div class="bg-white shadow rounded-lg p-6">
-            <h2 class="text-xl font-semibold mb-4">레퍼러 타입 분포</h2>
-            <div class="h-64 relative">
-                <canvas id="type-chart"></canvas>
-            </div>
-        </div>
-
         <!-- 일별 그래프 -->
-        <div class="bg-white shadow rounded-lg p-6 lg:col-span-2">
+        <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-xl font-semibold mb-4">일별 방문 추이</h2>
             <div class="h-64 relative">
                 <canvas id="daily-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="w-full mt-8 mb-6 lg:col-span-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <!-- 레퍼러 타입 차트 -->
+                <div class="bg-white shadow rounded-lg p-4">
+                    <h2 class="text-lg font-semibold mb-3">레퍼러 타입 분포</h2>
+                    <div class="h-48 relative">
+                        <canvas id="type-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 봇/사람 비율 파이 차트 -->
+                <div class="bg-white shadow rounded-lg p-4">
+                    <h2 class="text-lg font-semibold mb-3">방문자 유형</h2>
+                    <div class="h-48 relative">
+                        <canvas id="visitor-type-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 브라우저 분포 차트 -->
+                <div class="bg-white shadow rounded-lg p-4">
+                    <h2 class="text-lg font-semibold mb-3">브라우저 분포</h2>
+                    <div class="h-48 relative">
+                        <canvas id="browser-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 모바일/PC 비율 차트 -->
+                <div class="bg-white shadow rounded-lg p-4">
+                    <h2 class="text-lg font-semibold mb-3">기기 유형</h2>
+                    <div class="h-48 relative">
+                        <canvas id="device-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 레퍼러 타입 통계 테이블 -->
+        <div class="bg-white shadow rounded-lg p-6 lg:col-span-2">
+            <h2 class="text-xl font-semibold mb-4">레퍼러 타입 통계</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-current/25">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                레퍼러 타입
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                방문 수
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                비율
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-current/25">
+                        {{range .typeStats}}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            {{if eq .Type "search" }}btn-success text-success{{end}}
+                                            {{if eq .Type "social" }}btn-primary text-blue-800{{end}}
+                                            {{if eq .Type "other" }}bg-yellow-100 text-yellow-800{{end}}'>
+                                    {{if eq .Type "direct"}}직접 방문{{end}}
+                                    {{if eq .Type "search"}}검색엔진{{end}}
+                                    {{if eq .Type "social"}}소셜미디어{{end}}
+                                    {{if eq .Type "other"}}기타{{end}}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {{.Count}}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {{printf "%.1f" .PercentTotal}}%
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                데이터가 없습니다
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -155,9 +232,9 @@
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                                 IP 주소
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                            <!-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                                 역DNS
-                            </th>
+                            </th> -->
                             {{end}}
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                                 비율
@@ -167,7 +244,7 @@
                     <tbody class="bg-white divide-y divide-current/25">
                         {{range .topReferrers}}
                         <tr>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm font-medium" style="overflow-x: auto;">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm font-medium max-w-xs" style="overflow-x: auto;">
                                 {{if or (eq .ReferrerURL "direct") (eq .ReferrerDomain "direct")}}
                                 직접 방문
                                 {{else if eq $.viewMode "domain"}}
@@ -175,7 +252,7 @@
                                     {{.ReferrerDomain}}
                                 </a>
                                 {{else}}
-                                <a href="{{.ReferrerURL}}" target="_blank" class="text-blue-600 hover:text-blue-900 break-all max-w-xs inline-block">
+                                <a href="{{.ReferrerURL}}" target="_blank" class="hover:text-blue-600 break-all max-w-xs inline-block">
                                     {{.ReferrerURL}}
                                 </a>
                                 {{end}}
@@ -226,15 +303,27 @@
                             <!-- IP 주소 표시 -->
                             {{if $.showDNS}}
                             <td class="px-4 py-2 whitespace-normal text-sm">
-                                {{if .VisitorIPs}}
-                                {{$userAgentsJSON := json .UserAgents}}
+                                {{if .IPDetails}}
+                                <div class="w-40 max-h-32 overflow-y-auto">
+                                    {{range $index, $ipDetail := .IPDetails}}
+                                    <div class="mb-1">
+                                        <a href="#" class="hover:text-blue-600" onclick="showIPDetail('{{$ipDetail.IP}}', '{{$ipDetail.UserAgent}}', JSON.parse('{{$ipDetail.IsBot}}'), '{{$ipDetail.ReverseDNS}}'); return false;">
+                                            {{if $ipDetail.IsBot}}
+                                            <i class="fas fa-robot text-blue-500 mr-1" title="봇"></i>
+                                            {{else}}
+                                            <i class="fas fa-user text-green-500 mr-1" title="사용자"></i>
+                                            {{end}}
+                                            {{$ipDetail.IP}}
+                                        </a>
+                                    </div>
+                                    {{end}}
+                                </div>
+                                {{else if .VisitorIPs}}
+                                <!-- 기존 방식 호환성 유지 -->
                                 <div class="w-40 max-h-32 overflow-y-auto">
                                     {{range $index, $ip := .VisitorIPs}}
                                     <div class="mb-1">
-                                        <a href="#" class="hover:text-blue-600" onclick="showWhoisInfo('{{$ip}}', 'ip', JSON.parse('{{$userAgentsJSON}}')); return false;">
-                                            {{if checkBot $userAgentsJSON}}
-                                            <i class="fas fa-robot text-blue-500 ml-1" title="봇"></i>
-                                            {{end}}
+                                        <a href="#" class="hover:text-blue-600" onclick="showWhoisInfo('{{$ip}}', 'ip', JSON.parse('{{json $.UserAgents}}')); return false;">
                                             {{$ip}}
                                         </a>
                                     </div>
@@ -242,9 +331,15 @@
                                 </div>
                                 {{else}}-{{end}}
                             </td>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm overflow-x: scroll">
+                            <!-- <td class="px-4 py-2 whitespace-nowrap text-sm overflow-x: scroll">
+                                {{if .IPDetails}}
+                                {{if gt (len .IPDetails) 0}}
+                                {{with index .IPDetails 0}}
                                 {{if .ReverseDNS}}{{.ReverseDNS}}{{else}}-{{end}}
-                            </td>
+                                {{else}}-{{end}}
+                                {{else}}-{{end}}
+                                {{else if .ReverseDNS}}{{.ReverseDNS}}{{else}}-{{end}}
+                            </td> -->
                             {{end}}
 
                             <td class="px-4 py-2 whitespace-nowrap text-sm">
@@ -263,84 +358,5 @@
             </div>
         </div>
 
-        <!-- 방문자 통계 차트 섹션 -->
-        <div class="w-full mt-8 mb-6 lg:col-span-2">
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                <!-- 봇/사람 비율 파이 차트 -->
-                <div class="bg-white shadow rounded-lg p-6">
-                    <h2 class="text-xl font-semibold mb-4">방문자 유형</h2>
-                    <div class="h-64 relative">
-                        <canvas id="visitor-type-chart"></canvas>
-                    </div>
-                </div>
-        
-                <!-- 브라우저 분포 차트 -->
-                <div class="bg-white shadow rounded-lg p-6">
-                    <h2 class="text-xl font-semibold mb-4">브라우저 분포</h2>
-                    <div class="h-64 relative">
-                        <canvas id="browser-chart"></canvas>
-                    </div>
-                </div>
-        
-                <!-- 모바일/PC 비율 차트 -->
-                <div class="bg-white shadow rounded-lg p-6">
-                    <h2 class="text-xl font-semibold mb-4">기기 유형</h2>
-                    <div class="h-64 relative">
-                        <canvas id="device-chart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 레퍼러 타입 통계 테이블 -->
-        <div class="bg-white shadow rounded-lg p-6 lg:col-span-2">
-            <h2 class="text-xl font-semibold mb-4">레퍼러 타입 통계</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-current/25">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                레퍼러 타입
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                방문 수
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                                비율
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-current/25">
-                        {{range .typeStats}}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {{if eq .Type "search" }}btn-success text-success{{end}}
-                                    {{if eq .Type "social" }}btn-primary text-blue-800{{end}}
-                                    {{if eq .Type "other" }}bg-yellow-100 text-yellow-800{{end}}'>
-                                    {{if eq .Type "direct"}}직접 방문{{end}}
-                                    {{if eq .Type "search"}}검색엔진{{end}}
-                                    {{if eq .Type "social"}}소셜미디어{{end}}
-                                    {{if eq .Type "other"}}기타{{end}}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                {{.Count}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                {{printf "%.1f" .PercentTotal}}%
-                            </td>
-                        </tr>
-                        {{else}}
-                        <tr>
-                            <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                데이터가 없습니다
-                            </td>
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 </div>

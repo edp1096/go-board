@@ -1,86 +1,111 @@
 // WHOIS 모달 관련 자바스크립트 함수들
 
-// showIPDetails 함수 구현 - IP 클릭 시 상세 정보 모달 표시
-// notuse. not_use
-function showIPDetails(ip, userAgents) {
+// showIPDetails - IP 클릭 시 상세 정보 모달 표시
+// IP 상세 정보 모달 표시 함수 (수정된 버전)
+function showIPDetail(ip, userAgent, isBot, reverseDNS) {
     const modal = document.getElementById('whois-modal');
     const modalTitle = document.getElementById('whois-modal-title');
     const loading = document.getElementById('whois-loading');
     const error = document.getElementById('whois-error');
-    const errorMessage = document.getElementById('whois-error-message');
     const content = document.getElementById('whois-content');
     const summary = document.getElementById('whois-summary');
     const whoisRawData = document.getElementById('whois-raw-data');
+    const uaRawData = document.getElementById('ua-raw-data');
 
     // 모달 제목 설정 및 표시
-    modalTitle.textContent = `IP 주소 상세 정보: ${ip}`;
+    modalTitle.textContent = `접속지 정보: ${ip}`;
     modal.classList.add('show');
     modal.style.display = 'flex';
 
-    // User-Agent 정보 표시 
-    loading.style.display = 'none';
-    content.style.display = 'block';
+    // 모달이 표시된 후 내용 초기화 (깜빡임 방지)
+    setTimeout(() => {
+        // 모달 초기화
+        loading.style.display = 'flex';
+        error.style.display = 'none';
+        content.style.display = 'none';
 
-    // WHOIS API 호출 먼저
-    fetch(`/api/whois?ip=${ip}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                displayWhoisInfo(data.data, 'ip', summary);
-            } else {
-                summary.innerHTML = `<div class="py-2">IP 정보를 가져올 수 없습니다.</div>`;
-            }
-
-            // User-Agent 정보 표시
-            let uaHTML = `
-                <div class="mt-4">
-                    <h4 class="text-sm font-medium mb-2">User-Agent 정보</h4>
-                    <div class="bg-accent rounded-lg p-3 overflow-y-auto max-h-64">
-            `;
-
-            try {
-                // 문자열이면 파싱, 이미 배열이면 그대로 사용
-                const agents = typeof userAgents === 'string'
-                    ? JSON.parse(userAgents)
-                    : userAgents;
-
-                if (agents && agents.length) {
-                    agents.forEach(ua => {
-                        // 간단한 UA 분석
-                        const isBot = /bot|crawl|spider|slurp|search/i.test(ua);
-                        const isMobile = /mobile|android|iphone|ipad/i.test(ua);
-
-                        let icon = 'fa-globe';
-                        if (isBot) icon = 'fa-robot';
-                        else if (isMobile) icon = 'fa-mobile-alt';
-                        else if (/chrome/i.test(ua)) icon = 'fa-chrome';
-                        else if (/firefox/i.test(ua)) icon = 'fa-firefox-browser';
-                        else if (/safari/i.test(ua)) icon = 'fa-safari';
-
-                        uaHTML += `
-                            <div class="mb-2 p-2 border border-gray-200 rounded">
-                                <p><i class="fas ${icon} mr-2"></i>${ua}</p>
-                            </div>
-                        `;
-                    });
-                } else {
-                    uaHTML += `<p>User-Agent 정보가 없습니다.</p>`;
+        // WHOIS API 호출
+        fetch(`/api/whois?ip=${ip}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('WHOIS 정보를 가져오는데 실패했습니다');
                 }
-            } catch (e) {
-                uaHTML += `<p>User-Agent 정보를 읽을 수 없습니다.</p>`;
-                console.error('User-Agent 파싱 오류:', e);
-            }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || '알 수 없는 오류가 발생했습니다');
+                }
 
-            uaHTML += `</div></div>`;
-            whoisRawData.innerHTML = uaHTML;
-        })
-        .catch(err => {
-            summary.innerHTML = `<div class="py-2">IP 정보를 가져올 수 없습니다.</div>`;
-            console.error('IP 정보 조회 오류:', err);
+                // 로딩 숨기기
+                loading.style.display = 'none';
 
-            // User-Agent만 표시
-            whoisRawData.innerHTML = `<div class="mt-2">User-Agent 정보를 불러올 수 없습니다.</div>`;
-        });
+                // WHOIS 정보 표시
+                displayWhoisInfo(data.data, 'ip', summary);
+
+                // IP와 User-Agent 추가 정보
+                const additionalInfoHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 p-3 border-t border-gray-200">
+                        <div>
+                            <p class="text-xs">역DNS</p>
+                            <p class="font-medium">${reverseDNS || '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs">봇 여부</p>
+                            <p class="font-medium">${isBot ?
+                        '<i class="fas fa-robot text-blue-500 mr-2"></i>봇' :
+                        '<i class="fas fa-user text-green-500 mr-2"></i>사용자'}</p>
+                        </div>
+                    </div>
+                `;
+
+                // 기존 정보에 추가 정보 추가
+                summary.innerHTML += additionalInfoHTML;
+
+                // User-Agent 정보 표시
+                let uaHTML = `
+                    <div class="mt-4">
+                        <h4 class="text-sm font-medium mb-2">User-Agent 정보</h4>
+                        <div class="bg-accent rounded-lg p-3 overflow-y-auto max-h-64">
+                            <div class="p-2 border border-gray-200 rounded">
+                                <p>${isBot ? '<i class="fas fa-robot mr-2"></i>' : '<i class="fas fa-globe mr-2"></i>'}${userAgent}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // JSON 데이터 포맷팅 (가독성 향상)
+                let formattedData;
+                if (data.data.rawData) {
+                    // JSON 형식인지 확인 시도
+                    try {
+                        const jsonData = JSON.parse(data.data.rawData);
+                        formattedData = formatJsonDisplay(jsonData);
+                    } catch (e) {
+                        // JSON이 아니면 원본 그대로 표시
+                        formattedData = data.data.rawData;
+                    }
+                } else {
+                    formattedData = '원시 데이터가 없습니다';
+                }
+
+                whoisRawData.innerHTML = formattedData;
+                uaRawData.innerHTML = `<pre>${userAgent}</pre>`;
+
+                // 내용 표시
+                content.style.display = 'block';
+            })
+            .catch(err => {
+                // 로딩 숨기기
+                loading.style.display = 'none';
+
+                // 오류 메시지 표시
+                error.style.display = 'block';
+                document.getElementById('whois-error-message').textContent = err.message;
+
+                console.error('WHOIS 정보 조회 오류:', err);
+            });
+    }, 50); // 아주 짧은 지연 (모달이 표시된 후 콘텐츠 업데이트)
 }
 
 // 봇/사람 비율 차트 초기화

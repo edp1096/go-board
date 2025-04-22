@@ -20,6 +20,8 @@ type ReferrerRepository interface {
 	GetTotal(ctx context.Context, days int) (int, error)
 	GetUniqueIPsForReferrer(ctx context.Context, referrerURL string, startDate time.Time) ([]string, []string, error)
 	GetUniqueIPsForDomain(ctx context.Context, domain string, startDate time.Time) ([]string, []string, error)
+	GetUniqueIPsWithUA(ctx context.Context, referrerURL string, startDate time.Time) ([]models.IPUserAgentInfo, error)
+	GetUniqueIPsWithUAForDomain(ctx context.Context, domain string, startDate time.Time) ([]models.IPUserAgentInfo, error)
 	GetTargetURLsForReferrer(ctx context.Context, referrerURL string, startDate time.Time) ([]string, error)
 	GetIPDetails(ctx context.Context, ipAddress string, startDate time.Time) (*models.IPDetail, error)
 }
@@ -477,4 +479,88 @@ func (r *referrerRepository) GetIPDetails(ctx context.Context, ipAddress string,
 	}
 
 	return detail, nil
+}
+
+// GetUniqueIPsWithUA는 레퍼러 URL에 대한 모든 고유 방문자 IP와 User-Agent를 함께 반환합니다
+func (r *referrerRepository) GetUniqueIPsWithUA(ctx context.Context, referrerURL string, startDate time.Time) ([]models.IPUserAgentInfo, error) {
+	type IpInfo struct {
+		VisitorIP string `bun:"visitor_ip"`
+		UserAgent string `bun:"user_agent"`
+	}
+
+	var ipInfos []IpInfo
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("visitor_ip").
+		ColumnExpr("user_agent").
+		Where("referrer_url = ? AND visit_time >= ?", referrerURL, startDate).
+		GroupExpr("visitor_ip, user_agent").
+		OrderExpr("COUNT(*) DESC").
+		Limit(50). // 최대 50개까지만 표시 (UI 과부하 방지)
+		Scan(ctx, &ipInfos)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// IP 정보를 새 구조체로 변환
+	result := make([]models.IPUserAgentInfo, 0, len(ipInfos))
+	for _, info := range ipInfos {
+		// User-Agent 분석
+		uaInfo := utils.AnalyzeUserAgent(info.UserAgent)
+
+		// IP별 상세 정보 생성
+		ipDetail := models.IPUserAgentInfo{
+			IP:        info.VisitorIP,
+			UserAgent: info.UserAgent,
+			IsBot:     uaInfo.IsBot,
+		}
+
+		result = append(result, ipDetail)
+	}
+
+	return result, nil
+}
+
+// GetUniqueIPsWithUAForDomain은 도메인에 대한 모든 고유 방문자 IP와 User-Agent를 함께 반환합니다
+func (r *referrerRepository) GetUniqueIPsWithUAForDomain(ctx context.Context, domain string, startDate time.Time) ([]models.IPUserAgentInfo, error) {
+	type IpInfo struct {
+		VisitorIP string `bun:"visitor_ip"`
+		UserAgent string `bun:"user_agent"`
+	}
+
+	var ipInfos []IpInfo
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("visitor_ip").
+		ColumnExpr("user_agent").
+		Where("referrer_domain = ? AND visit_time >= ?", domain, startDate).
+		GroupExpr("visitor_ip, user_agent").
+		OrderExpr("COUNT(*) DESC").
+		Limit(50). // 최대 50개까지만 표시
+		Scan(ctx, &ipInfos)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// IP 정보를 새 구조체로 변환
+	result := make([]models.IPUserAgentInfo, 0, len(ipInfos))
+	for _, info := range ipInfos {
+		// User-Agent 분석
+		uaInfo := utils.AnalyzeUserAgent(info.UserAgent)
+
+		// IP별 상세 정보 생성
+		ipDetail := models.IPUserAgentInfo{
+			IP:        info.VisitorIP,
+			UserAgent: info.UserAgent,
+			IsBot:     uaInfo.IsBot,
+		}
+
+		result = append(result, ipDetail)
+	}
+
+	return result, nil
 }

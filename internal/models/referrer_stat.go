@@ -25,7 +25,15 @@ type ReferrerStat struct {
 	User *User `bun:"rel:belongs-to,join:user_id=id" json:"user,omitempty"`
 }
 
-// ReferrerSummary represents aggregated referrer statistics
+// IPUserAgentInfo는 IP 주소와 해당 User-Agent 정보를 함께 저장하는 구조체입니다
+type IPUserAgentInfo struct {
+	IP         string `json:"ip"`
+	UserAgent  string `json:"userAgent"`
+	IsBot      bool   `json:"isBot"`      // 봇 여부
+	ReverseDNS string `json:"reverseDns"` // 해당 IP의 역DNS 정보
+}
+
+// ReferrerSummary 구조체 내 필드 수정
 type ReferrerSummary struct {
 	ReferrerURL    string  `json:"referrerUrl"`
 	ReferrerDomain string  `json:"referrerDomain"`
@@ -34,13 +42,14 @@ type ReferrerSummary struct {
 	UniqueCount    int     `json:"uniqueCount"`
 	PercentTotal   float64 `json:"percentTotal"`
 
-	// IP 목록
-	VisitorIPs []string `json:"visitorIps"` // IP 목록
-	UserAgents []string `json:"userAgents"` // User-Agent 목록
-	ReverseDNS string   `json:"reverseDns"` // 역DNS 조회 결과
-	ForwardDNS []string `json:"forwardDns"` // 정DNS 조회 결과
+	// IP와 User-Agent 정보를 함께 저장하는 구조체 배열로 변경
+	IPDetails  []IPUserAgentInfo `json:"ipDetails"`  // IP별 상세 정보
+	VisitorIPs []string          `json:"visitorIps"` // 기존 호환성 유지
+	UserAgents []string          `json:"userAgents"` // 기존 호환성 유지
+	ReverseDNS string            `json:"reverseDns"` // 기존 호환성 유지
+	ForwardDNS []string          `json:"forwardDns"` // 정DNS 조회 결과
 
-	// 방문 페이지 정보 (새로 추가)
+	// 방문 페이지 정보
 	TargetURLs []string `json:"targetUrls,omitempty"` // 방문한 타겟 URL 목록
 
 	// User-Agent 분석 통계 (추가)
