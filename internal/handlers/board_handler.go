@@ -357,6 +357,45 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	// 	serverURL = "http://" + h.config.ServerAddress
 	// }
 
+	page := 1                 // 첫 페이지만 표시
+	pageSize := 10            // 10개 항목만 표시
+	sortField := "created_at" // 생성일 기준
+	sortDir := "desc"         // 내림차순 (최신순)
+
+	posts, total, err := h.boardService.ListPosts(c.Context(), boardID, page, pageSize, sortField, sortDir)
+	if err != nil {
+		// 게시물 목록 조회 실패 시에도 게시물 상세 정보는 표시
+		posts = []*models.DynamicPost{}
+		total = 0
+	}
+
+	// 게시판 타입이 갤러리인 경우 썸네일 정보 추가
+	if board.BoardType == models.BoardTypeGallery && len(posts) > 0 {
+		// 게시물 ID 목록 수집
+		postIDs := make([]int64, 0, len(posts))
+		for _, post := range posts {
+			postIDs = append(postIDs, post.ID)
+		}
+
+		// 썸네일 조회
+		thumbnails, err := h.boardService.GetPostThumbnails(c.Context(), boardID, postIDs)
+		if err != nil {
+			// 썸네일 조회 실패 시 로그만 남기고 계속 진행
+			fmt.Printf("썸네일 조회 실패: %v\n", err)
+		} else {
+			// 각 게시물에 썸네일 URL 추가
+			for _, post := range posts {
+				if url, ok := thumbnails[post.ID]; ok {
+					// 백슬래시를 슬래시로 변환 (Windows 경로 문제 해결)
+					post.RawData["ThumbnailURL"] = strings.ReplaceAll(url, "\\", "/")
+				}
+			}
+		}
+	}
+
+	// 페이지네이션 계산
+	totalPages := (total + pageSize - 1) / pageSize
+
 	return utils.RenderWithUser(c, templateName, fiber.Map{
 		"title":       post.Title,
 		"description": metaDescription,
@@ -371,6 +410,15 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		"metaURL":      c.BaseURL() + c.Path(),
 		"metaSiteName": "게시판 시스템",
 		"metaImage":    thumbnailURL,
+		// 게시물 목록 데이터 (페이지 하단에 표시할 목록)
+		"posts":      posts,
+		"page":       page,
+		"pageSize":   pageSize,
+		"totalPages": totalPages,
+		"total":      total,
+		"sortField":  sortField,
+		"sortDir":    sortDir,
+		"query":      "", // 검색어는 없음
 	})
 }
 

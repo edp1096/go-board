@@ -1,0 +1,108 @@
+<!-- web/templates/board/posts_embed.html -->
+<div>
+    <div class="flex justify-between items-center mb-6">
+        <!-- <h1 class="text-2xl font-bold">{{.board.Name}}</h1> -->
+        <h1 class="text-2xl font-bold">&nbsp;</h1>
+
+        {{if .user}}
+        <a href="/boards/{{.board.ID}}/posts/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            글쓰기
+        </a>
+        {{end}}
+    </div>
+
+    {{if .board.Description}}
+    <div class="bg-white shadow rounded-lg p-4 mb-6">
+        <p>{{.board.Description}}</p>
+    </div>
+    {{end}}
+
+    <!-- 검색 폼 -->
+    <div class="mb-6">
+        <form action="/boards/{{.board.ID}}/posts" method="GET" class="flex">
+            <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
+            <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                검색
+            </button>
+        </form>
+    </div>
+
+    {{if not .posts}}
+    <div class="bg-white shadow rounded-lg p-6 text-center">
+        <p class="text-secondary">등록된 게시물이 없습니다.</p>
+    </div>
+    {{else}}
+    <!-- 게시물 목록 -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul class="divide-y divide-gray-200">
+            {{range .posts}}
+            <li>
+                <a href="/boards/{{$.board.ID}}/posts/{{.ID}}" class="block">
+                    <div class="px-4 py-4 sm:px-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium truncate">
+                                    {{if and $.board.AllowPrivate .IsPrivate}}
+                                    <svg class="h-4 w-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                    </svg>
+                                    {{end}}
+                                    {{toUTF8 .Title}}
+                                    {{if gt .CommentCount 0}}
+                                    <span class="text-xs">[{{.CommentCount}}]</span>
+                                    {{end}}
+                                </p>
+                                <p class="mt-1 text-xs truncate">
+                                    {{.Username}} · 조회수 {{.ViewCount}}
+                                </p>
+                            </div>
+                            <div class="ml-2 flex-shrink-0 flex">
+                                <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full btn-success text-success">
+                                    {{.CreatedAt.Format "2006-01-02 15:04"}}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </li>
+            {{end}}
+        </ul>
+    </div>
+
+    <!-- 페이지네이션 -->
+    {{if gt .totalPages 1}}
+    <div class="mt-6">
+        <nav class="flex justify-center">
+            <ul class="flex">
+                <!-- 이전 페이지 -->
+                {{if gt .page 1}}
+                <li>
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page -1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                        이전
+                    </a>
+                </li>
+                {{end}}
+
+                <!-- 페이지 번호 -->
+                {{range $i := iterate 1 .totalPages}}
+                <li>
+                    <a href="/boards/{{$.board.ID}}/posts?page={{$i}}{{if $.query}}&q={{$.query}}{{end}}{{if $.sortField}}&sort={{$.sortField}}{{end}}{{if $.sortDir}}&dir={{$.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md {{if eq $i $.page}}btn-primary text-blue-600 border-blue-500{{else}}text-secondary bg-white{{end}}">
+                        {{$i}}
+                    </a>
+                </li>
+                {{end}}
+
+                <!-- 다음 페이지 -->
+                {{if lt .page .totalPages}}
+                <li>
+                    <a href="/boards/{{.board.ID}}/posts?page={{add .page 1}}{{if .query}}&q={{.query}}{{end}}{{if .sortField}}&sort={{.sortField}}{{end}}{{if .sortDir}}&dir={{.sortDir}}{{end}}" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md bg-white">
+                        다음
+                    </a>
+                </li>
+                {{end}}
+            </ul>
+        </nav>
+    </div>
+    {{end}}
+    {{end}}
+</div>

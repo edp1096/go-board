@@ -223,7 +223,7 @@
                 <div :data-new-comment-id="comment.id" class="p-4">
                     <div class="flex space-x-3">
                         <div class="flex-shrink-0">
-                            <div class="h-10 w-10 rounded-full flex items-center justify-center">
+                            <div class="bg-accent h-10 w-10 rounded-full flex items-center justify-center">
                                 <span class="text-sm font-medium" x-text="comment.user ? comment.user.username.charAt(0) : '?'"></span>
                             </div>
                         </div>
@@ -261,7 +261,7 @@
                             <div :data-new-comment-id="reply.id" class="mt-2 mb-2">
                                 <div class="flex space-x-3">
                                     <div class="flex-shrink-0">
-                                        <div class="h-8 w-8 rounded-full flex items-center justify-center">
+                                        <div class="bg-accent h-8 w-8 rounded-full flex items-center justify-center">
                                             <span class="text-xs font-medium" x-text="reply.user ? reply.user.username.charAt(0) : '?'"></span>
                                         </div>
                                     </div>
@@ -306,13 +306,13 @@
     <div class="mt-4 comment-form-area">
         <div class="flex space-x-3">
             <div class="flex-shrink-0">
-                <div class="h-10 w-10 rounded-full flex items-center justify-center">
+                <div class="bg-accent h-10 w-10 rounded-full flex items-center justify-center">
                     <span class="text-sm font-medium">{{slice .user.Username 0 1}}</span>
                 </div>
             </div>
             <div class="min-w-0 flex-1">
                 <form @submit.prevent="submitComment()">
-                    <div>
+                    <div class="bg-secondary p-1">
                         <label for="comment-content" class="sr-only">댓글 내용</label>
                         <input type="hidden" id="comment-content" x-model="commentContent">
                         <div x-show="replyToUser" class="mb-2 p-2 btn-primary rounded text-sm">
@@ -396,6 +396,14 @@
         </div>
     </div>
 </div>
+
+
+<hr class="my-8 border-gray-200" />
+{{if eq .board.BoardType "normal"}}
+{{ template "board/posts_embed" . }}
+{{else if eq .board.BoardType "gallery" }}
+{{ template "board/gallery_posts_embed" . }}
+{{end}}
 
 
 <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
