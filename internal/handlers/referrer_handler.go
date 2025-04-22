@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/service"
@@ -110,9 +111,32 @@ func (h *ReferrerHandler) GetReferrerData(c *fiber.Ctx) error {
 	// 쿼리 파라미터 가져오기
 	days, _ := strconv.Atoi(c.Query("days", "30"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
-	viewMode := c.Query("view", "url")           // url, domain, type
+	viewMode := c.Query("view", "url")           // url, domain, type, target
 	mode := c.Query("mode", "all")               // all, top, types, time
 	showDNS := c.Query("dns", "false") == "true" // DNS 조회 표시 여부
+
+	// IP 상세 정보 요청인 경우
+	ipDetail := c.Query("ip")
+	if ipDetail != "" {
+		// 필터링 날짜 계산
+		startDate := time.Now().AddDate(0, 0, -days)
+
+		// IP 상세 정보 조회
+		detail, err := h.referrerService.GetIPDetails(c.Context(), ipDetail, startDate)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"success": false,
+				"message": "IP 상세 정보를 조회하는데 실패했습니다",
+				"error":   err.Error(),
+			})
+		}
+
+		// 성공 응답
+		return c.JSON(fiber.Map{
+			"success": true,
+			"data":    detail,
+		})
+	}
 
 	// 기본값 설정
 	if days <= 0 {

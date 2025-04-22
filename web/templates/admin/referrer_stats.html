@@ -1,5 +1,7 @@
 <!-- web/templates/admin/referrer_stats.html -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
 
 <input type="hidden" id="time-stats-data" value="{{json .timeStats}}">
 <input type="hidden" id="type-stats-data" value="{{json .typeStats}}">
@@ -39,6 +41,13 @@
                     <h4 class="text-sm font-medium mb-2">상세 정보</h4>
                     <div class="rounded-lg p-3 overflow-x-auto">
                         <pre id="whois-raw-data" class="text-xs"></pre>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-medium mb-2">User agent</h4>
+                    <div class="rounded-lg p-3 overflow-x-auto">
+                        <pre id="ua-raw-data" class="text-xs"></pre>
                     </div>
                 </div>
             </div>
@@ -138,6 +147,10 @@
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                                 고유 방문자
                             </th>
+                            <!-- 타겟 URL 컬럼 추가 -->
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                                방문한 페이지
+                            </th>
                             {{if .showDNS}}
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                                 IP 주소
@@ -195,13 +208,33 @@
                             <td class="px-4 py-2 whitespace-nowrap text-sm">
                                 {{.UniqueCount}}
                             </td>
+                            <!-- 타겟 URL 컬럼 -->
+                            <td class="px-4 py-2 whitespace-normal text-sm">
+                                {{if .TargetURLs}}
+                                <div class="w-40 max-h-32 overflow-y-auto">
+                                    {{range $index, $url := .TargetURLs}}
+                                    <div class="mb-1 truncate">
+                                        <a href="{{$url}}" class="hover:text-blue-600" title="{{$url}}">
+                                            {{$url}}
+                                        </a>
+                                    </div>
+                                    {{end}}
+                                </div>
+                                {{else}}-{{end}}
+                            </td>
+
+                            <!-- IP 주소 표시 -->
                             {{if $.showDNS}}
                             <td class="px-4 py-2 whitespace-normal text-sm">
                                 {{if .VisitorIPs}}
+                                {{$userAgentsJSON := json .UserAgents}}
                                 <div class="w-40 max-h-32 overflow-y-auto">
                                     {{range $index, $ip := .VisitorIPs}}
                                     <div class="mb-1">
-                                        <a href="#" class="hover:text-blue-600" onclick="showWhoisInfo('{{$ip}}', 'ip'); return false;">
+                                        <a href="#" class="hover:text-blue-600" onclick="showWhoisInfo('{{$ip}}', 'ip', JSON.parse('{{$userAgentsJSON}}')); return false;">
+                                            {{if checkBot $userAgentsJSON}}
+                                            <i class="fas fa-robot text-blue-500 ml-1" title="봇"></i>
+                                            {{end}}
                                             {{$ip}}
                                         </a>
                                     </div>
@@ -209,10 +242,11 @@
                                 </div>
                                 {{else}}-{{end}}
                             </td>
-                            <td class="px-4 py-2 whitespace-nowrap text-sm">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm overflow-x: scroll">
                                 {{if .ReverseDNS}}{{.ReverseDNS}}{{else}}-{{end}}
                             </td>
                             {{end}}
+
                             <td class="px-4 py-2 whitespace-nowrap text-sm">
                                 {{printf "%.1f" .PercentTotal}}%
                             </td>
@@ -226,6 +260,35 @@
                         {{end}}
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- 방문자 통계 차트 섹션 -->
+        <div class="w-full mt-8 mb-6 lg:col-span-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- 봇/사람 비율 파이 차트 -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">방문자 유형</h2>
+                    <div class="h-64 relative">
+                        <canvas id="visitor-type-chart"></canvas>
+                    </div>
+                </div>
+        
+                <!-- 브라우저 분포 차트 -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">브라우저 분포</h2>
+                    <div class="h-64 relative">
+                        <canvas id="browser-chart"></canvas>
+                    </div>
+                </div>
+        
+                <!-- 모바일/PC 비율 차트 -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4">기기 유형</h2>
+                    <div class="h-64 relative">
+                        <canvas id="device-chart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
 

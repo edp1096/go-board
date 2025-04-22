@@ -39,6 +39,41 @@ type ReferrerSummary struct {
 	UserAgents []string `json:"userAgents"` // User-Agent 목록
 	ReverseDNS string   `json:"reverseDns"` // 역DNS 조회 결과
 	ForwardDNS []string `json:"forwardDns"` // 정DNS 조회 결과
+
+	// 방문 페이지 정보 (새로 추가)
+	TargetURLs []string `json:"targetUrls,omitempty"` // 방문한 타겟 URL 목록
+
+	// User-Agent 분석 통계 (추가)
+	UAStats struct {
+		BotCount     int            `json:"botCount"`     // 봇 수
+		HumanCount   int            `json:"humanCount"`   // 사람 수
+		MobileCount  int            `json:"mobileCount"`  // 모바일 수
+		DesktopCount int            `json:"desktopCount"` // 데스크톱 수
+		Browsers     map[string]int `json:"browsers"`     // 브라우저별 카운트
+		OSes         map[string]int `json:"oses"`         // OS별 카운트
+	} `json:"uaStats,omitempty"`
+}
+
+// IPDetail은 IP 주소별 상세 정보를 담는 구조체입니다
+type IPDetail struct {
+	IP           string   `json:"ip"`
+	VisitCount   int      `json:"visitCount"`
+	LastVisit    string   `json:"lastVisit"`
+	TargetURLs   []string `json:"targetUrls"`
+	UserAgents   []string `json:"userAgents"`
+	ReferrerURLs []string `json:"referrerUrls"`
+	ReverseDNS   string   `json:"reverseDns"`
+	UAInfo       []UAInfo `json:"uaInfo"`
+}
+
+// UAInfo는 User-Agent 분석 정보를 담는 구조체입니다
+type UAInfo struct {
+	UserAgent string `json:"userAgent"` // 원본 User-Agent
+	IsBot     bool   `json:"isBot"`     // 봇 여부
+	BotName   string `json:"botName"`   // 봇 이름
+	Browser   string `json:"browser"`   // 브라우저
+	OS        string `json:"os"`        // 운영체제
+	IsMobile  bool   `json:"isMobile"`  // 모바일 여부
 }
 
 // ReferrerTimeStats represents time-based referrer statistics

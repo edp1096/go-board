@@ -20,6 +20,8 @@ type ReferrerRepository interface {
 	GetTotal(ctx context.Context, days int) (int, error)
 	GetUniqueIPsForReferrer(ctx context.Context, referrerURL string, startDate time.Time) ([]string, []string, error)
 	GetUniqueIPsForDomain(ctx context.Context, domain string, startDate time.Time) ([]string, []string, error)
+	GetTargetURLsForReferrer(ctx context.Context, referrerURL string, startDate time.Time) ([]string, error)
+	GetIPDetails(ctx context.Context, ipAddress string, startDate time.Time) (*models.IPDetail, error)
 }
 
 type referrerRepository struct {
@@ -127,12 +129,24 @@ func (r *referrerRepository) GetUniqueIPsForReferrer(ctx context.Context, referr
 		return nil, nil, err
 	}
 
-	ips := make([]string, 0, len(ipInfos))
-	userAgents := make([]string, 0, len(ipInfos))
+	// 중복 제거를 위한 맵 사용
+	ipMap := make(map[string]bool)
+	uaMap := make(map[string]bool)
 
 	for _, info := range ipInfos {
-		ips = append(ips, info.VisitorIP)
-		userAgents = append(userAgents, info.UserAgent)
+		ipMap[info.VisitorIP] = true
+		uaMap[info.UserAgent] = true
+	}
+
+	// 배열 변환
+	ips := make([]string, 0, len(ipMap))
+	for ip := range ipMap {
+		ips = append(ips, ip)
+	}
+
+	userAgents := make([]string, 0, len(uaMap))
+	for ua := range uaMap {
+		userAgents = append(userAgents, ua)
 	}
 
 	return ips, userAgents, nil
@@ -351,13 +365,116 @@ func (r *referrerRepository) GetUniqueIPsForDomain(ctx context.Context, domain s
 		return nil, nil, err
 	}
 
-	ips := make([]string, 0, len(ipInfos))
-	userAgents := make([]string, 0, len(ipInfos))
+	// 중복 제거를 위한 맵 사용
+	ipMap := make(map[string]bool)
+	uaMap := make(map[string]bool)
 
 	for _, info := range ipInfos {
-		ips = append(ips, info.VisitorIP)
-		userAgents = append(userAgents, info.UserAgent)
+		ipMap[info.VisitorIP] = true
+		uaMap[info.UserAgent] = true
+	}
+
+	// 배열 변환
+	ips := make([]string, 0, len(ipMap))
+	for ip := range ipMap {
+		ips = append(ips, ip)
+	}
+
+	userAgents := make([]string, 0, len(uaMap))
+	for ua := range uaMap {
+		userAgents = append(userAgents, ua)
 	}
 
 	return ips, userAgents, nil
+}
+
+// 특정 레퍼러의 대상 URL 목록을 가져옵니다
+func (r *referrerRepository) GetTargetURLsForReferrer(ctx context.Context, referrerURL string, startDate time.Time) ([]string, error) {
+	var targets []struct {
+		TargetURL string `bun:"target_url"`
+		Count     int    `bun:"count"`
+	}
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("target_url").
+		ColumnExpr("COUNT(*) as count").
+		Where("referrer_url = ? AND visit_time >= ?", referrerURL, startDate).
+		GroupExpr("target_url").
+		OrderExpr("count DESC").
+		Limit(5). // 상위 5개만
+		Scan(ctx, &targets)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 결과 변환
+	urls := make([]string, len(targets))
+	for i, target := range targets {
+		urls[i] = target.TargetURL
+	}
+
+	return urls, nil
+}
+
+func (r *referrerRepository) GetIPDetails(ctx context.Context, ipAddress string, startDate time.Time) (*models.IPDetail, error) {
+	// IP 주소에 대한 방문 정보 조회
+	var visits []struct {
+		TargetURL   string    `bun:"target_url"`
+		UserAgent   string    `bun:"user_agent"`
+		VisitTime   time.Time `bun:"visit_time"`
+		ReferrerURL string    `bun:"referrer_url"`
+	}
+
+	err := r.db.NewSelect().
+		TableExpr("referrer_stats").
+		ColumnExpr("target_url, user_agent, visit_time, referrer_url").
+		Where("visitor_ip = ? AND visit_time >= ?", ipAddress, startDate).
+		OrderExpr("visit_time DESC").
+		Limit(50). // 최대 50개 방문 기록
+		Scan(ctx, &visits)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 방문 기록이 없으면 빈 결과 반환
+	if len(visits) == 0 {
+		return &models.IPDetail{
+			IP: ipAddress,
+		}, nil
+	}
+
+	// 결과 구성
+	detail := &models.IPDetail{
+		IP:         ipAddress,
+		VisitCount: len(visits),
+		LastVisit:  visits[0].VisitTime.Format("2006-01-02 15:04:05"),
+	}
+
+	// 중복 제거용 맵
+	targetMap := make(map[string]bool)
+	uaMap := make(map[string]bool)
+	referrerMap := make(map[string]bool)
+
+	// 고유 타겟 URL, UserAgent, 레퍼러 추출
+	for _, visit := range visits {
+		if !targetMap[visit.TargetURL] {
+			targetMap[visit.TargetURL] = true
+			detail.TargetURLs = append(detail.TargetURLs, visit.TargetURL)
+		}
+
+		if !uaMap[visit.UserAgent] {
+			uaMap[visit.UserAgent] = true
+			detail.UserAgents = append(detail.UserAgents, visit.UserAgent)
+		}
+
+		if !referrerMap[visit.ReferrerURL] {
+			referrerMap[visit.ReferrerURL] = true
+			detail.ReferrerURLs = append(detail.ReferrerURLs, visit.ReferrerURL)
+		}
+	}
+
+	return detail, nil
 }

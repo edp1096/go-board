@@ -1,5 +1,8 @@
 // WHOIS 모달 관련 자바스크립트 함수들
-function showWhoisInfo(value, type) {
+
+// showIPDetails 함수 구현 - IP 클릭 시 상세 정보 모달 표시
+// notuse. not_use
+function showIPDetails(ip, userAgents) {
     const modal = document.getElementById('whois-modal');
     const modalTitle = document.getElementById('whois-modal-title');
     const loading = document.getElementById('whois-loading');
@@ -7,7 +10,238 @@ function showWhoisInfo(value, type) {
     const errorMessage = document.getElementById('whois-error-message');
     const content = document.getElementById('whois-content');
     const summary = document.getElementById('whois-summary');
-    const rawData = document.getElementById('whois-raw-data');
+    const whoisRawData = document.getElementById('whois-raw-data');
+
+    // 모달 제목 설정 및 표시
+    modalTitle.textContent = `IP 주소 상세 정보: ${ip}`;
+    modal.classList.add('show');
+    modal.style.display = 'flex';
+
+    // User-Agent 정보 표시 
+    loading.style.display = 'none';
+    content.style.display = 'block';
+
+    // WHOIS API 호출 먼저
+    fetch(`/api/whois?ip=${ip}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayWhoisInfo(data.data, 'ip', summary);
+            } else {
+                summary.innerHTML = `<div class="py-2">IP 정보를 가져올 수 없습니다.</div>`;
+            }
+
+            // User-Agent 정보 표시
+            let uaHTML = `
+                <div class="mt-4">
+                    <h4 class="text-sm font-medium mb-2">User-Agent 정보</h4>
+                    <div class="bg-accent rounded-lg p-3 overflow-y-auto max-h-64">
+            `;
+
+            try {
+                // 문자열이면 파싱, 이미 배열이면 그대로 사용
+                const agents = typeof userAgents === 'string'
+                    ? JSON.parse(userAgents)
+                    : userAgents;
+
+                if (agents && agents.length) {
+                    agents.forEach(ua => {
+                        // 간단한 UA 분석
+                        const isBot = /bot|crawl|spider|slurp|search/i.test(ua);
+                        const isMobile = /mobile|android|iphone|ipad/i.test(ua);
+
+                        let icon = 'fa-globe';
+                        if (isBot) icon = 'fa-robot';
+                        else if (isMobile) icon = 'fa-mobile-alt';
+                        else if (/chrome/i.test(ua)) icon = 'fa-chrome';
+                        else if (/firefox/i.test(ua)) icon = 'fa-firefox-browser';
+                        else if (/safari/i.test(ua)) icon = 'fa-safari';
+
+                        uaHTML += `
+                            <div class="mb-2 p-2 border border-gray-200 rounded">
+                                <p><i class="fas ${icon} mr-2"></i>${ua}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    uaHTML += `<p>User-Agent 정보가 없습니다.</p>`;
+                }
+            } catch (e) {
+                uaHTML += `<p>User-Agent 정보를 읽을 수 없습니다.</p>`;
+                console.error('User-Agent 파싱 오류:', e);
+            }
+
+            uaHTML += `</div></div>`;
+            whoisRawData.innerHTML = uaHTML;
+        })
+        .catch(err => {
+            summary.innerHTML = `<div class="py-2">IP 정보를 가져올 수 없습니다.</div>`;
+            console.error('IP 정보 조회 오류:', err);
+
+            // User-Agent만 표시
+            whoisRawData.innerHTML = `<div class="mt-2">User-Agent 정보를 불러올 수 없습니다.</div>`;
+        });
+}
+
+// 봇/사람 비율 차트 초기화
+function initVisitorTypeChart() {
+    // 선택된 레퍼러에서 봇/사람 수 집계
+    const botCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.botCount || 0), 0);
+    const humanCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.humanCount || 0), 0);
+
+    const ctx = document.getElementById('visitor-type-chart').getContext('2d');
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['봇', '사람'],
+            datasets: [{
+                data: [botCount, humanCount],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(75, 192, 192, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = botCount + humanCount;
+                            const percent = Math.round((value / total) * 100);
+                            return `${context.label}: ${value} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 브라우저 분포 차트 초기화
+function initBrowserChart() {
+    // 브라우저 데이터 집계
+    const browsers = {};
+
+    topReferrers.forEach(ref => {
+        if (ref.uaStats?.browsers) {
+            Object.entries(ref.uaStats.browsers).forEach(([browser, count]) => {
+                browsers[browser] = (browsers[browser] || 0) + count;
+            });
+        }
+    });
+
+    const labels = Object.keys(browsers);
+    const data = Object.values(browsers);
+
+    // 색상 맵
+    const browserColors = {
+        'Chrome': 'rgba(66, 133, 244, 0.8)', // Google Blue
+        'Firefox': 'rgba(255, 89, 0, 0.8)',  // Firefox Orange
+        'Safari': 'rgba(0, 122, 255, 0.8)',  // Safari Blue
+        'Edge': 'rgba(0, 120, 215, 0.8)',    // Edge Blue
+        'IE': 'rgba(0, 120, 215, 0.8)',      // IE Blue
+        'Bot': 'rgba(128, 128, 128, 0.8)',   // Gray for bots
+        'Unknown': 'rgba(169, 169, 169, 0.8)' // Dark Gray for unknown
+    };
+
+    // 색상 배열 생성
+    const colors = labels.map(browser =>
+        browserColors[browser] || 'rgba(83, 166, 131, 0.8)' // Default Green
+    );
+
+    const ctx = document.getElementById('browser-chart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = data.reduce((sum, val) => sum + val, 0);
+                            const percent = Math.round((value / total) * 100);
+                            return `${context.label}: ${value} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 모바일/PC 비율 차트 초기화
+function initDeviceChart() {
+    // 디바이스 유형 집계
+    const mobileCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.mobileCount || 0), 0);
+    const desktopCount = topReferrers.reduce((sum, ref) => sum + (ref.uaStats?.desktopCount || 0), 0);
+
+    const ctx = document.getElementById('device-chart').getContext('2d');
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['모바일', '데스크톱'],
+            datasets: [{
+                data: [mobileCount, desktopCount],
+                backgroundColor: [
+                    'rgba(255, 159, 64, 0.8)', // Orange for Mobile
+                    'rgba(54, 162, 235, 0.8)'  // Blue for Desktop
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = mobileCount + desktopCount;
+                            const percent = Math.round((value / total) * 100);
+                            return `${context.label}: ${value} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function showWhoisInfo(value, type, ua) {
+    const modal = document.getElementById('whois-modal');
+    const modalTitle = document.getElementById('whois-modal-title');
+    const loading = document.getElementById('whois-loading');
+    const error = document.getElementById('whois-error');
+    const errorMessage = document.getElementById('whois-error-message');
+    const content = document.getElementById('whois-content');
+    const summary = document.getElementById('whois-summary');
+    const whoisRawData = document.getElementById('whois-raw-data');
+    const uaRawData = document.getElementById('ua-raw-data');
 
     // 모달 표시 (내용은 비워둔 상태로)
     modalTitle.textContent = type === 'ip' ? `IP 주소 정보: ${value}` : `도메인 정보: ${value}`;
@@ -57,7 +291,8 @@ function showWhoisInfo(value, type) {
                     formattedData = '원시 데이터가 없습니다';
                 }
 
-                rawData.innerHTML = formattedData;
+                whoisRawData.innerHTML = formattedData;
+                uaRawData.innerHTML = ua.toString();
 
                 // 내용 표시
                 content.style.display = 'block';
@@ -83,7 +318,7 @@ function formatJsonDisplay(jsonData) {
     // 접을 수 있는 원본 JSON 데이터 섹션 생성
     const collapsibleSection = `
         <div class="mt-4">
-            <detailsclass="rounded p-2">
+            <details class="rounded p-2">
                 <summary class="cursor-pointer font-medium text-sm py-1">원본 JSON 데이터 보기</summary>
                 <pre class="text-xs overflow-auto mt-2 p-2 rounded max-h-64">${JSON.stringify(jsonData, null, 2)}</pre>
             </details>
@@ -368,4 +603,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
         window.location.href = `/admin/referrer-stats?days=${days}&limit=${limit}&view=${view}&dns=${showDNS}`;
     });
+
+    // 상위 레퍼러 데이터 가져오기 (전역 변수)
+    window.topReferrers = [];
+
+    // API로 데이터 가져오기
+    fetch(`/api/admin/referrer-stats?mode=top&days=${document.getElementById('days').value}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.topReferrers) {
+                window.topReferrers = data.topReferrers;
+
+                // 새로운 차트 초기화
+                initVisitorTypeChart();
+                initBrowserChart();
+                initDeviceChart();
+            }
+        })
+        .catch(err => console.error('레퍼러 데이터 로드 오류:', err));
 });

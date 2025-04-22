@@ -183,6 +183,35 @@ func main() {
 		return fmt.Sprintf("%v", v)
 	})
 
+	// 레퍼러 봇 확인 함수
+	engine.AddFunc("checkBot", func(userAgents string) bool {
+		// results := make([]bool, len(userAgents))
+
+		ua := strings.ToLower(userAgents)
+		result := strings.Contains(ua, "bot") ||
+			strings.Contains(ua, "crawler") ||
+			strings.Contains(ua, "spider") ||
+			strings.Contains(ua, "slurp") ||
+			strings.Contains(ua, "search")
+
+		if result {
+			return true
+		}
+
+		// for i, ua := range userAgents {
+		// 	ua = strings.ToLower(ua)
+		// 	results[i] = strings.Contains(ua, "bot") ||
+		// 		strings.Contains(ua, "crawler") ||
+		// 		strings.Contains(ua, "spider") ||
+		// 		strings.Contains(ua, "slurp") ||
+		// 		strings.Contains(ua, "search")
+
+		// 	return true
+		// }
+
+		return false
+	})
+
 	// Fiber 앱 생성
 	app := fiber.New(fiber.Config{
 		IdleTimeout:           5 * time.Second,
