@@ -19,6 +19,7 @@ var (
 // CommentService 인터페이스
 type CommentService interface {
 	CreateComment(ctx context.Context, boardID, postID, userID int64, content string, parentID *int64) (*models.Comment, error)
+	GetCommentByID(ctx context.Context, id int64) (*models.Comment, error)
 	GetCommentsByPostID(ctx context.Context, boardID, postID int64, includeReplies bool) ([]*models.Comment, error)
 	UpdateComment(ctx context.Context, id, userID int64, content string, isAdmin bool) (*models.Comment, error)
 	DeleteComment(ctx context.Context, id, userID int64, isAdmin bool) error
@@ -92,6 +93,11 @@ func (s *commentService) CreateComment(ctx context.Context, boardID, postID, use
 
 	// 저장된 댓글 다시 조회 (사용자 정보 포함)
 	return s.commentRepo.GetByID(ctx, comment.ID)
+}
+
+// GetCommentByID - 댓글 ID로 댓글 조회
+func (s *commentService) GetCommentByID(ctx context.Context, id int64) (*models.Comment, error) {
+	return s.commentRepo.GetByID(ctx, id)
 }
 
 // GetCommentsByPostID - 게시물 댓글 목록 조회

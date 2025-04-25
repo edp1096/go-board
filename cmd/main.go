@@ -265,7 +265,7 @@ func main() {
 	systemSettingsHandler := handlers.NewSystemSettingsHandler(systemSettingsService)
 	authHandler := handlers.NewAuthHandler(authService)
 	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService, cfg)
-	commentHandler := handlers.NewCommentHandler(commentService)
+	commentHandler := handlers.NewCommentHandler(commentService, boardService)
 	qnaHandler := handlers.NewQnAHandler(boardService, qnaService)
 	uploadHandler := handlers.NewUploadHandler(uploadService, boardService, cfg)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)

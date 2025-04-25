@@ -13,12 +13,14 @@ import (
 // CommentHandler - 댓글 관련 핸들러
 type CommentHandler struct {
 	commentService service.CommentService
+	boardService   service.BoardService
 }
 
 // NewCommentHandler - 새 CommentHandler 생성
-func NewCommentHandler(commentService service.CommentService) *CommentHandler {
+func NewCommentHandler(commentService service.CommentService, boardService service.BoardService) *CommentHandler {
 	return &CommentHandler{
 		commentService: commentService,
+		boardService:   boardService,
 	}
 }
 
@@ -142,9 +144,35 @@ func (h *CommentHandler) UpdateComment(c *fiber.Ctx) error {
 		})
 	}
 
+	// 댓글 조회 (먼저 댓글을 가져와야 boardID를 알 수 있음)
+	comment, err := h.commentService.GetCommentByID(c.Context(), commentID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "댓글을 찾을 수 없습니다",
+		})
+	}
+
 	// 현재 로그인한 사용자 정보
 	user := c.Locals("user").(*models.User)
 	isAdmin := user.Role == models.RoleAdmin
+
+	// 게시판 매니저 또는 소모임 moderator 여부 확인
+	isModerator := false
+	if !isAdmin {
+		// 매니저 여부 확인
+		isManager, _ := h.boardService.IsBoardManager(c.Context(), comment.BoardID, user.ID)
+		if isManager {
+			isModerator = true
+		} else {
+			// 게시판 타입 확인
+			board, err := h.boardService.GetBoardByID(c.Context(), comment.BoardID)
+			if err == nil && board.BoardType == models.BoardTypeGroup {
+				// 소모임 moderator 여부 확인
+				isModerator, _ = h.boardService.IsParticipantModerator(c.Context(), comment.BoardID, user.ID)
+			}
+		}
+	}
 
 	// 요청 본문 파싱
 	var req struct {
@@ -167,7 +195,7 @@ func (h *CommentHandler) UpdateComment(c *fiber.Ctx) error {
 	}
 
 	// 댓글 수정
-	comment, err := h.commentService.UpdateComment(c.Context(), commentID, user.ID, req.Content, isAdmin)
+	updatedComment, err := h.commentService.UpdateComment(c.Context(), commentID, user.ID, req.Content, isAdmin || isModerator)
 	if err != nil {
 		if err == service.ErrCommentNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -188,7 +216,7 @@ func (h *CommentHandler) UpdateComment(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"success": true,
-		"comment": comment,
+		"comment": updatedComment,
 	})
 }
 
@@ -202,12 +230,38 @@ func (h *CommentHandler) DeleteComment(c *fiber.Ctx) error {
 		})
 	}
 
+	// 댓글 조회 (먼저 댓글을 가져와야 boardID를 알 수 있음)
+	comment, err := h.commentService.GetCommentByID(c.Context(), commentID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "댓글을 찾을 수 없습니다",
+		})
+	}
+
 	// 현재 로그인한 사용자 정보
 	user := c.Locals("user").(*models.User)
 	isAdmin := user.Role == models.RoleAdmin
 
+	// 게시판 매니저 또는 소모임 moderator 여부 확인
+	isModerator := false
+	if !isAdmin {
+		// 매니저 여부 확인
+		isManager, _ := h.boardService.IsBoardManager(c.Context(), comment.BoardID, user.ID)
+		if isManager {
+			isModerator = true
+		} else {
+			// 게시판 타입 확인
+			board, err := h.boardService.GetBoardByID(c.Context(), comment.BoardID)
+			if err == nil && board.BoardType == models.BoardTypeGroup {
+				// 소모임 moderator 여부 확인
+				isModerator, _ = h.boardService.IsParticipantModerator(c.Context(), comment.BoardID, user.ID)
+			}
+		}
+	}
+
 	// 댓글 삭제
-	err = h.commentService.DeleteComment(c.Context(), commentID, user.ID, isAdmin)
+	err = h.commentService.DeleteComment(c.Context(), commentID, user.ID, isAdmin || isModerator)
 	if err != nil {
 		if err == service.ErrCommentNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{

@@ -38,64 +38,6 @@
                                 </option>
                                 {{end}}
                             </select>
-
-                            <!-- 소모임 게시판일 때만 보이는 참여자 관리 UI -->
-                            <div x-show="board_type === 'group'" class="mb-6">
-                                <h2 class="text-lg font-medium mb-4">참여자 관리</h2>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label for="participant_search" class="block text-sm font-medium">사용자 검색</label>
-                                        <div class="mt-1 flex rounded-md shadow-sm">
-                                            <input type="text" name="participant_search" id="participant_search" class="block w-full rounded-none rounded-l-md sm:text-sm" placeholder="참여자 이름 또는 이메일 입력">
-                                            <button type="button" @click="searchParticipants" class="inline-flex items-center rounded-r-md border border-current/25 border-l-0px-3 text-sm">
-                                                검색
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div class="border border-current/25 rounded-md p-4" x-show="showParticipantResults">
-                                        <h3 class="font-medium mb-2">검색 결과</h3>
-                                        <ul class="divide-y divide-current/25 max-h-40 overflow-y-auto">
-                                            <template x-for="user in participantResults" :key="user.id">
-                                                <li class="py-2 flex justify-between">
-                                                    <div>
-                                                        <span x-text="user.username"></span>
-                                                        (<span x-text="user.email"></span>)
-                                                    </div>
-                                                    <button type="button" @click="addParticipant(user)" class="text-blue-600 hover:text-blue-800">
-                                                        추가
-                                                    </button>
-                                                </li>
-                                            </template>
-                                        </ul>
-                                    </div>
-
-                                    <div>
-                                        <h3 class="font-medium mb-2">참여자 목록</h3>
-                                        <ul class="divide-y divide-current/25 border border-current/25 rounded-md p-4">
-                                            <template x-for="(participant, index) in participants" :key="participant.id">
-                                                <li class="py-2 flex justify-between">
-                                                    <div>
-                                                        <span x-text="participant.username || participant.user?.username"></span>
-                                                        (<span x-text="participant.email || participant.user?.email"></span>)
-                                                        <select :name="'participant_roles[' + index + ']'" x-model="participant.role" class="ml-2 text-xs">
-                                                            <option value="member">일반 회원</option>
-                                                            <option value="moderator">중재자</option>
-                                                        </select>
-                                                    </div>
-                                                    <button type="button" @click="removeParticipant(index)" class="text-error hover:text-error">
-                                                        삭제
-                                                    </button>
-                                                </li>
-                                            </template>
-                                            <li x-show="participants.length === 0" class="py-2 text-center">
-                                                등록된 참여자가 없습니다
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 </div>
@@ -181,6 +123,63 @@
                                 </template>
                                 <li x-show="managers.length === 0" class="py-2 text-center">
                                     선택된 매니저가 없습니다
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 소모임 게시판일 때만 보이는 참여자 관리 UI -->
+                <div x-show="board_type === 'group'" class="mb-6">
+                    <h2 class="text-lg font-medium mb-4">참여자 관리</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="participant_search" class="block text-sm font-medium">사용자 검색</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input type="text" name="participant_search" id="participant_search" class="block w-full rounded-none rounded-l-md sm:text-sm" placeholder="참여자 이름 또는 이메일 입력">
+                                <button type="button" @click="searchParticipants" class="inline-flex items-center rounded-r-md border border-current/25 border-l-0px-3 text-sm">
+                                    검색
+                                </button>
+                            </div>
+                        </div>
+                
+                        <div class="border border-current/25 rounded-md p-4" x-show="showParticipantResults">
+                            <h3 class="font-medium mb-2">검색 결과</h3>
+                            <ul class="divide-y divide-current/25 max-h-40 overflow-y-auto">
+                                <template x-for="user in participantResults" :key="user.id">
+                                    <li class="py-2 flex justify-between">
+                                        <div>
+                                            <span x-text="user.username"></span>
+                                            (<span x-text="user.email"></span>)
+                                        </div>
+                                        <button type="button" @click="addParticipant(user)" class="text-blue-600 hover:text-blue-800">
+                                            추가
+                                        </button>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                
+                        <div>
+                            <h3 class="font-medium mb-2">참여자 목록</h3>
+                            <ul class="divide-y divide-current/25 border border-current/25 rounded-md p-4">
+                                <template x-for="(participant, index) in participants" :key="participant.id">
+                                    <li class="py-2 flex justify-between">
+                                        <div>
+                                            <span x-text="participant.username || participant.user?.username"></span>
+                                            (<span x-text="participant.email || participant.user?.email"></span>)
+                                            <select :name="'participant_roles[' + index + ']'" x-model="participant.role" class="ml-2 text-xs">
+                                                <option value="member">일반 회원</option>
+                                                <option value="moderator">중재자</option>
+                                            </select>
+                                        </div>
+                                        <button type="button" @click="removeParticipant(index)" class="text-error hover:text-error">
+                                            삭제
+                                        </button>
+                                    </li>
+                                </template>
+                                <li x-show="participants.length === 0" class="py-2 text-center">
+                                    등록된 참여자가 없습니다
                                 </li>
                             </ul>
                         </div>

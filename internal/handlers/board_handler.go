@@ -699,6 +699,12 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 		isManager, err := h.boardService.IsBoardManager(c.Context(), boardID, user.ID)
 		if err == nil && isManager {
 			hasPermission = true
+		} else if board.BoardType == models.BoardTypeGroup {
+			// 4. 소모임 게시판인 경우 moderator 여부 확인
+			isModerator, err := h.boardService.IsParticipantModerator(c.Context(), boardID, user.ID)
+			if err == nil && isModerator {
+				hasPermission = true
+			}
 		}
 	}
 
@@ -710,9 +716,11 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 	}
 
 	return utils.RenderWithUser(c, "board/edit", fiber.Map{
-		"title": "게시물 수정",
-		"board": board,
-		"post":  post,
+		"title":                "게시물 수정",
+		"board":                board,
+		"post":                 post,
+		"maxUploadSizeMB":      h.config.MaxUploadSize / config.BytesPerMB,
+		"maxImageUploadSizeMB": h.config.MaxImageUploadSize / config.BytesPerMB,
 	})
 }
 
