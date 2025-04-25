@@ -136,6 +136,7 @@ func getBasicTables() []string {
 		"boards",             // 게시판 테이블
 		"board_fields",       // boards 참조
 		"board_managers",     // boards와 users 참조
+		"board_participants", // boards와 users 참조 (소모임 참여자)
 		"system_settings",    // 독립 테이블
 		"comments",           // users와 boards 참조
 		"attachments",        // users와 boards 참조
@@ -532,6 +533,21 @@ func migrateTableData(config *DataMigrationConfig, tableName string, fieldTypeMa
 	// 트랜잭션 활성화 여부 확인
 	useTransaction := config.EnableTransactions && shouldUseTransactionForTable(tableName, totalRows)
 
+	// 테이블 특성에 따른 정렬 키 설정
+	var orderByColumn string
+
+	// 복합 기본 키를 가진 테이블들 처리
+	if tableName == "board_participants" || tableName == "board_managers" {
+		orderByColumn = "board_id, user_id"
+	} else if tableName == "qna_question_votes" {
+		orderByColumn = "question_id, user_id"
+	} else if tableName == "qna_answer_votes" {
+		orderByColumn = "answer_id, user_id"
+	} else {
+		// 기본값은 id 컬럼 사용
+		orderByColumn = "id"
+	}
+
 	for batchNum := 0; batchNum < totalBatches; batchNum++ {
 		offset := batchNum * batchSize
 		limit := batchSize
@@ -541,9 +557,10 @@ func migrateTableData(config *DataMigrationConfig, tableName string, fieldTypeMa
 		}
 
 		// 소스 데이터 쿼리 구성
-		sourceQuery := fmt.Sprintf("SELECT %s FROM %s ORDER BY id LIMIT %d OFFSET %d",
+		sourceQuery := fmt.Sprintf("SELECT %s FROM %s ORDER BY %s LIMIT %d OFFSET %d",
 			strings.Join(sourceColumnNames, ", "),
 			quoteTableName(config.SourceDBConfig.DBDriver, tableName),
+			orderByColumn,
 			limit,
 			offset)
 
@@ -1023,6 +1040,8 @@ func getModelInfo(tableName string) map[string]FieldInfo {
 		modelType = reflect.TypeOf(models.BoardField{})
 	case "board_managers":
 		modelType = reflect.TypeOf(models.BoardManager{})
+	case "board_participants":
+		modelType = reflect.TypeOf(models.BoardParticipant{})
 	case "comments":
 		modelType = reflect.TypeOf(models.Comment{})
 	case "attachments":
@@ -1435,9 +1454,12 @@ func resetSequences(config *DataMigrationConfig) error {
 func needsSequenceReset(tableName string) bool {
 	// 시퀀스 재설정이 필요 없는 테이블
 	noResetTables := map[string]bool{
-		"goose_db_version": true,
-		"referrer_stats":   true,
-		"board_managers":   true,
+		"goose_db_version":   true,
+		"referrer_stats":     true,
+		"board_managers":     true,
+		"board_participants": true,
+		"qna_question_votes": true,
+		"qna_answer_votes":   true,
 	}
 
 	return !noResetTables[tableName]
