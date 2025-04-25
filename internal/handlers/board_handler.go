@@ -282,6 +282,7 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	// 현재 로그인한 사용자 정보
 	user := c.Locals("user")
 	isManager := false
+	isModerator := false
 
 	// 비밀글 접근 권한 확인
 	if post.IsPrivate {
@@ -302,6 +303,11 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 				isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
 				if isManager {
 					hasAccess = true
+				} else if board.BoardType == models.BoardTypeGroup {
+					isModerator, _ = h.boardService.IsParticipantModerator(c.Context(), boardID, userObj.ID)
+					if isModerator {
+						hasAccess = true
+					}
 				}
 			}
 		}
@@ -318,6 +324,11 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		if user != nil {
 			userObj := user.(*models.User)
 			isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userObj.ID)
+
+			// 소모임 게시판인 경우 moderator 여부도 확인
+			if board.BoardType == models.BoardTypeGroup {
+				isModerator, _ = h.boardService.IsParticipantModerator(c.Context(), boardID, userObj.ID)
+			}
 		}
 	}
 
@@ -405,6 +416,7 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		"board":       board,
 		"post":        post,
 		"isManager":   isManager,
+		"isModerator": isModerator,
 		// SEO 메타 태그 데이터
 		"metaAuthor":      post.Username,
 		"metaTitle":       post.Title,
@@ -753,10 +765,16 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		// 2. 전체 관리자인 경우
 		hasPermission = true
 	} else {
-		// 3. 게시판 매니저인지 확인
+		// 3. 게시판 매니저 또는 소모임 moderator인지 확인
 		isManager, err := h.boardService.IsBoardManager(c.Context(), boardID, user.ID)
 		if err == nil && isManager {
 			hasPermission = true
+		} else if board.BoardType == models.BoardTypeGroup {
+			// 소모임 게시판이면 moderator 여부 확인
+			isModerator, err := h.boardService.IsParticipantModerator(c.Context(), boardID, user.ID)
+			if err == nil && isModerator {
+				hasPermission = true
+			}
 		}
 	}
 
@@ -984,6 +1002,15 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 		})
 	}
 
+	// 게시판 정보 조회
+	board, err := h.boardService.GetBoardByID(c.Context(), boardID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "게시판을 찾을 수 없습니다",
+		})
+	}
+
 	// 게시물 정보 조회
 	post, err := h.boardService.GetPost(c.Context(), boardID, postID)
 	if err != nil {
@@ -1006,10 +1033,16 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 		// 2. 전체 관리자인 경우
 		hasPermission = true
 	} else {
-		// 3. 게시판 매니저인지 확인
+		// 3. 게시판 매니저 또는 소모임 moderator인지 확인
 		isManager, err := h.boardService.IsBoardManager(c.Context(), boardID, user.ID)
 		if err == nil && isManager {
 			hasPermission = true
+		} else if board.BoardType == models.BoardTypeGroup {
+			// 소모임 게시판이면 moderator 여부 확인
+			isModerator, err := h.boardService.IsParticipantModerator(c.Context(), boardID, user.ID)
+			if err == nil && isModerator {
+				hasPermission = true
+			}
 		}
 	}
 

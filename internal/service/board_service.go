@@ -59,13 +59,14 @@ type BoardService interface {
 	// Q&A 관련
 	SearchPostsWithStatus(ctx context.Context, boardID int64, query, status string, page, pageSize int) ([]*models.DynamicPost, int, error)
 
-	// 참여자 관련 메서드
+	// 소모임 관련
 	GetParticipants(ctx context.Context, boardID int64) ([]*models.BoardParticipant, error)
 	AddParticipant(ctx context.Context, boardID, userID int64, role models.ParticipantRole) error
 	UpdateParticipantRole(ctx context.Context, boardID, userID int64, role models.ParticipantRole) error
 	RemoveParticipant(ctx context.Context, boardID, userID int64) error
 	IsParticipant(ctx context.Context, boardID, userID int64) (bool, error)
 	GetUserGroupBoards(ctx context.Context, userID int64) ([]*models.Board, error)
+	IsParticipantModerator(ctx context.Context, boardID, userID int64) (bool, error)
 }
 
 type boardService struct {
@@ -1086,4 +1087,13 @@ func (s *boardService) IsParticipant(ctx context.Context, boardID, userID int64)
 // 사용자가 참여 중인 소모임 게시판 목록
 func (s *boardService) GetUserGroupBoards(ctx context.Context, userID int64) ([]*models.Board, error) {
 	return s.participantRepo.GetBoardsByUserID(ctx, userID)
+}
+
+func (s *boardService) IsParticipantModerator(ctx context.Context, boardID, userID int64) (bool, error) {
+	participant, err := s.participantRepo.GetByUserAndBoard(ctx, userID, boardID)
+	if err != nil {
+		return false, nil // 에러가 있으면 false 반환
+	}
+
+	return participant != nil && participant.Role == models.ParticipantRoleModerator, nil
 }
