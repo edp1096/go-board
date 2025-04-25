@@ -3,7 +3,7 @@
     <h1 class="text-2xl font-bold mb-6">게시판 수정</h1>
 
     <div class="px-4 py-4 bg-white shadow rounded-lg overflow-hidden">
-        <form id="board-edit-form" action="/admin/boards/{{.board.ID}}" method="POST" x-data="boardEditForm">
+        <form id="board-edit-form" action="/admin/boards/{{.board.ID}}" method="POST" x-data="boardEditForm({{json .board}})">
             <!-- 초기 필드 데이터 설정을 위한 스크립트 -->
             <script id="initial-field-data" type="application/json">
                 {{.board.Fields | json}}
@@ -38,6 +38,7 @@
                                     {{if eq . "normal"}}일반 게시판
                                     {{else if eq . "gallery"}}갤러리 게시판
                                     {{else if eq . "qna"}}질문/답변 게시판
+                                    {{else if eq . "group"}}소모임 게시판
                                     {{else}}{{.}}{{end}}
                                 </option>
                                 {{end}}
@@ -79,7 +80,7 @@
 
                         <div>
                             <div class="flex items-center">
-                                <input id="allow_private" name="allow_private" type="checkbox"  {{if .board.AllowPrivate}}checked{{end}} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
+                                <input id="allow_private" name="allow_private" type="checkbox" {{if .board.AllowPrivate}}checked{{end}} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
                                 <label for="allow_private" class="ml-2 block text-sm">
                                     비밀글 설정 허용
                                 </label>
@@ -96,9 +97,7 @@
                     </div>
 
                     <!-- 초기 매니저 데이터를 위한 스크립트 -->
-                    <script id="initial-managers-data" type="application/json">
-                                                                        {{.managers | json}}
-                                                                    </script>
+                    <script id="initial-managers-data" type="application/json">{{.managers | json}}</script>
 
                     <div class="space-y-4">
                         <div>
@@ -148,6 +147,72 @@
                                 </template>
                                 <li x-show="managers.length === 0" class="py-2 text-center">
                                     선택된 매니저가 없습니다
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- board_edit.html - 매니저 관리 섹션 다음에 추가 -->
+                <div class="mb-6" x-show="board_type === 'group'">
+                    <h2 class="text-lg font-medium mb-4">참여자 관리</h2>
+                
+                    <!-- 초기 참여자 데이터 -->
+                    <script id="initial-participants-data" type="application/json">
+                        {{.participants | json}}
+                    </script>
+                
+                    <div class="space-y-4">
+                        <div>
+                            <label for="participant_search" class="block text-sm font-medium">사용자 검색</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input type="text" name="participant_search" id="participant_search" class="block w-full rounded-none rounded-l-md sm:text-sm" placeholder="참여자 이름 또는 이메일 입력">
+                                <button type="button" @click="searchParticipants" class="inline-flex items-center rounded-r-md border border-current/25 border-l-0px-3 text-sm">
+                                    검색
+                                </button>
+                            </div>
+                        </div>
+                
+                        <div class="border border-current/25 rounded-md p-4" x-show="showParticipantResults">
+                            <h3 class="font-medium mb-2">검색 결과</h3>
+                            <ul class="divide-y divide-current/25 max-h-40 overflow-y-auto">
+                                <template x-for="user in participantResults" :key="user.id">
+                                    <li class="py-2 flex justify-between">
+                                        <div>
+                                            <span x-text="user.username"></span>
+                                            (<span x-text="user.email"></span>)
+                                        </div>
+                                        <button type="button" @click="addParticipant(user)" class="text-blue-600 hover:text-blue-800">
+                                            추가
+                                        </button>
+                                    </li>
+                                </template>
+                            </ul>
+                            <div x-show="participantResults.length === 0" class="py-2 text-center">
+                                검색 결과가 없습니다
+                            </div>
+                        </div>
+                
+                        <div>
+                            <h3 class="font-medium mb-2">현재 참여자</h3>
+                            <ul class="divide-y divide-current/25 border border-current/25 rounded-md p-4">
+                                <template x-for="(participant, index) in participants" :key="participant.id || participant.userId">
+                                    <li class="py-2 flex justify-between">
+                                        <div>
+                                            <span x-text="participant.username || participant.user?.username"></span>
+                                            (<span x-text="participant.email || participant.user?.email"></span>)
+                                            <select x-model="participant.role" class="ml-2 text-xs">
+                                                <option value="member">일반 회원</option>
+                                                <option value="moderator">중재자</option>
+                                            </select>
+                                        </div>
+                                        <button type="button" @click="removeParticipant(index)" class="text-error hover:text-error">
+                                            삭제
+                                        </button>
+                                    </li>
+                                </template>
+                                <li x-show="participants.length === 0" class="py-2 text-center">
+                                    등록된 참여자가 없습니다
                                 </li>
                             </ul>
                         </div>

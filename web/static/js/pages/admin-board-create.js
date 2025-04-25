@@ -6,12 +6,17 @@ document.addEventListener('alpine:init', () => {
         fieldCount: 0,
         board_type: 'normal',
         previousCommentCheckbox: false,
-        previousPrivateCheckbox: false, // 비밀글 설정 상태 저장 변수 추가
+        previousPrivateCheckbox: false, // 비밀글 설정 상태 저장 변수
 
-        // 매니저 관련 속성 추가
+        // 매니저 관련 속성
         managers: [],
         searchResults: [],
         showSearchResults: false,
+
+        // 소모임 참여자 관련 속성
+        participants: [],
+        participantResults: [],
+        showParticipantResults: false,
 
         init() {
             // fields 배열의 변경을 감시
@@ -112,12 +117,70 @@ document.addEventListener('alpine:init', () => {
             this.managers.splice(index, 1);
         },
 
+        // 참여자 검색
+        async searchParticipants() {
+            const searchTerm = document.getElementById('participant_search').value;
+            if (!searchTerm || searchTerm.length < 2) {
+                alert('검색어는 2글자 이상 입력해주세요.');
+                return;
+            }
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const response = await fetch(`/api/admin/users/search?q=${encodeURIComponent(searchTerm)}`, {
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.participantResults = data.users || [];
+                    this.showParticipantResults = true;
+                }
+            } catch (error) {
+                console.error('사용자 검색 오류:', error);
+                alert('사용자 검색 중 오류가 발생했습니다.');
+            }
+        },
+
+        // 참여자 추가
+        addParticipant(user) {
+            const exists = this.participants.some(p => p.id === user.id);
+            if (exists) {
+                alert('이미 참여자로 추가된 사용자입니다.');
+                return;
+            }
+
+            this.participants.push({
+                ...user,
+                role: 'member'  // 기본값
+            });
+            this.showParticipantResults = false;
+            document.getElementById('participant_search').value = '';
+        },
+
+        // 참여자 제거
+        removeParticipant(index) {
+            this.participants.splice(index, 1);
+        },
+
         // 폼 제출 메소드
         submitForm() {
             this.submitting = true;
 
             // 폼 요소를 ID로 가져오기
             const form = document.getElementById('board-create-form');
+            const formData = new FormData(form);
+
+            // 참여자 정보 추가
+            if (this.board_type === 'group') {
+                const participantData = this.participants.map(p => ({
+                    id: p.id,
+                    role: p.role
+                }));
+                formData.append('participants', JSON.stringify(participantData));
+            }
 
             const commentsCheckbox = document.getElementById('comments_enabled');
             const privateCheckbox = document.getElementById('allow_private');
@@ -132,8 +195,6 @@ document.addEventListener('alpine:init', () => {
                 privateCheckbox.disabled = false;
             }
 
-            // FormData 객체 생성
-            const formData = new FormData(form);
             formData.append('field_count', this.fields.length);
 
             // 비활성화 상태 복원

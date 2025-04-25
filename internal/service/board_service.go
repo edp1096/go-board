@@ -58,17 +58,27 @@ type BoardService interface {
 
 	// Q&A 관련
 	SearchPostsWithStatus(ctx context.Context, boardID int64, query, status string, page, pageSize int) ([]*models.DynamicPost, int, error)
+
+	// 참여자 관련 메서드
+	GetParticipants(ctx context.Context, boardID int64) ([]*models.BoardParticipant, error)
+	AddParticipant(ctx context.Context, boardID, userID int64, role models.ParticipantRole) error
+	UpdateParticipantRole(ctx context.Context, boardID, userID int64, role models.ParticipantRole) error
+	RemoveParticipant(ctx context.Context, boardID, userID int64) error
+	IsParticipant(ctx context.Context, boardID, userID int64) (bool, error)
+	GetUserGroupBoards(ctx context.Context, userID int64) ([]*models.Board, error)
 }
 
 type boardService struct {
-	boardRepo repository.BoardRepository
-	db        *bun.DB
+	boardRepo       repository.BoardRepository
+	participantRepo repository.BoardParticipantRepository // 추가
+	db              *bun.DB
 }
 
-func NewBoardService(boardRepo repository.BoardRepository, db *bun.DB) BoardService {
+func NewBoardService(boardRepo repository.BoardRepository, participantRepo repository.BoardParticipantRepository, db *bun.DB) BoardService {
 	return &boardService{
-		boardRepo: boardRepo,
-		db:        db,
+		boardRepo:       boardRepo,
+		participantRepo: participantRepo,
+		db:              db,
 	}
 }
 
@@ -1028,4 +1038,52 @@ func (s *boardService) SearchPostsWithStatus(ctx context.Context, boardID int64,
 	}
 
 	return validPosts, count, nil
+}
+
+// 참여자 목록 조회
+func (s *boardService) GetParticipants(ctx context.Context, boardID int64) ([]*models.BoardParticipant, error) {
+	return s.participantRepo.GetParticipantsByBoardID(ctx, boardID)
+}
+
+// 참여자 추가
+func (s *boardService) AddParticipant(ctx context.Context, boardID, userID int64, role models.ParticipantRole) error {
+	participant := &models.BoardParticipant{
+		BoardID:   boardID,
+		UserID:    userID,
+		Role:      role,
+		CreatedAt: time.Now(),
+	}
+
+	return s.participantRepo.Create(ctx, participant)
+}
+
+// 참여자 역할 업데이트
+func (s *boardService) UpdateParticipantRole(ctx context.Context, boardID, userID int64, role models.ParticipantRole) error {
+	participant, err := s.participantRepo.GetByUserAndBoard(ctx, userID, boardID)
+	if err != nil {
+		return err
+	}
+
+	participant.Role = role
+	return s.participantRepo.Update(ctx, participant)
+}
+
+// 참여자 제거
+func (s *boardService) RemoveParticipant(ctx context.Context, boardID, userID int64) error {
+	return s.participantRepo.Delete(ctx, boardID, userID)
+}
+
+// 사용자가 참여자인지 확인
+func (s *boardService) IsParticipant(ctx context.Context, boardID, userID int64) (bool, error) {
+	participant, err := s.participantRepo.GetByUserAndBoard(ctx, userID, boardID)
+	if err != nil {
+		return false, nil // 에러가 있으면 false 반환
+	}
+
+	return participant != nil, nil
+}
+
+// 사용자가 참여 중인 소모임 게시판 목록
+func (s *boardService) GetUserGroupBoards(ctx context.Context, userID int64) ([]*models.Board, error) {
+	return s.participantRepo.GetBoardsByUserID(ctx, userID)
 }

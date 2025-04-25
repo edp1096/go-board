@@ -3,6 +3,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -64,6 +65,7 @@ func (h *AdminHandler) CreateBoardPage(c *fiber.Ctx) error {
 			models.BoardTypeNormal,
 			models.BoardTypeGallery,
 			models.BoardTypeQnA,
+			models.BoardTypeGroup,
 		},
 		"fieldTypes": []models.FieldType{
 			models.FieldTypeText,
@@ -311,6 +313,36 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 		}
 	}
 
+	// 소모임 게시판인 경우 참여자 처리
+	if board.BoardType == models.BoardTypeGroup {
+		participantsJSON := c.FormValue("participants")
+		if participantsJSON != "" {
+			var participants []struct {
+				ID   int64  `json:"id"`
+				Role string `json:"role"`
+			}
+
+			if err := json.Unmarshal([]byte(participantsJSON), &participants); err != nil {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"success": false,
+					"message": "참여자 정보 형식이 올바르지 않습니다",
+				})
+			}
+
+			// 게시판 생성 후 참여자 추가
+			for _, p := range participants {
+				role := models.ParticipantRoleMember
+				if p.Role == "moderator" {
+					role = models.ParticipantRoleModerator
+				}
+
+				if err := h.boardService.AddParticipant(c.Context(), board.ID, p.ID, role); err != nil {
+					fmt.Printf("참여자 추가 실패 (boardID: %d, userID: %d): %v\n", board.ID, p.ID, err)
+				}
+			}
+		}
+	}
+
 	// 폼이 fetch를 통해 제출되었으므로 항상 JSON 응답을 반환
 	c.Set("Content-Type", "application/json")
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -348,14 +380,25 @@ func (h *AdminHandler) EditBoardPage(c *fiber.Ctx) error {
 		managers = []*models.User{}
 	}
 
+	// 참여자 목록 가져오기 (추가)
+	var participants []*models.BoardParticipant
+	if board.BoardType == models.BoardTypeGroup {
+		participants, err = h.boardService.GetParticipants(c.Context(), boardID)
+		if err != nil {
+			participants = []*models.BoardParticipant{}
+		}
+	}
+
 	return utils.RenderWithUser(c, "admin/board_edit", fiber.Map{
-		"title":    "게시판 수정",
-		"board":    board,
-		"managers": managers,
+		"title":        "게시판 수정",
+		"board":        board,
+		"managers":     managers,
+		"participants": participants,
 		"boardTypes": []models.BoardType{
 			models.BoardTypeNormal,
 			models.BoardTypeGallery,
 			models.BoardTypeQnA,
+			models.BoardTypeGroup,
 		},
 		"fieldTypes": []models.FieldType{
 			models.FieldTypeText,
@@ -1428,5 +1471,150 @@ func (h *AdminHandler) ChangeOrder(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "게시판 순서가 변경되었습니다",
+	})
+}
+
+// GetBoardParticipants - 게시판 참여자 목록 조회
+func (h *AdminHandler) GetBoardParticipants(c *fiber.Ctx) error {
+	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 게시판 ID입니다",
+		})
+	}
+
+	participants, err := h.boardService.GetParticipants(c.Context(), boardID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "참여자 목록을 불러오는데 실패했습니다",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success":      true,
+		"participants": participants,
+	})
+}
+
+// AddBoardParticipant - 게시판 참여자 추가
+func (h *AdminHandler) AddBoardParticipant(c *fiber.Ctx) error {
+	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 게시판 ID입니다",
+		})
+	}
+
+	var req struct {
+		UserID int64  `json:"userId"`
+		Role   string `json:"role"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 형식이 올바르지 않습니다",
+		})
+	}
+
+	role := models.ParticipantRoleMember
+	if req.Role == "moderator" {
+		role = models.ParticipantRoleModerator
+	}
+
+	err = h.boardService.AddParticipant(c.Context(), boardID, req.UserID, role)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "참여자 추가에 실패했습니다",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "참여자가 추가되었습니다",
+	})
+}
+
+// UpdateBoardParticipantRole - 참여자 역할 변경
+func (h *AdminHandler) UpdateBoardParticipantRole(c *fiber.Ctx) error {
+	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 게시판 ID입니다",
+		})
+	}
+
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	var req struct {
+		Role string `json:"role"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "요청 형식이 올바르지 않습니다",
+		})
+	}
+
+	role := models.ParticipantRoleMember
+	if req.Role == "moderator" {
+		role = models.ParticipantRoleModerator
+	}
+
+	err = h.boardService.UpdateParticipantRole(c.Context(), boardID, userID, role)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "참여자 역할 변경에 실패했습니다",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "참여자 역할이 변경되었습니다",
+	})
+}
+
+// RemoveBoardParticipant - 참여자 제거
+func (h *AdminHandler) RemoveBoardParticipant(c *fiber.Ctx) error {
+	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 게시판 ID입니다",
+		})
+	}
+
+	userID, err := strconv.ParseInt(c.Params("userID"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "잘못된 사용자 ID입니다",
+		})
+	}
+
+	err = h.boardService.RemoveParticipant(c.Context(), boardID, userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "참여자 제거에 실패했습니다",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "참여자가 제거되었습니다",
 	})
 }

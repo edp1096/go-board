@@ -245,13 +245,14 @@ func main() {
 	boardRepo := repository.NewBoardRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
 	attachmentRepo := repository.NewAttachmentRepository(db)
+	participantRepo := repository.NewBoardParticipantRepository(db)
 	referrerRepo := repository.NewReferrerRepository(db)
 
 	// 서비스 초기화
 	setupService := service.NewSetupService(userRepo)
 	systemSettingsService := service.NewSystemSettingsService(systemSettingsRepo)
 	authService := service.NewAuthService(userRepo, systemSettingsService)
-	boardService := service.NewBoardService(boardRepo, db)
+	boardService := service.NewBoardService(boardRepo, participantRepo, db)
 	dynamicBoardService := service.NewDynamicBoardService(db)
 	commentService := service.NewCommentService(commentRepo, boardRepo)
 	qnaService := service.NewQnAService(db, boardRepo, boardService)
@@ -630,6 +631,10 @@ func setupRoutes(
 
 	adminAPI := api.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
 	adminAPI.Put("/boards/:boardID/order", adminHandler.ChangeOrder)
+	adminAPI.Get("/boards/:boardID/participants", adminHandler.GetBoardParticipants)
+	adminAPI.Post("/boards/:boardID/participants", adminHandler.AddBoardParticipant)
+	adminAPI.Put("/boards/:boardID/participants/:userID/role", adminHandler.UpdateBoardParticipantRole)
+	adminAPI.Delete("/boards/:boardID/participants/:userID", adminHandler.RemoveBoardParticipant)
 	adminAPI.Get("/users/search", adminHandler.SearchUsers)
 	adminAPI.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
 

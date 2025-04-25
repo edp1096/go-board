@@ -120,9 +120,10 @@ func runDataMigration(config *DataMigrationConfig) error {
 func createBoardServices(config *DataMigrationConfig) (service.BoardService, service.DynamicBoardService, error) {
 	// 소스 레포지토리 생성
 	boardRepo := repository.NewBoardRepository(config.SourceDB)
+	participantRepo := repository.NewBoardParticipantRepository(config.SourceDB)
 
 	// 서비스 생성
-	boardService := service.NewBoardService(boardRepo, config.SourceDB)
+	boardService := service.NewBoardService(boardRepo, participantRepo, config.SourceDB)
 	dynamicBoardService := service.NewDynamicBoardService(config.SourceDB)
 
 	return boardService, dynamicBoardService, nil

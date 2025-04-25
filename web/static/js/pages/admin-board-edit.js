@@ -1,6 +1,7 @@
 /* web/static/js/pages/admin-board-edit.js */
 document.addEventListener('alpine:init', () => {
-    Alpine.data('boardEditForm', () => ({
+    Alpine.data('boardEditForm', (board) => ({
+        board: board,
         submitting: false,
         fields: [],
         fieldCount: 0,
@@ -8,10 +9,16 @@ document.addEventListener('alpine:init', () => {
         isQnaBoard: false,
         board_type: document.getElementById('board_type').value || 'normal',
 
-        // 매니저 관련 속성 추가
+        // 매니저 관련 속성
         managers: [],
         searchResults: [],
         showSearchResults: false,
+
+        // 소모임 참여자 관련 속성
+        participants: [],
+        participantResults: [],
+        showParticipantResults: false,
+        originalParticipants: [],
 
         init() {
             // 게시판 유형이 QnA인지 확인
@@ -110,6 +117,11 @@ document.addEventListener('alpine:init', () => {
             this.$watch('fields', value => {
                 this.fieldCount = value.length;
             });
+
+            // 소모임 게시판인 경우 참여자 목록 로드
+            if (this.board_type === 'group') {
+                this.loadParticipants();
+            }
         },
 
         // 필드 추가 메소드
@@ -181,8 +193,132 @@ document.addEventListener('alpine:init', () => {
             this.managers.splice(index, 1);
         },
 
+        // 참여자 목록 로드
+        async loadParticipants() {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const response = await fetch(`/api/admin/boards/${this.board.id}/participants`, {
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.participants = data.participants || [];
+                    this.originalParticipants = JSON.parse(JSON.stringify(this.participants));
+                }
+            } catch (error) {
+                console.error('참여자 목록 로드 오류:', error);
+            }
+        },
+
+        // 참여자 검색
+        async searchParticipants() {
+            const searchTerm = document.getElementById('participant_search').value;
+            if (!searchTerm || searchTerm.length < 2) {
+                alert('검색어는 2글자 이상 입력해주세요.');
+                return;
+            }
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const response = await fetch(`/api/admin/users/search?q=${encodeURIComponent(searchTerm)}`, {
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.participantResults = data.users || [];
+                    this.showParticipantResults = true;
+                }
+            } catch (error) {
+                console.error('사용자 검색 오류:', error);
+                alert('사용자 검색 중 오류가 발생했습니다.');
+            }
+        },
+
+        // 참여자 추가
+        addParticipant(user) {
+            const exists = this.participants.some(p =>
+                (p.id === user.id) || (p.userId === user.id) || (p.user?.id === user.id)
+            );
+
+            if (exists) {
+                alert('이미 참여자로 추가된 사용자입니다.');
+                return;
+            }
+
+            this.participants.push({
+                id: user.id,
+                userId: user.id,
+                username: user.username,
+                email: user.email,
+                role: 'member',
+                isNew: true
+            });
+
+            this.showParticipantResults = false;
+            document.getElementById('participant_search').value = '';
+        },
+
+        // 참여자 제거
+        removeParticipant(index) {
+            this.participants.splice(index, 1);
+        },
+
+        async updateParticipants(boardId, csrfToken) {
+            // 삭제할 참여자 처리
+            for (const original of this.originalParticipants) {
+                const exists = this.participants.some(p => p.userId === original.userId);
+                if (!exists) {
+                    await fetch(`/api/admin/boards/${boardId}/participants/${original.userId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-Token': csrfToken
+                        }
+                    });
+                }
+            }
+
+            // 추가할 참여자 처리
+            for (const participant of this.participants) {
+                const isNew = !this.originalParticipants.some(o => o.userId === participant.userId);
+                const roleChanged = this.originalParticipants.some(o =>
+                    o.userId === participant.userId && o.role !== participant.role
+                );
+
+                if (isNew) {
+                    await fetch(`/api/admin/boards/${boardId}/participants`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({
+                            userId: participant.id || participant.userId,
+                            role: participant.role
+                        })
+                    });
+                } else if (roleChanged) {
+                    await fetch(`/api/admin/boards/${boardId}/participants/${participant.userId}/role`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({
+                            role: participant.role
+                        })
+                    });
+                }
+            }
+        },
+
         // 폼 제출 메소드
-        submitForm() {
+        async submitForm() {
             this.submitting = true;
 
             // 폼 요소 가져오기
@@ -248,7 +384,7 @@ document.addEventListener('alpine:init', () => {
 
                 // 폼 데이터에 필드 정보 명시적으로 추가
                 formData.set(`field_id_${index}`, field.id);
-                formData.set(`field_name_${index}`, columnName); // 중요: 이 부분을 columnName으로 설정
+                formData.set(`field_name_${index}`, columnName); // 이 부분을 columnName으로 설정
                 formData.set(`display_name_${index}`, field.displayName);
                 formData.set(`field_type_${index}`, field.fieldType);
 
@@ -274,18 +410,41 @@ document.addEventListener('alpine:init', () => {
 
             // CSRF 토큰 가져오기
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const boardId = this.board.id;
+
+            // // 서버에 데이터 전송
+            // fetch(actionUrl, {
+            //     method: 'PUT',
+            //     headers: {
+            //         'X-CSRF-Token': csrfToken,
+            //         'Accept': 'application/json'
+            //     },
+            //     body: formData
+            // })
+            //     .then(res => this.handleResponse(res))
+            //     .catch(err => this.handleError(err));
 
             // 서버에 데이터 전송
-            fetch(actionUrl, {
+            const r = await fetch(actionUrl, {
                 method: 'PUT',
                 headers: {
                     'X-CSRF-Token': csrfToken,
                     'Accept': 'application/json'
                 },
                 body: formData
-            })
-                .then(res => this.handleResponse(res))
-                .catch(err => this.handleError(err));
+            });
+
+            if (r.ok) {
+                // 참여자 업데이트
+                if (this.board_type === 'group') {
+                    await this.updateParticipants(boardId, csrfToken);
+                }
+                this.handleResponse(r);
+
+                return;
+            }
+
+            this.handleError('서버 응답 오류: ' + r.statusText);
         },
 
         // 응답 처리 메소드

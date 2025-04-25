@@ -55,6 +55,19 @@ CREATE TABLE IF NOT EXISTS board_fields (
 );
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE TABLE IF NOT EXISTS board_participants (
+    board_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (board_id, user_id),
+    FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+-- +goose StatementEnd
+
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE IF EXISTS board_fields;

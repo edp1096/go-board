@@ -97,9 +97,5 @@ func isDomainValid(domain string) bool {
 
 	// 간단한 형식 검사 (더 복잡한 검사는 필요시 추가)
 	parts := strings.Split(domain, ".")
-	if len(parts) < 2 {
-		return false
-	}
-
-	return true
+	return len(parts) >= 2
 }

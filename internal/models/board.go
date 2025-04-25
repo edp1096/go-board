@@ -14,6 +14,7 @@ const (
 	BoardTypeNormal  BoardType = "normal"  // 일반 게시판
 	BoardTypeGallery BoardType = "gallery" // 갤러리 게시판
 	BoardTypeQnA     BoardType = "qna"     // 질문/답변 게시판
+	BoardTypeGroup   BoardType = "group"   // 소모임 게시판
 )
 
 // 게시판 필드 유형

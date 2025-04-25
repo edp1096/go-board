@@ -184,7 +184,7 @@
 </div>
 
 <!-- 댓글 섹션 -->
-<div x-data="commentSystem({{.board.CommentsEnabled}})" id="comments-container" class="mt-8 border-t border-gray-200 pt-8" x-show="commentsEnabled">
+<div x-cloak x-data="commentSystem({{.board.CommentsEnabled}})" id="comments-container" class="mt-8 border-t border-gray-200 pt-8" x-show="commentsEnabled">
     <h3 class="text-lg font-medium">댓글</h3>
     <!-- 댓글 목록 -->
     <div class="space-y-6">
