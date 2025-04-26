@@ -240,8 +240,7 @@
                                     답글
                                 </button>
                                 
-                                {{if or (eq $.user.ID $.post.UserID) ($admin)}}
-                                <template x-if="'{{.user.ID}}' === comment.userId || {{$admin}}">
+                                <template x-if="'{{.user.ID}}' == comment.userId || {{$admin}}">
                                     <div class="flex items-center space-x-2">
                                         <button class="hover:text-secondary" @click="editComment(comment.id, comment.content)">
                                             수정
@@ -251,7 +250,6 @@
                                         </button>
                                     </div>
                                 </template>
-                                {{end}}
                                 {{end}}
                             </div>
                         </div>
@@ -281,10 +279,8 @@
                                                 답글
                                             </button>
 
-                                            {{if or (eq $.user.ID $.post.UserID) ($admin)}}
-                                            <template x-if="'{{.user.ID}}' === reply.userId || {{$admin}}">
+                                            <template x-if="'{{.user.ID}}' == reply.userId || {{$admin}}">
                                                 <div class="flex items-center space-x-2">
-
                                                     <button class="hover:text-secondary" @click="editComment(reply.id, reply.content)">
                                                         수정
                                                     </button>
@@ -293,7 +289,6 @@
                                                     </button>
                                                 </div>
                                             </template>
-                                            {{end}}
                                             {{end}}
                                         </div>
                                     </div>
