@@ -88,12 +88,19 @@ func runDataMigration(config *DataMigrationConfig) error {
 		}
 	}
 
-	// 6. 시퀀스/자동증가 값 복구
+	// 6. 댓글 수 업데이트
+	if !config.SchemaOnly {
+		if err := updateCommentCounts(config); err != nil {
+			log.Printf("댓글 수 업데이트 실패: %v (무시하고 계속 진행합니다)", err)
+		}
+	}
+
+	// 7. 시퀀스/자동증가 값 복구
 	if err := resetSequences(config); err != nil {
 		log.Printf("시퀀스 복구 실패: %v (무시하고 계속 진행합니다)", err)
 	}
 
-	// 7. 결과 요약
+	// 8. 결과 요약
 	elapsedTime := time.Since(startTime)
 	fmt.Println("==========================")
 	fmt.Printf("데이터 마이그레이션 완료 (소요 시간: %s)\n", elapsedTime)
@@ -365,6 +372,7 @@ func createSQLiteDynamicTable(config *DataMigrationConfig, board *models.Board, 
 		"content TEXT NOT NULL",
 		"user_id INTEGER NOT NULL",
 		"view_count INTEGER NOT NULL DEFAULT 0",
+		"comment_count INTEGER NOT NULL DEFAULT 0",
 		"is_private TINYINT NOT NULL DEFAULT 0",
 		"created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 		"updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
@@ -1063,6 +1071,7 @@ func getModelInfo(tableName string) map[string]FieldInfo {
 		fieldInfoMap["content"] = FieldInfo{fieldName: "Content", fieldType: "string"}
 		fieldInfoMap["user_id"] = FieldInfo{fieldName: "UserID", fieldType: "int64"}
 		fieldInfoMap["view_count"] = FieldInfo{fieldName: "ViewCount", fieldType: "int"}
+		fieldInfoMap["comment_count"] = FieldInfo{fieldName: "CommentCount", fieldType: "int"}
 		fieldInfoMap["created_at"] = FieldInfo{fieldName: "CreatedAt", fieldType: "time.Time"}
 		fieldInfoMap["updated_at"] = FieldInfo{fieldName: "UpdatedAt", fieldType: "time.Time"}
 
@@ -1471,4 +1480,79 @@ func (c *DataMigrationConfig) addError(err error) {
 		log.Printf("오류: %v", err)
 	}
 	c.Errors = append(c.Errors, err)
+}
+
+// updateCommentCounts는 모든 게시판의 게시물에 대해 댓글 수를 업데이트합니다
+func updateCommentCounts(config *DataMigrationConfig) error {
+	fmt.Println("[5/5] 댓글 수 업데이트 중...")
+
+	ctx := context.Background()
+
+	// 1. 모든 게시판 목록 가져오기
+	var boards []*models.Board
+	err := config.TargetDB.NewSelect().
+		Model(&boards).
+		Column("id", "table_name").
+		Scan(ctx)
+
+	if err != nil {
+		return fmt.Errorf("게시판 목록 조회 실패: %w", err)
+	}
+
+	// 2. 각 게시판별로 댓글 수 업데이트
+	for _, board := range boards {
+		// 게시판의 모든 게시물 ID 가져오기
+		var postIDs []int64
+		query := fmt.Sprintf("SELECT id FROM %s", quoteTableName(config.TargetDBConfig.DBDriver, board.TableName))
+
+		// Scan 사용 시 rows 변수에 결과를 받아야 함
+		rows, err := config.TargetDB.QueryContext(ctx, query)
+		if err != nil {
+			fmt.Printf("게시판 '%s' 게시물 ID 조회 실패: %v\n", board.TableName, err)
+			continue
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var postID int64
+			if err := rows.Scan(&postID); err != nil {
+				fmt.Printf("게시물 ID 스캔 실패: %v\n", err)
+				continue
+			}
+			postIDs = append(postIDs, postID)
+		}
+
+		// 각 게시물의 댓글 수 계산 및 업데이트
+		for _, postID := range postIDs {
+			// 댓글 수 계산
+			count, err := countCommentsForPost(config, board.ID, postID)
+			if err != nil {
+				fmt.Printf("게시물 ID %d의 댓글 수 계산 실패: %v\n", postID, err)
+				continue
+			}
+
+			// 댓글 수 업데이트
+			updateQuery := fmt.Sprintf("UPDATE %s SET comment_count = ? WHERE id = ?",
+				quoteTableName(config.TargetDBConfig.DBDriver, board.TableName))
+			_, err = config.TargetDB.ExecContext(ctx, updateQuery, count, postID)
+			if err != nil {
+				fmt.Printf("게시물 ID %d의 댓글 수 업데이트 실패: %v\n", postID, err)
+			}
+		}
+
+		fmt.Printf("게시판 '%s'의 댓글 수 업데이트 완료\n", board.TableName)
+	}
+
+	fmt.Println("댓글 수 업데이트 완료")
+	return nil
+}
+
+// countCommentsForPost는 특정 게시물의 댓글 수를 계산합니다
+func countCommentsForPost(config *DataMigrationConfig, boardID, postID int64) (int, error) {
+	count, err := config.TargetDB.NewSelect().
+		Table("comments").
+		Where("board_id = ? AND post_id = ?", boardID, postID).
+		Count(context.Background())
+
+	return count, err
 }

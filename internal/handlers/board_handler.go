@@ -163,12 +163,18 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	var userID int64
 	var isAdmin bool
 	var isManager bool
+	var isModerator bool
 
 	if user != nil {
 		userObj := user.(*models.User)
 		userID = userObj.ID
 		isAdmin = (userObj.Role == models.RoleAdmin)
 		isManager, _ = h.boardService.IsBoardManager(c.Context(), boardID, userID)
+
+		// 소모임 게시판인 경우 moderator 여부도 확인
+		if board.BoardType == models.BoardTypeGroup {
+			isModerator, _ = h.boardService.IsParticipantModerator(c.Context(), boardID, userID)
+		}
 	}
 
 	// 비밀글 필터링
@@ -181,7 +187,7 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 		}
 
 		// 비밀글인 경우 접근 권한 확인
-		if user != nil && (post.UserID == userID || isAdmin || isManager) {
+		if user != nil && (post.UserID == userID || isAdmin || isManager || isModerator) {
 			filteredPosts = append(filteredPosts, post)
 		}
 	}
