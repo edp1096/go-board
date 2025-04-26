@@ -44,7 +44,7 @@ migrate -h
 
 * 요구사항
     * Go 1.24
-    * PostgreSQL 13 / MariaDB 10.11
+    * PostgreSQL 13 / MariaDB 10.6
     * tailwindcss 4.1
     * yarn classic
 
