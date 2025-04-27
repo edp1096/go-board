@@ -15,7 +15,6 @@ import (
 	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/template/html/v2"
 )
 
 type BoardHandler struct {
@@ -52,20 +51,54 @@ func (h *BoardHandler) ListBoards(c *fiber.Ctx) error {
 		})
 	}
 
-	// fmt.Printf("게시판 목록 조회 성공: %d개 게시판\n", len(boards))
+	// 현재 로그인한 사용자 정보
+	user := c.Locals("user")
+	var userID int64
+	var isAdmin bool
 
-	// 템플릿 파일이 존재하는지 직접 확인
-	templatesFS := c.App().Config().Views.(*html.Engine)
-	if templatesFS == nil {
-		fmt.Println("템플릿 엔진이 nil입니다!")
+	if user != nil {
+		userObj := user.(*models.User)
+		userID = userObj.ID
+		isAdmin = (userObj.Role == models.RoleAdmin)
 	}
 
-	// // 디버그용 템플릿 정보 출력
-	// fmt.Printf("렌더링할 템플릿: %s\n", "board/list")
+	// 각 게시판에 대해 참여자 여부 확인
+	type BoardWithAccess struct {
+		Board         *models.Board
+		IsParticipant bool
+		IsManager     bool
+	}
+
+	boardsWithAccess := make([]BoardWithAccess, 0, len(boards))
+
+	for _, board := range boards {
+		boardAccess := BoardWithAccess{
+			Board: board,
+		}
+
+		if user != nil {
+			// 관리자는 모든 게시판에 접근 가능
+			if isAdmin {
+				boardAccess.IsParticipant = true
+				boardAccess.IsManager = true
+			} else {
+				// 소모임 게시판인 경우 참여자 여부 확인
+				if board.BoardType == models.BoardTypeGroup {
+					isParticipant, _ := h.boardService.IsParticipant(c.Context(), board.ID, userID)
+					boardAccess.IsParticipant = isParticipant
+
+					isManager, _ := h.boardService.IsBoardManager(c.Context(), board.ID, userID)
+					boardAccess.IsManager = isManager
+				}
+			}
+		}
+
+		boardsWithAccess = append(boardsWithAccess, boardAccess)
+	}
 
 	return utils.RenderWithUser(c, "board/list", fiber.Map{
-		"title":  "게시판 목록",
-		"boards": boards,
+		"title":            "게시판 목록",
+		"boardsWithAccess": boardsWithAccess,
 	})
 }
 
