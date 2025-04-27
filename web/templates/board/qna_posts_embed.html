@@ -21,13 +21,13 @@
     <div class="mb-6">
         <form action="/boards/{{.board.ID}}/posts" method="GET" class="space-y-4">
             <div class="flex">
-                <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
+                <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-65 sm:text-sm rounded-md">
                 <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     검색
                 </button>
             </div>
             <!-- <div class="flex flex-wrap gap-2">
-                <select name="status" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm rounded-md">
+                <select name="status" class="w-60 shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm rounded-md">
                     <option value="">모든 상태</option>
                     <option value="solved" {{if eq .status "solved" }}selected{{end}}>해결됨</option>
                     <option value="unsolved" {{if eq .status "unsolved" }}selected{{end}}>미해결</option>
@@ -49,7 +49,7 @@
         {{range .posts}}
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-4 sm:px-6">
-                <div class="flex items-start">
+                <div class="flex items-center">
                     <!-- 투표 및 답변 수 부분 -->
                     <div class="mr-4 flex items-center space-x-4">
                         <div class="flex flex-col items-center">

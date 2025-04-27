@@ -19,7 +19,7 @@
     <!-- 검색 폼 -->
     <div class="mb-6">
         <form action="/boards/{{.board.ID}}/posts" method="GET" class="flex">
-            <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm rounded-md">
+            <input type="text" name="q" value="{{.query}}" placeholder="검색어를 입력하세요" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-65 sm:text-sm rounded-md">
             <button type="submit" class="ml-2 inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md shadow-sm text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 검색
             </button>
@@ -56,7 +56,7 @@
                                 </p>
                             </div>
                             <div class="ml-2 flex-shrink-0 flex">
-                                <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full btn-success text-success">
+                                <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full btn-success">
                                     {{.CreatedAt.Format "2006-01-02 15:04"}}
                                 </p>
                             </div>
