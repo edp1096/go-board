@@ -320,6 +320,8 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 
 	// 현재 로그인한 사용자 정보
 	user := c.Locals("user")
+	var userID int64
+	isAdmin := false
 	isManager := false
 	isModerator := false
 
@@ -330,6 +332,7 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 
 		if user != nil {
 			userObj := user.(*models.User)
+			userID = userObj.ID
 
 			// 1. 작성자인 경우
 			if userObj.ID == post.UserID {
@@ -391,6 +394,24 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 		posts = []*models.DynamicPost{}
 		total = 0
 	}
+
+	// 비밀글 필터링
+	filteredPosts := make([]*models.DynamicPost, 0, len(posts))
+	for _, post := range posts {
+		// 비밀글이 아니면 바로 추가
+		if !post.IsPrivate {
+			filteredPosts = append(filteredPosts, post)
+			continue
+		}
+
+		// 비밀글인 경우 접근 권한 확인
+		if user != nil && (post.UserID == userID || isAdmin || isManager || isModerator) {
+			filteredPosts = append(filteredPosts, post)
+		}
+	}
+
+	// 비밀글 필터링 후 게시물 목록 갱신
+	posts = filteredPosts
 
 	// 게시판 타입이 갤러리인 경우 썸네일 정보 추가
 	if board.BoardType == models.BoardTypeGallery && len(posts) > 0 {

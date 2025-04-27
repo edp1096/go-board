@@ -578,8 +578,7 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 		return nil, 0, err
 	}
 
-	// 게시물 목록 조회
-	// 테이블명을 적절한 구분자로 감싸고 별칭은 AS 키워드로 구분
+	// 게시물 목록 조회 - 테이블명을 적절한 구분자로 감싸고 별칭은 AS 키워드로 구분
 	var query *bun.SelectQuery
 	var tableExpr string
 
