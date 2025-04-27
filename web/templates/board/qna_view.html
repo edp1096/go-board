@@ -23,7 +23,7 @@
         </nav>
     </div>
 
-    <div class="px-4 py-4 bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-1 py-4 bg-white shadow rounded-lg overflow-hidden">
         <!-- 게시물 헤더 -->
         <div class="border-b border-gray-200 px-6 py-4">
             <div class="flex justify-between items-start">
@@ -83,7 +83,7 @@
         </div>
 
         <!-- 질문 내용 -->
-        <div class="px-6 py-4">
+        <div class="px-3 py-4">
             <!-- 투표 및 내용 구조 -->
             <div class="flex gap-6">
                 <!-- 투표 부분 -->
@@ -185,7 +185,7 @@
                     <a href="/boards/{{.board.ID}}/posts/{{.post.ID}}/edit" class="inline-flex items-center px-3 py-2 border border-current/25 text-sm font-medium rounded-md bg-white">
                         수정
                     </a>
-                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-3 py-2 border border-current/25 border-red-300 text-sm font-medium rounded-md text-error bg-white hover:bg-red-50">
+                    <button x-data="postActions()" @click="deletePost()" class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-error bg-white hover:bg-red-50">
                         삭제
                     </button>
 
