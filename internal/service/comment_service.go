@@ -153,10 +153,12 @@ func (s *commentService) DeleteComment(ctx context.Context, id, userID int64, is
 		return ErrNoPermission
 	}
 
+	err = s.commentRepo.Delete(ctx, id)
+
 	// 게시물의 댓글 수 업데이트
 	s.updatePostCommentCount(ctx, comment.BoardID, comment.PostID)
 
-	return s.commentRepo.Delete(ctx, id)
+	return err
 }
 
 // DeleteCommentsByPostID 메서드 수정
