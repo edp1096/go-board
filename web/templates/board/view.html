@@ -399,7 +399,7 @@
 
 
 <hr class="my-8 border-gray-200" />
-{{if eq .board.BoardType "normal"}}
+{{if or (eq .board.BoardType "normal") (eq .board.BoardType "group")}}
 {{ template "board/posts_embed" . }}
 {{else if eq .board.BoardType "gallery" }}
 {{ template "board/gallery_posts_embed" . }}
