@@ -744,7 +744,8 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 
 	selectQuery = s.db.NewSelect().
 		TableExpr(tableExpr).
-		Column("p.id", "p.title", "p.content", "p.user_id", "p.view_count", "p.created_at", "p.updated_at").
+		// Column("p.id", "p.title", "p.content", "p.user_id", "p.view_count", "p.created_at", "p.updated_at").
+		Column("p.*").
 		ColumnExpr("u.username").
 		Join("LEFT JOIN users AS u ON u.id = p.user_id").
 		Where(selectWhereClause, selectParams...).
@@ -780,16 +781,18 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 		}
 
 		post := &models.DynamicPost{
-			ID:        postID,
-			Title:     utils.InterfaceToString(row["title"]),
-			Content:   utils.InterfaceToString(row["content"]),
-			UserID:    utils.InterfaceToInt64(row["user_id"]),
-			Username:  utils.InterfaceToString(row["username"]),
-			ViewCount: utils.InterfaceToInt(row["view_count"]),
-			CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
-			UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
-			Fields:    make(map[string]models.DynamicField),
-			RawData:   row,
+			ID:           postID,
+			Title:        utils.InterfaceToString(row["title"]),
+			Content:      utils.InterfaceToString(row["content"]),
+			UserID:       utils.InterfaceToInt64(row["user_id"]),
+			Username:     utils.InterfaceToString(row["username"]),
+			ViewCount:    utils.InterfaceToInt(row["view_count"]),
+			CommentCount: utils.InterfaceToInt(row["comment_count"]),
+			IsPrivate:    utils.InterfaceToBool(row["is_private"]),
+			CreatedAt:    utils.InterfaceToTime(row["created_at"], time.Now()),
+			UpdatedAt:    utils.InterfaceToTime(row["updated_at"], time.Now()),
+			Fields:       make(map[string]models.DynamicField),
+			RawData:      row,
 		}
 
 		// 동적 필드 처리
@@ -1009,16 +1012,18 @@ func (s *boardService) SearchPostsWithStatus(ctx context.Context, boardID int64,
 		}
 
 		post := &models.DynamicPost{
-			ID:        postID,
-			Title:     utils.InterfaceToString(row["title"]),
-			Content:   utils.InterfaceToString(row["content"]),
-			UserID:    utils.InterfaceToInt64(row["user_id"]),
-			Username:  utils.InterfaceToString(row["username"]),
-			ViewCount: utils.InterfaceToInt(row["view_count"]),
-			CreatedAt: utils.InterfaceToTime(row["created_at"], time.Now()),
-			UpdatedAt: utils.InterfaceToTime(row["updated_at"], time.Now()),
-			Fields:    make(map[string]models.DynamicField),
-			RawData:   row,
+			ID:           postID,
+			Title:        utils.InterfaceToString(row["title"]),
+			Content:      utils.InterfaceToString(row["content"]),
+			UserID:       utils.InterfaceToInt64(row["user_id"]),
+			Username:     utils.InterfaceToString(row["username"]),
+			ViewCount:    utils.InterfaceToInt(row["view_count"]),
+			CommentCount: utils.InterfaceToInt(row["comment_count"]),
+			IsPrivate:    utils.InterfaceToBool(row["is_private"]),
+			CreatedAt:    utils.InterfaceToTime(row["created_at"], time.Now()),
+			UpdatedAt:    utils.InterfaceToTime(row["updated_at"], time.Now()),
+			Fields:       make(map[string]models.DynamicField),
+			RawData:      row,
 		}
 
 		// 동적 필드 처리
