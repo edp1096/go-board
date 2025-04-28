@@ -88,6 +88,16 @@
                             <p class="mt-1 text-xs">이 게시판에서 작성자가 비밀글로 설정할 수 있게 합니다. 비밀글은 작성자와 관리자만 볼 수 있습니다.</p>
                             <p class="mt-1 text-xs text-error" x-show="board_type === 'qna'">질문/답변 게시판에서는 비밀글 설정이 자동으로 비활성화됩니다.</p>
                         </div>
+
+                        <div>
+                            <div class="flex items-center">
+                                <input id="votes_enabled" name="votes_enabled" type="checkbox" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" {{if .board.VotesEnabled}}checked{{end}}>
+                                <label for="votes_enabled" class="ml-2 block text-sm">
+                                    좋아요/싫어요 기능 활성화
+                                </label>
+                            </div>
+                            <p class="mt-1 text-xs">이 게시판에 좋아요/싫어요 기능을 활성화합니다.</p>
+                        </div>
                     </div>
                 </div>
 

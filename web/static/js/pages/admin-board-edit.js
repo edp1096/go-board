@@ -326,8 +326,11 @@ document.addEventListener('alpine:init', () => {
 
             const commentsCheckbox = document.getElementById('comments_enabled');
             const privateCheckbox = document.getElementById('allow_private');
+            const votesCheckbox = document.getElementById('votes_enabled'); // 추가: 좋아요/싫어요 체크박스
+
             const wasCommentsDisabled = commentsCheckbox.disabled;
             const wasPrivateDisabled = privateCheckbox.disabled;
+            const wasVotesDisabled = votesCheckbox ? votesCheckbox.disabled : false; // 추가: 좋아요/싫어요 체크박스 상태
 
             // 비활성화된 체크박스를 일시적으로 활성화해서 값이 전송되도록 함
             if (wasCommentsDisabled) {
@@ -335,6 +338,10 @@ document.addEventListener('alpine:init', () => {
             }
             if (wasPrivateDisabled) {
                 privateCheckbox.disabled = false;
+            }
+            // 추가: 좋아요/싫어요 체크박스 활성화
+            if (votesCheckbox && wasVotesDisabled) {
+                votesCheckbox.disabled = false;
             }
 
             // FormData 객체 생성
@@ -347,6 +354,10 @@ document.addEventListener('alpine:init', () => {
             }
             if (wasPrivateDisabled) {
                 privateCheckbox.disabled = true;
+            }
+            // 추가: 좋아요/싫어요 체크박스 상태 복원
+            if (votesCheckbox && wasVotesDisabled) {
+                votesCheckbox.disabled = true;
             }
 
             // 매니저 ID를 폼에 추가
@@ -411,18 +422,6 @@ document.addEventListener('alpine:init', () => {
             // CSRF 토큰 가져오기
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
             const boardId = this.board.id;
-
-            // // 서버에 데이터 전송
-            // fetch(actionUrl, {
-            //     method: 'PUT',
-            //     headers: {
-            //         'X-CSRF-Token': csrfToken,
-            //         'Accept': 'application/json'
-            //     },
-            //     body: formData
-            // })
-            //     .then(res => this.handleResponse(res))
-            //     .catch(err => this.handleError(err));
 
             // 서버에 데이터 전송
             const r = await fetch(actionUrl, {

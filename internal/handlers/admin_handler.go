@@ -89,6 +89,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 	boardType := models.BoardType(boardTypeStr)
 	slugStr := c.FormValue("slug")
 	commentsEnabled := c.FormValue("comments_enabled") == "on"
+	votesEnabled := c.FormValue("votes_enabled") == "on"
 	allowAnonymous := c.FormValue("allow_anonymous") == "on"
 	allowPrivate := c.FormValue("allow_private") == "on"
 
@@ -117,6 +118,7 @@ func (h *AdminHandler) CreateBoard(c *fiber.Ctx) error {
 		TableName:       tableName,
 		Active:          true,
 		CommentsEnabled: commentsEnabled,
+		VotesEnabled:    votesEnabled,
 		AllowAnonymous:  allowAnonymous,
 		AllowPrivate:    allowPrivate,
 	}
@@ -438,6 +440,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	boardTypeStr := c.FormValue("board_type")
 	active := c.FormValue("active") == "on"
 	commentsEnabled := c.FormValue("comments_enabled") == "on"
+	votesEnabled := c.FormValue("votes_enabled") == "on"
 	allowAnonymous := c.FormValue("allow_anonymous") == "on"
 	allowPrivate := c.FormValue("allow_private") == "on"
 
@@ -455,6 +458,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	board.BoardType = models.BoardType(boardTypeStr)
 	board.Active = active
 	board.CommentsEnabled = commentsEnabled
+	board.VotesEnabled = votesEnabled
 	board.AllowAnonymous = allowAnonymous
 	board.AllowPrivate = allowPrivate
 

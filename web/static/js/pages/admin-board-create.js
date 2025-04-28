@@ -7,6 +7,7 @@ document.addEventListener('alpine:init', () => {
         board_type: 'normal',
         previousCommentCheckbox: false,
         previousPrivateCheckbox: false, // 비밀글 설정 상태 저장 변수
+        previousVotesCheckbox: false,  // 좋아요/싫어요 상태 저장
 
         // 매니저 관련 속성
         managers: [],
@@ -28,6 +29,7 @@ document.addEventListener('alpine:init', () => {
             this.$watch('board_type', value => {
                 const commentsCheckbox = document.getElementById('comments_enabled');
                 const privateCheckbox = document.getElementById('allow_private'); // 비밀글 설정 체크박스
+                const votesCheckbox = document.getElementById('votes_enabled'); // 좋아요/싫어요 체크박스
 
                 if (value === 'qna') {
                     // 댓글 기능 설정 - 체크 및 비활성화
@@ -39,6 +41,12 @@ document.addEventListener('alpine:init', () => {
                     this.previousPrivateCheckbox = privateCheckbox.checked;
                     privateCheckbox.checked = false;
                     privateCheckbox.disabled = true;
+
+                    // 좋아요/싫어요 설정 - 상태 저장
+                    if (votesCheckbox) {
+                        this.previousVotesCheckbox = votesCheckbox.checked;
+                        // QnA 게시판에서는 좋아요/싫어요 체크박스 상태 유지
+                    }
                 } else {
                     // 댓글 기능 설정 - 이전 상태로 복원
                     commentsCheckbox.checked = this.previousCommentCheckbox;
@@ -47,6 +55,12 @@ document.addEventListener('alpine:init', () => {
                     // 비밀글 설정 - 이전 상태로 복원
                     privateCheckbox.checked = this.previousPrivateCheckbox;
                     privateCheckbox.disabled = false;
+
+                    // 좋아요/싫어요 설정 - 이전 상태로 복원
+                    if (votesCheckbox) {
+                        votesCheckbox.checked = this.previousVotesCheckbox;
+                        votesCheckbox.disabled = false;
+                    }
                 }
             });
         },
@@ -184,8 +198,10 @@ document.addEventListener('alpine:init', () => {
 
             const commentsCheckbox = document.getElementById('comments_enabled');
             const privateCheckbox = document.getElementById('allow_private');
+            const votesCheckbox = document.getElementById('votes_enabled');
             const wasCommentsDisabled = commentsCheckbox.disabled;
             const wasPrivateDisabled = privateCheckbox.disabled;
+            const wasVotesDisabled = votesCheckbox ? votesCheckbox.disabled : false;
 
             // 비활성화된 체크박스를 일시적으로 활성화해서 값이 전송되도록 함
             if (wasCommentsDisabled) {
@@ -193,6 +209,9 @@ document.addEventListener('alpine:init', () => {
             }
             if (wasPrivateDisabled) {
                 privateCheckbox.disabled = false;
+            }
+            if (votesCheckbox && wasVotesDisabled) {
+                votesCheckbox.disabled = false;
             }
 
             formData.append('field_count', this.fields.length);
@@ -203,6 +222,9 @@ document.addEventListener('alpine:init', () => {
             }
             if (wasPrivateDisabled) {
                 privateCheckbox.disabled = true;
+            }
+            if (votesCheckbox && wasVotesDisabled) {
+                votesCheckbox.disabled = true;
             }
 
             // 매니저 ID를 폼에 추가

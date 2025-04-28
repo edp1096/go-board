@@ -42,6 +42,7 @@ type Board struct {
 	TableName       string    `bun:"table_name,notnull,unique" json:"tableName"`      // 실제 DB 테이블 이름
 	Active          bool      `bun:"active,notnull" json:"active"`                    // 게시판 활성화 여부
 	CommentsEnabled bool      `bun:"comments_enabled,notnull" json:"commentsEnabled"` // 댓글 기능 활성화 여부
+	VotesEnabled    bool      `bun:"votes_enabled,notnull" json:"votesEnabled"`       // 좋아요/싫어요 기능 활성화 여부
 	AllowAnonymous  bool      `bun:"allow_anonymous,notnull" json:"allowAnonymous"`   // 익명 사용자 접근 허용 여부
 	AllowPrivate    bool      `bun:"allow_private,notnull" json:"allowPrivate"`       // 비밀글 기본값 설정
 	SortOrder       int       `bun:"sort_order,notnull" json:"sortOrder"`             // 게시판 정렬 순서
@@ -73,17 +74,4 @@ type BoardField struct {
 
 	// 관계
 	Board *Board `bun:"rel:belongs-to,join:board_id=id" json:"board,omitempty"`
-}
-
-// 게시물 공통 속성 (각 게시판에 공통으로 적용됨)
-type PostCommon struct {
-	ID        int64     `bun:"id,pk,autoincrement" json:"id"`
-	Title     string    `bun:"title,notnull" json:"title"`
-	Content   string    `bun:"content,notnull" json:"content"`
-	UserID    int64     `bun:"user_id,notnull" json:"userId"`
-	ViewCount int       `bun:"view_count,notnull,default:0" json:"viewCount"`
-	CreatedAt time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
-	UpdatedAt time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
-
-	// 관계 (추가하지 않음 - 동적 테이블이므로)
 }

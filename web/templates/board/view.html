@@ -3,6 +3,9 @@
 
 <input type="hidden" id="boardId" value="{{.board.ID}}">
 <input type="hidden" id="postId" value="{{.post.ID}}">
+{{if .user}}
+<input type="hidden" id="currentUserId" value="{{.user.ID}}">
+{{end}}
 
 <div>
     <div class="mb-4">
@@ -160,6 +163,25 @@
             {{end}}
         </div>
 
+        <!-- 좋아요/싫어요 버튼 -->
+        {{if .board.VotesEnabled}}
+        <div id="post-votes-container" class="mt-4 flex justify-center space-x-4 px-6" x-data="postVotes" data-like-count="{{.post.LikeCount}}" data-dislike-count="{{.post.DislikeCount}}">
+            <button @click="votePost(1)" class="flex items-center space-x-1" :class="{ 'text-blue-600': userVote === 1 }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                </svg>
+                <span x-text="likeCount">0</span>
+            </button>
+
+            <button @click="votePost(-1)" class="flex items-center space-x-1" :class="{ 'text-red-600': userVote === -1 }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L13 13h9m-9 1h-2M3 4h2.5" />
+                </svg>
+                <span x-text="dislikeCount">0</span>
+            </button>
+        </div>
+        {{end}}
+
         <!-- 게시물 푸터 -->
         <div class="px-6 py-4border-t border-gray-200">
             <div class="flex justify-between">
@@ -235,12 +257,31 @@
                             <div class="mt-1 text-sm" x-html="comment.content.replace(/\n/g, '<br>')"></div>
                             <div class="mt-2 text-xs flex items-center space-x-2">
                                 <span x-text="new Date(comment.createdAt).toLocaleString()"></span>
+
+                                {{if .board.VotesEnabled}}
+                                <div class="flex items-center space-x-2">
+                                    <button @click="voteComment(comment.id, 1)" class="flex items-center space-x-1" :class="{ 'text-blue-600': comment.userVote === 1 }">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                        </svg>
+                                        <span x-text="comment.likeCount || 0"></span>
+                                    </button>
+
+                                    <button @click="voteComment(comment.id, -1)" class="flex items-center space-x-1" :class="{ 'text-red-600': comment.userVote === -1 }">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L13 13h9m-9 1h-2M3 4h2.5" />
+                                        </svg>
+                                        <span x-text="comment.dislikeCount || 0"></span>
+                                    </button>
+                                </div>
+                                {{end}}
+
                                 {{if .user}}
                                 <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.username : '알 수 없음')">
                                     답글
                                 </button>
-                                
-                                <template x-if="'{{.user.ID}}' == comment.userId || {{$admin}}">
+
+                                <template x-if="{{.user.ID}} == comment.userId || {{$admin}}">
                                     <div class="flex items-center space-x-2">
                                         <button class="hover:text-secondary" @click="editComment(comment.id, comment.content)">
                                             수정
@@ -273,13 +314,32 @@
                                         <div class="mt-1 text-sm prose prose-sm max-w-none" x-html="reply.content.replace(/\n/g, '<br>')"></div>
                                         <div class="mt-2 text-xs flex items-center space-x-2">
                                             <span x-text="new Date(reply.createdAt).toLocaleString()"></span>
+
+                                            {{if .board.VotesEnabled}}
+                                            <div class="flex items-center space-x-2">
+                                                <button @click="voteComment(reply.id, 1)" class="flex items-center space-x-1" :class="{ 'text-blue-600': reply.userVote === 1 }">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                                    </svg>
+                                                    <span x-text="reply.likeCount || 0"></span>
+                                                </button>
+
+                                                <button @click="voteComment(reply.id, -1)" class="flex items-center space-x-1" :class="{ 'text-red-600': reply.userVote === -1 }">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L13 13h9m-9 1h-2M3 4h2.5" />
+                                                    </svg>
+                                                    <span x-text="reply.dislikeCount || 0"></span>
+                                                </button>
+                                            </div>
+                                            {{end}}
+
                                             <!-- 수정/삭제 버튼 (답변 작성자 또는 관리자만) -->
                                             {{if .user}}
                                             <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.username : '알 수 없음')">
                                                 답글
                                             </button>
 
-                                            <template x-if="'{{.user.ID}}' == reply.userId || {{$admin}}">
+                                            <template x-if="{{.user.ID}} == reply.userId || {{$admin}}">
                                                 <div class="flex items-center space-x-2">
                                                     <button class="hover:text-secondary" @click="editComment(reply.id, reply.content)">
                                                         수정

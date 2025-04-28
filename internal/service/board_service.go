@@ -459,6 +459,8 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 		Username:     utils.InterfaceToString(row["username"]),
 		ViewCount:    viewCount + 1, // 방금 증가한 조회수 반영
 		CommentCount: utils.InterfaceToInt(row["comment_count"]),
+		LikeCount:    utils.InterfaceToInt(row["like_count"]),
+		DislikeCount: utils.InterfaceToInt(row["dislike_count"]),
 		IsPrivate:    utils.InterfaceToBool(row["is_private"]),
 		CreatedAt:    utils.InterfaceToTime(row["created_at"], time.Now()),
 		UpdatedAt:    utils.InterfaceToTime(row["updated_at"], time.Now()),

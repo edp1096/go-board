@@ -243,6 +243,8 @@ func main() {
 	systemSettingsRepo := repository.NewSystemSettingsRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	boardRepo := repository.NewBoardRepository(db)
+	postVoteRepo := repository.NewPostVoteRepository(db)
+	commentVoteRepo := repository.NewCommentVoteRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
 	attachmentRepo := repository.NewAttachmentRepository(db)
 	participantRepo := repository.NewBoardParticipantRepository(db)
@@ -255,6 +257,8 @@ func main() {
 	boardService := service.NewBoardService(boardRepo, participantRepo, db)
 	dynamicBoardService := service.NewDynamicBoardService(db)
 	commentService := service.NewCommentService(commentRepo, boardRepo)
+	postVoteService := service.NewPostVoteService(postVoteRepo, boardService)
+	commentVoteService := service.NewCommentVoteService(commentVoteRepo, boardService, commentRepo)
 	qnaService := service.NewQnAService(db, boardRepo, boardService)
 	uploadService := service.NewUploadService(attachmentRepo)
 	sitemapService := service.NewSitemapService(boardRepo, boardService)
@@ -266,6 +270,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService, cfg)
 	commentHandler := handlers.NewCommentHandler(commentService, boardService)
+	voteHandler := handlers.NewVoteHandler(postVoteService, commentVoteService)
 	qnaHandler := handlers.NewQnAHandler(boardService, qnaService)
 	uploadHandler := handlers.NewUploadHandler(uploadService, boardService, cfg)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
@@ -315,6 +320,7 @@ func main() {
 		authHandler,
 		boardHandler,
 		commentHandler,
+		voteHandler,
 		qnaHandler,
 		uploadHandler,
 		adminHandler,
@@ -506,6 +512,7 @@ func setupRoutes(
 	authHandler *handlers.AuthHandler,
 	boardHandler *handlers.BoardHandler,
 	commentHandler *handlers.CommentHandler,
+	voteHandler *handlers.VoteHandler,
 	qnaHandler *handlers.QnAHandler,
 	uploadHandler *handlers.UploadHandler,
 	adminHandler *handlers.AdminHandler,
@@ -602,6 +609,8 @@ func setupRoutes(
 	api.Get("/boards/:boardID/posts/:postID/attachments", uploadHandler.GetAttachments)
 	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
 	api.Delete("/attachments/:attachmentID", authMiddleware.RequireAuth, uploadHandler.DeleteAttachment)
+	api.Post("/boards/:boardID/posts/:postID/vote", authMiddleware.RequireAuth, voteHandler.VotePost)
+	api.Get("/boards/:boardID/posts/:postID/vote-status", voteHandler.GetPostVoteStatus)
 
 	// 댓글 관련 API 라우트
 	commentsAPI := api.Group("/boards/:boardID/posts/:postID/comments")
@@ -612,6 +621,9 @@ func setupRoutes(
 	commentActions := api.Group("/comments/:commentID", authMiddleware.RequireAuth)
 	commentActions.Put("/", commentHandler.UpdateComment)
 	commentActions.Delete("/", commentHandler.DeleteComment)
+	commentActions.Post("/vote", authMiddleware.RequireAuth, voteHandler.VoteComment)
+	commentActions.Get("/vote-status", voteHandler.GetCommentVoteStatus)
+	api.Post("/comments/vote-statuses", voteHandler.GetMultipleCommentVoteStatuses)
 
 	// Q&A 관련 API 라우트
 	qnaAPI := api.Group("/boards/:boardID/posts/:postID")

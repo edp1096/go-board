@@ -95,12 +95,26 @@ func runDataMigration(config *DataMigrationConfig) error {
 		}
 	}
 
-	// 7. 시퀀스/자동증가 값 복구
+	// 7. 게시물 좋아요/싫어요 수 업데이트
+	if !config.SchemaOnly {
+		if err := updatePostVoteCounts(config); err != nil {
+			log.Printf("게시물 좋아요/싫어요 수 업데이트 실패: %v (무시하고 계속 진행합니다)", err)
+		}
+	}
+
+	// 8. 댓글 좋아요/싫어요 수 업데이트
+	if !config.SchemaOnly {
+		if err := updateCommentVoteCounts(config); err != nil {
+			log.Printf("댓글 좋아요/싫어요 수 업데이트 실패: %v (무시하고 계속 진행합니다)", err)
+		}
+	}
+
+	// 9. 시퀀스/자동증가 값 복구
 	if err := resetSequences(config); err != nil {
 		log.Printf("시퀀스 복구 실패: %v (무시하고 계속 진행합니다)", err)
 	}
 
-	// 8. 결과 요약
+	// 10. 결과 요약
 	elapsedTime := time.Since(startTime)
 	fmt.Println("==========================")
 	fmt.Printf("데이터 마이그레이션 완료 (소요 시간: %s)\n", elapsedTime)
@@ -147,6 +161,8 @@ func getBasicTables() []string {
 		"system_settings",    // 독립 테이블
 		"comments",           // users와 boards 참조
 		"attachments",        // users와 boards 참조
+		"post_votes",         // users와 boards 참조 (좋아요/싫어요)
+		"comment_votes",      // users, boards, comments 참조 (좋아요/싫어요)
 		"qna_answers",        // users와 boards 참조
 		"qna_question_votes", // users와 boards 참조
 		"qna_answer_votes",   // users와 boards와 qna_answers 참조
@@ -373,6 +389,8 @@ func createSQLiteDynamicTable(config *DataMigrationConfig, board *models.Board, 
 		"user_id INTEGER NOT NULL",
 		"view_count INTEGER NOT NULL DEFAULT 0",
 		"comment_count INTEGER NOT NULL DEFAULT 0",
+		"like_count INTEGER NOT NULL DEFAULT 0",
+		"dislike_count INTEGER NOT NULL DEFAULT 0",
 		"is_private TINYINT NOT NULL DEFAULT 0",
 		"created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 		"updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
@@ -1054,6 +1072,10 @@ func getModelInfo(tableName string) map[string]FieldInfo {
 		modelType = reflect.TypeOf(models.Comment{})
 	case "attachments":
 		modelType = reflect.TypeOf(models.Attachment{})
+	case "post_votes":
+		modelType = reflect.TypeOf(models.PostVote{})
+	case "comment_votes":
+		modelType = reflect.TypeOf(models.CommentVote{})
 	case "qna_answers":
 		modelType = reflect.TypeOf(models.Answer{})
 	case "qna_question_votes":
@@ -1072,6 +1094,8 @@ func getModelInfo(tableName string) map[string]FieldInfo {
 		fieldInfoMap["user_id"] = FieldInfo{fieldName: "UserID", fieldType: "int64"}
 		fieldInfoMap["view_count"] = FieldInfo{fieldName: "ViewCount", fieldType: "int"}
 		fieldInfoMap["comment_count"] = FieldInfo{fieldName: "CommentCount", fieldType: "int"}
+		fieldInfoMap["like_count"] = FieldInfo{fieldName: "LikeCount", fieldType: "int"}
+		fieldInfoMap["dislike_count"] = FieldInfo{fieldName: "DislikeCount", fieldType: "int"}
 		fieldInfoMap["created_at"] = FieldInfo{fieldName: "CreatedAt", fieldType: "time.Time"}
 		fieldInfoMap["updated_at"] = FieldInfo{fieldName: "UpdatedAt", fieldType: "time.Time"}
 
@@ -1552,6 +1576,157 @@ func countCommentsForPost(config *DataMigrationConfig, boardID, postID int64) (i
 	count, err := config.TargetDB.NewSelect().
 		Table("comments").
 		Where("board_id = ? AND post_id = ?", boardID, postID).
+		Count(context.Background())
+
+	return count, err
+}
+
+// updatePostVoteCounts는 게시물의 좋아요/싫어요 수를 업데이트합니다
+func updatePostVoteCounts(config *DataMigrationConfig) error {
+	fmt.Println("[6/6] 게시물 좋아요/싫어요 수 업데이트 중...")
+
+	ctx := context.Background()
+
+	// 1. 모든 게시판 목록 가져오기
+	var boards []*models.Board
+	err := config.TargetDB.NewSelect().
+		Model(&boards).
+		Column("id", "table_name", "votes_enabled").
+		Scan(ctx)
+
+	if err != nil {
+		return fmt.Errorf("게시판 목록 조회 실패: %w", err)
+	}
+
+	// 2. 각 게시판별로 게시물 좋아요/싫어요 수 업데이트
+	for _, board := range boards {
+		if !board.VotesEnabled {
+			if config.VerboseLogging {
+				fmt.Printf("게시판 '%s'는 좋아요/싫어요 기능이 비활성화되어 있습니다\n", board.TableName)
+			}
+			continue
+		}
+
+		// 게시판의 모든 게시물 ID 가져오기
+		// var postIDs []int64
+		query := fmt.Sprintf("SELECT id FROM %s", quoteTableName(config.TargetDBConfig.DBDriver, board.TableName))
+
+		rows, err := config.TargetDB.QueryContext(ctx, query)
+		if err != nil {
+			fmt.Printf("게시판 '%s' 게시물 ID 조회 실패: %v\n", board.TableName, err)
+			continue
+		}
+
+		var postsToUpdate []int64
+		for rows.Next() {
+			var postID int64
+			if err := rows.Scan(&postID); err != nil {
+				fmt.Printf("게시물 ID 스캔 실패: %v\n", err)
+				continue
+			}
+			postsToUpdate = append(postsToUpdate, postID)
+		}
+		rows.Close()
+
+		// 각 게시물의 좋아요/싫어요 수 계산 및 업데이트
+		for _, postID := range postsToUpdate {
+			// 좋아요 수 계산
+			likeCount, err := countPostVotes(config, postID, 1)
+			if err != nil {
+				fmt.Printf("게시물 ID %d의 좋아요 수 계산 실패: %v\n", postID, err)
+				continue
+			}
+
+			// 싫어요 수 계산
+			dislikeCount, err := countPostVotes(config, postID, -1)
+			if err != nil {
+				fmt.Printf("게시물 ID %d의 싫어요 수 계산 실패: %v\n", postID, err)
+				continue
+			}
+
+			// 좋아요/싫어요 수 업데이트
+			updateQuery := fmt.Sprintf("UPDATE %s SET like_count = ?, dislike_count = ? WHERE id = ?",
+				quoteTableName(config.TargetDBConfig.DBDriver, board.TableName))
+			_, err = config.TargetDB.ExecContext(ctx, updateQuery, likeCount, dislikeCount, postID)
+			if err != nil {
+				fmt.Printf("게시물 ID %d의 좋아요/싫어요 수 업데이트 실패: %v\n", postID, err)
+			}
+		}
+
+		if config.VerboseLogging {
+			fmt.Printf("게시판 '%s'의 게시물 좋아요/싫어요 수 업데이트 완료 (%d개)\n", board.TableName, len(postsToUpdate))
+		}
+	}
+
+	fmt.Println("게시물 좋아요/싫어요 수 업데이트 완료")
+	return nil
+}
+
+// countPostVotes는 특정 게시물의 좋아요 또는 싫어요 수를 계산합니다
+func countPostVotes(config *DataMigrationConfig, postID int64, value int) (int, error) {
+	count, err := config.TargetDB.NewSelect().
+		Table("post_votes").
+		Where("post_id = ? AND value = ?", postID, value).
+		Count(context.Background())
+
+	return count, err
+}
+
+// updateCommentVoteCounts는 댓글의 좋아요/싫어요 수를 업데이트합니다
+func updateCommentVoteCounts(config *DataMigrationConfig) error {
+	fmt.Println("[7/7] 댓글 좋아요/싫어요 수 업데이트 중...")
+
+	ctx := context.Background()
+
+	// 모든 댓글 ID 가져오기
+	var commentIDs []int64
+	err := config.TargetDB.NewSelect().
+		Model((*models.Comment)(nil)).
+		Column("id").
+		Scan(ctx, &commentIDs)
+
+	if err != nil {
+		return fmt.Errorf("댓글 ID 목록 조회 실패: %w", err)
+	}
+
+	// 각 댓글의 좋아요/싫어요 수 계산 및 업데이트
+	for _, commentID := range commentIDs {
+		// 좋아요 수 계산
+		likeCount, err := countCommentVotes(config, commentID, 1)
+		if err != nil {
+			fmt.Printf("댓글 ID %d의 좋아요 수 계산 실패: %v\n", commentID, err)
+			continue
+		}
+
+		// 싫어요 수 계산
+		dislikeCount, err := countCommentVotes(config, commentID, -1)
+		if err != nil {
+			fmt.Printf("댓글 ID %d의 싫어요 수 계산 실패: %v\n", commentID, err)
+			continue
+		}
+
+		// 좋아요/싫어요 수 업데이트
+		_, err = config.TargetDB.NewUpdate().
+			Model((*models.Comment)(nil)).
+			Set("like_count = ?", likeCount).
+			Set("dislike_count = ?", dislikeCount).
+			Where("id = ?", commentID).
+			Exec(ctx)
+
+		if err != nil {
+			fmt.Printf("댓글 ID %d의 좋아요/싫어요 수 업데이트 실패: %v\n", commentID, err)
+		}
+	}
+
+	fmt.Println("댓글 좋아요/싫어요 수 업데이트 완료")
+	return nil
+}
+
+// countCommentVotes는 특정 댓글의 좋아요 또는 싫어요 수를 계산합니다
+func countCommentVotes(config *DataMigrationConfig, commentID int64, value int) (int, error) {
+	count, err := config.TargetDB.NewSelect().
+		Table("comment_votes").
+		Where("comment_id = ? AND value = ?", commentID, value).
 		Count(context.Background())
 
 	return count, err

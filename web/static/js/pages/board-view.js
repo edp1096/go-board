@@ -106,6 +106,132 @@ document.addEventListener('alpine:init', () => {
                 }, 250);
             },
 
+            // 댓글 좋아요/싫어요 처리
+            async voteComment(commentId, value) {
+                const currentUserId = document.getElementById('currentUserId');
+                if (!currentUserId || !currentUserId.value) {
+                    alert('로그인이 필요합니다.');
+                    return;
+                }
+
+                const boardId = document.getElementById('boardId').value;
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+                try {
+                    const response = await fetch(`/api/comments/${commentId}/vote`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({
+                            boardId: boardId,
+                            value: value
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // 댓글 목록 업데이트
+                        this.updateCommentVotes(commentId, data.likes, data.dislikes, data.userVote);
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (error) {
+                    console.error('댓글 투표 오류:', error);
+                    alert('댓글 투표 중 오류가 발생했습니다.');
+                }
+            },
+
+            // 댓글 투표 상태 업데이트 (로컬 상태 관리)
+            updateCommentVotes(commentId, likes, dislikes, userVote) {
+                // 최상위 댓글 먼저 확인
+                const comment = this.comments.find(c => c.id === commentId);
+                if (comment) {
+                    comment.likeCount = likes;
+                    comment.dislikeCount = dislikes;
+                    comment.userVote = userVote;
+                    return;
+                }
+
+                // 답글 확인
+                this.comments.forEach(c => {
+                    if (c.children && c.children.length > 0) {
+                        const reply = c.children.find(r => r.id === commentId);
+                        if (reply) {
+                            reply.likeCount = likes;
+                            reply.dislikeCount = dislikes;
+                            reply.userVote = userVote;
+                        }
+                    }
+                });
+            },
+
+            async loadCommentVoteStatuses() {
+                const boardId = document.getElementById('boardId').value;
+                const commentIds = this.getAllCommentIds();
+
+                if (commentIds.length === 0) return;
+
+                try {
+                    const response = await fetch(`/api/comments/vote-statuses`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            boardId: boardId,
+                            commentIds: commentIds
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.applyVoteStatuses(data.voteStatuses);
+                    }
+                } catch (error) {
+                    console.error('댓글 투표 상태 로딩 오류:', error);
+                }
+            },
+
+            // 모든 댓글 ID 수집
+            getAllCommentIds() {
+                const ids = [];
+
+                this.comments.forEach(comment => {
+                    ids.push(comment.id);
+
+                    if (comment.children && comment.children.length > 0) {
+                        comment.children.forEach(reply => {
+                            ids.push(reply.id);
+                        });
+                    }
+                });
+
+                return ids;
+            },
+
+            // 투표 상태 적용
+            applyVoteStatuses(voteStatuses) {
+                if (!voteStatuses) return;
+
+                this.comments.forEach(comment => {
+                    if (voteStatuses[comment.id]) {
+                        comment.userVote = voteStatuses[comment.id];
+                    }
+
+                    if (comment.children && comment.children.length > 0) {
+                        comment.children.forEach(reply => {
+                            if (voteStatuses[reply.id]) {
+                                reply.userVote = voteStatuses[reply.id];
+                            }
+                        });
+                    }
+                });
+            },
+
             async loadComments() {
                 const boardId = document.getElementById('boardId').value;
                 const postId = document.getElementById('postId').value;
@@ -116,6 +242,12 @@ document.addEventListener('alpine:init', () => {
 
                     if (data.success) {
                         this.comments = data.comments;
+
+                        // 로그인 사용자인 경우 댓글 투표 상태 로드
+                        const currentUserId = document.getElementById('currentUserId');
+                        if (!currentUserId || !currentUserId.value) {
+                            await this.loadCommentVoteStatuses();
+                        }
                     } else {
                         this.error = data.message;
                     }
@@ -490,4 +622,84 @@ document.addEventListener('alpine:init', () => {
             }
         };
     });
+
+    // Alpine.js 컴포넌트 - 게시물 좋아요/싫어요
+    Alpine.data('postVotes', function () {
+        return {
+            likeCount: 0,
+            dislikeCount: 0,
+            userVote: 0, // 0: 투표 안함, 1: 좋아요, -1: 싫어요
+
+            init() {
+                // 데이터 속성에서 초기값 로드
+                const container = document.getElementById('post-votes-container');
+                if (container) {
+                    this.likeCount = parseInt(container.dataset.likeCount) || 0;
+                    this.dislikeCount = parseInt(container.dataset.dislikeCount) || 0;
+                }
+
+                this.loadUserVoteStatus();
+            },
+
+            async loadUserVoteStatus() {
+                // 로그인 체크
+                const currentUserId = document.getElementById('currentUserId');
+                if (!currentUserId || !currentUserId.value) return;
+
+                const boardId = document.getElementById('boardId').value;
+                const postId = document.getElementById('postId').value;
+
+                try {
+                    const response = await fetch(`/api/boards/${boardId}/posts/${postId}/vote-status`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.userVote = data.voteValue;
+                    }
+                } catch (error) {
+                    console.error('투표 상태 로딩 오류:', error);
+                }
+            },
+
+            async votePost(value) {
+                // 로그인 체크
+                const currentUserId = document.getElementById('currentUserId');
+                if (!currentUserId || !currentUserId.value) {
+                    alert('로그인이 필요합니다.');
+                    return;
+                }
+
+                const boardId = document.getElementById('boardId').value;
+                const postId = document.getElementById('postId').value;
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+                try {
+                    const response = await fetch(`/api/boards/${boardId}/posts/${postId}/vote`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({
+                            value: value
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.likeCount = data.likes;
+                        this.dislikeCount = data.dislikes;
+                        this.userVote = data.userVote;
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (error) {
+                    console.error('투표 오류:', error);
+                    alert('투표 중 오류가 발생했습니다.');
+                }
+            }
+        };
+    });
+
 });
