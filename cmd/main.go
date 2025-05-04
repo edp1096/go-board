@@ -603,7 +603,7 @@ func setupRoutes(
 	// Whois 정보 조회 라우트
 	api.Get("/whois", whoisHandler.GetWhoisInfo)
 
-	// 업로드 관련 라우트 추가
+	// 업로드, 다운로드 관련 라우트
 	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
 	api.Post("/boards/:boardID/posts/:postID/attachments", authMiddleware.RequireAuth, uploadHandler.UploadAttachments)
 	api.Get("/boards/:boardID/posts/:postID/attachments", uploadHandler.GetAttachments)
@@ -653,8 +653,8 @@ func setupRoutes(
 	// 레퍼러
 	adminAPI.Get("/referrer-stats", referrerHandler.GetReferrerData)
 
-	// 첨부파일 다운로드
-	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
+	// // 첨부파일 다운로드
+	// app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
 
 	// 업로드된 파일 정적 제공
 	app.Static("/uploads", "./uploads", fiber.Static{
