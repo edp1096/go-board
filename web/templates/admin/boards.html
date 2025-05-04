@@ -54,9 +54,10 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        {{if eq .BoardType "normal"}}일반 게시판
-                        {{else if eq .BoardType "gallery"}}갤러리 게시판
-                        {{else if eq .BoardType "qna"}}질문/답변 게시판
+                        {{if eq .BoardType "normal"}}일반
+                        {{else if eq .BoardType "gallery"}}갤러리
+                        {{else if eq .BoardType "qna"}}질문/답변
+                        {{else if eq .BoardType "group"}}소모임
                         {{else}}게시판{{end}}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
