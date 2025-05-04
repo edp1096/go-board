@@ -671,10 +671,10 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		// 게시판 타입에 따라 다른 업로드 함수 사용
 		if board.BoardType == models.BoardTypeGallery {
 			// 갤러리 게시판은 이미지 타입도 허용
-			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize)
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize, h.config.UploadDir)
 		} else {
 			// 일반 게시판은 기존대로 처리
-			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize)
+			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize, h.config.UploadDir)
 		}
 
 		if err != nil {
@@ -1022,10 +1022,10 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		// 게시판 타입에 따라 다른 업로드 함수 사용
 		if board.BoardType == models.BoardTypeGallery {
 			// 갤러리 게시판은 이미지 타입도 허용
-			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize)
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize, h.config.UploadDir)
 		} else {
 			// 일반 게시판은 기존대로 처리
-			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize)
+			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize, h.config.UploadDir)
 		}
 
 		if err != nil {

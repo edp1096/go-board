@@ -230,7 +230,7 @@ func main() {
 	})
 
 	// 업로드 디렉토리 확인
-	uploadDir := "uploads"
+	uploadDir := cfg.UploadDir
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(uploadDir, 0755); err != nil {
 			log.Fatalf("업로드 디렉토리 생성 실패: %v", err)
@@ -260,7 +260,7 @@ func main() {
 	postVoteService := service.NewPostVoteService(postVoteRepo, boardService)
 	commentVoteService := service.NewCommentVoteService(commentVoteRepo, boardService, commentRepo)
 	qnaService := service.NewQnAService(db, boardRepo, boardService)
-	uploadService := service.NewUploadService(attachmentRepo)
+	uploadService := service.NewUploadService(attachmentRepo, cfg)
 	sitemapService := service.NewSitemapService(boardRepo, boardService)
 	referrerService := service.NewReferrerService(referrerRepo)
 
@@ -315,6 +315,7 @@ func main() {
 	// 라우트 설정
 	setupRoutes(
 		app,
+		uploadDir,
 		setupHandler,
 		systemSettingsHandler,
 		authHandler,
@@ -507,6 +508,7 @@ func setupMiddleware(
 // setupRoutes는 앱의 라우트를 설정합니다
 func setupRoutes(
 	app *fiber.App,
+	uploadDir string,
 	setupHandler *handlers.SetupHandler,
 	systemSettingsHandler *handlers.SystemSettingsHandler,
 	authHandler *handlers.AuthHandler,
@@ -657,7 +659,7 @@ func setupRoutes(
 	// app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)
 
 	// 업로드된 파일 정적 제공
-	app.Static("/uploads", "./uploads", fiber.Static{
+	app.Static("/uploads", uploadDir, fiber.Static{
 		Browse: false,
 	})
 

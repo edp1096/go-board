@@ -80,8 +80,8 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 	// 업로드 경로 생성
 	uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
 
-	// 파일 업로드
-	uploadedFiles, err := utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize)
+	// 파일 업로드 - 수정된 utils.UploadAttachments 함수 호출
+	uploadedFiles, err := utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize, h.config.UploadDir)
 	if err != nil {
 		if strings.Contains(err.Error(), "파일 크기가 허용 한도를 초과") {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -160,8 +160,8 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 	// 업로드 경로 생성
 	uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "images")
 
-	// 이미지 업로드
-	uploadedFiles, err := utils.UploadImages(files, uploadPath, h.config.MaxImageUploadSize)
+	// 이미지 업로드 - 수정된 utils.UploadImages 함수 호출
+	uploadedFiles, err := utils.UploadImages(files, uploadPath, h.config.MaxImageUploadSize, h.config.UploadDir)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,

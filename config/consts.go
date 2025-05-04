@@ -11,6 +11,9 @@ const (
 	BytesPerKB = 1024
 	BytesPerMB = 1024 * 1024
 
+	// 기본 업로드 디렉토리
+	DefaultUploadDir = "./uploads"
+
 	// 바이트 단위 파일 업로드 제한
 	DefaultUploadSize      = DefaultUploadSizeKB * BytesPerKB      // 일반 파일 업로드 (바이트)
 	DefaultImageUploadSize = DefaultImageUploadSizeKB * BytesPerKB // 이미지 업로드 (바이트)

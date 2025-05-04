@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/edp1096/go-board/config"
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/repository"
 	"github.com/edp1096/go-board/internal/utils"
@@ -27,11 +28,13 @@ type UploadService interface {
 
 type uploadService struct {
 	attachmentRepo repository.AttachmentRepository
+	config         *config.Config
 }
 
-func NewUploadService(attachmentRepo repository.AttachmentRepository) UploadService {
+func NewUploadService(attachmentRepo repository.AttachmentRepository, cfg *config.Config) UploadService {
 	return &uploadService{
 		attachmentRepo: attachmentRepo,
+		config:         cfg,
 	}
 }
 
@@ -82,12 +85,49 @@ func (s *uploadService) SaveAttachments(ctx context.Context, boardID, postID, us
 
 // GetAttachmentsByPostID는 게시물의 첨부 파일 목록을 조회합니다
 func (s *uploadService) GetAttachmentsByPostID(ctx context.Context, boardID, postID int64) ([]*models.Attachment, error) {
-	return s.attachmentRepo.GetByPostID(ctx, boardID, postID)
+	attachments, err := s.attachmentRepo.GetByPostID(ctx, boardID, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 각 첨부 파일에 대해 경로 조정
+	for _, attachment := range attachments {
+		if attachment != nil && !filepath.IsAbs(attachment.FilePath) && !strings.HasPrefix(attachment.FilePath, s.config.UploadDir) {
+			// uploads/ 또는 ./uploads/로 시작하는지 확인
+			if strings.HasPrefix(attachment.FilePath, "uploads/") {
+				attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[8:])
+			} else if strings.HasPrefix(attachment.FilePath, "./uploads/") {
+				attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[10:])
+			} else {
+				attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath)
+			}
+		}
+	}
+
+	return attachments, nil
 }
 
 // GetAttachmentByID는 첨부 파일 정보를 조회합니다
 func (s *uploadService) GetAttachmentByID(ctx context.Context, id int64) (*models.Attachment, error) {
-	return s.attachmentRepo.GetByID(ctx, id)
+	attachment, err := s.attachmentRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 상대경로로 저장된 FilePath에 config의 UploadDir prefix 추가
+	// 절대 경로인 경우는 그대로 유지
+	if attachment != nil && !filepath.IsAbs(attachment.FilePath) && !strings.HasPrefix(attachment.FilePath, s.config.UploadDir) {
+		// uploads/ 또는 ./uploads/로 시작하는지 확인
+		if strings.HasPrefix(attachment.FilePath, "uploads/") {
+			attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[8:])
+		} else if strings.HasPrefix(attachment.FilePath, "./uploads/") {
+			attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[10:])
+		} else {
+			attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath)
+		}
+	}
+
+	return attachment, nil
 }
 
 // DeleteAttachment는 첨부 파일을 삭제합니다

@@ -59,7 +59,7 @@ type UploadedFile struct {
 }
 
 // 파일 업로드 처리 함수
-func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile, error) {
+func UploadFile(file *multipart.FileHeader, config UploadConfig, uploadDir string) (*UploadedFile, error) {
 	// 파일 크기 확인
 	if file.Size > config.MaxSize {
 		maxSizeMB := config.MaxSize / (1024 * 1024)
@@ -111,12 +111,22 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 		storageName = originalName
 	}
 
+	basePath := config.BasePath
+	if !filepath.IsAbs(basePath) && !strings.HasPrefix(basePath, uploadDir) {
+		// 상대 경로인 경우 uploadDir을 기준으로 설정
+		if strings.HasPrefix(basePath, "uploads/") {
+			basePath = filepath.Join(uploadDir, basePath[8:])
+		} else if strings.HasPrefix(basePath, "./uploads/") {
+			basePath = filepath.Join(uploadDir, basePath[10:])
+		}
+	}
+
 	// 저장 경로 생성
-	if err := os.MkdirAll(config.BasePath, 0755); err != nil {
+	if err := os.MkdirAll(basePath, 0755); err != nil {
 		return nil, fmt.Errorf("디렉토리 생성 실패: %w", err)
 	}
 
-	fullPath := filepath.Join(config.BasePath, storageName)
+	fullPath := filepath.Join(basePath, storageName)
 
 	// 파일 저장
 	dst, err := os.Create(fullPath)
@@ -132,11 +142,10 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 	// 결과 반환
 	isImage := AllowedImageTypes[mimeType]
 
-	// URL 경로 생성 - 항상 슬래시(/)를 사용하도록 수정
-	// URL의 파일 경로만 추출
-	relativePath := strings.TrimPrefix(config.BasePath, ".")
+	// URL 경로 생성 - 항상 uploads/를 포함하도록 설정
+	relativePath := strings.TrimPrefix(config.BasePath, uploadDir)
 	relativePath = strings.TrimPrefix(relativePath, "/")
-	urlPath := filepath.ToSlash(filepath.Join("/", relativePath, storageName))
+	urlPath := filepath.ToSlash(filepath.Join("/uploads", relativePath, storageName))
 
 	// 업로드된 파일 객체 생성
 	uploadedFile := &UploadedFile{
@@ -159,11 +168,11 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig) (*UploadedFile,
 }
 
 // 여러 파일 업로드 처리 함수
-func UploadFiles(files []*multipart.FileHeader, config UploadConfig) ([]*UploadedFile, error) {
+func UploadFiles(files []*multipart.FileHeader, config UploadConfig, uploadDir string) ([]*UploadedFile, error) {
 	var uploadedFiles []*UploadedFile
 
 	for _, file := range files {
-		uploadedFile, err := UploadFile(file, config)
+		uploadedFile, err := UploadFile(file, config, uploadDir)
 		if err != nil {
 			// 오류 발생 시 이미 업로드한 파일들 삭제
 			for _, f := range uploadedFiles {
@@ -178,7 +187,7 @@ func UploadFiles(files []*multipart.FileHeader, config UploadConfig) ([]*Uploade
 }
 
 // UploadImages 헬퍼 함수
-func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64) ([]*UploadedFile, error) {
+func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64, uploadDir string) ([]*UploadedFile, error) {
 	config := UploadConfig{
 		BasePath:       basePath,
 		MaxSize:        maxSize,
@@ -186,7 +195,7 @@ func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64)
 		UniqueFilename: true,
 	}
 
-	uploadedFiles, err := UploadFiles(files, config)
+	uploadedFiles, err := UploadFiles(files, config, uploadDir)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +224,7 @@ func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64)
 }
 
 // 일반 파일 업로드 헬퍼 함수
-func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize int64) ([]*UploadedFile, error) {
+func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize int64, uploadDir string) ([]*UploadedFile, error) {
 	normalizedPath := norm.NFC.String(basePath)
 	config := UploadConfig{
 		BasePath:       normalizedPath,
@@ -224,7 +233,7 @@ func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize i
 		UniqueFilename: true,
 	}
 
-	uploadedFiles, err := UploadFiles(files, config)
+	uploadedFiles, err := UploadFiles(files, config, uploadDir)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +263,7 @@ func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize i
 }
 
 // 갤러리용 (대표이미지) 파일 업로드 헬퍼 함수 (이미지와 파일 타입 모두 허용)
-func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize int64) ([]*UploadedFile, error) {
+func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize int64, uploadDir string) ([]*UploadedFile, error) {
 	normalizedPath := norm.NFC.String(basePath)
 
 	// 이미지와 파일 타입을 합친 허용 타입 맵 생성
@@ -273,7 +282,7 @@ func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize 
 		UniqueFilename: true,
 	}
 
-	uploadedFiles, err := UploadFiles(files, config)
+	uploadedFiles, err := UploadFiles(files, config, uploadDir)
 	if err != nil {
 		return nil, err
 	}
