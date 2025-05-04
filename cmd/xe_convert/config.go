@@ -61,7 +61,7 @@ func LoadConfig() (*Config, error) {
 	flag.BoolVar(&config.MigrateFiles, "migrate-files", true, "첨부파일 마이그레이션 여부")
 	flag.BoolVar(&config.SchemaOnly, "schema-only", false, "스키마만 마이그레이션")
 	flag.BoolVar(&config.DataOnly, "data-only", false, "데이터만 마이그레이션")
-	flag.BoolVar(&config.Verbose, "verbose", true, "자세한 로그 출력")
+	flag.BoolVar(&config.Verbose, "verbose", false, "자세한 로그 출력")
 
 	flag.Parse()
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -162,10 +163,12 @@ func (p *XEParser) GetBoards() ([]XEBoard, error) {
 		board.UpdatedAt = board.CreatedAt // 업데이트일이 없으면 생성일과 동일하게
 
 		// 접근 권한 확인 (모든 사용자 = 일반 게시판, 그 외 = 소모임 게시판)
-		isPublic, err := p.isPublicBoard(board.ModuleSrl)
+		isPublic, err := p.isPublicBoard(board.Mid)
 		if err != nil {
-			log.Printf("게시판 접근 권한 확인 실패: %v - 기본값 true 사용", err)
-			isPublic = true // 오류 발생 시 기본값
+			if p.config.Verbose {
+				log.Printf("게시판 접근 권한 확인 실패: %v - 기본값 false 사용", err)
+			}
+			isPublic = false // 오류 발생 시 소모임 게시판으로 설정
 		}
 		board.IsPublic = isPublic
 
@@ -187,21 +190,42 @@ func (p *XEParser) GetBoards() ([]XEBoard, error) {
 	return boards, nil
 }
 
-// isPublicBoard 게시판이 공개 게시판인지 확인
-func (p *XEParser) isPublicBoard(moduleSrl int64) (bool, error) {
+// isPublicBoard 게시판이 공개 게시판인지 확인 (group_srls 기반)
+func (p *XEParser) isPublicBoard(mid string) (bool, error) {
+	// 메뉴 아이템에서 해당 모듈의 group_srls 확인
 	query := fmt.Sprintf(`
-		SELECT count(*) 
-		FROM %smodule_grants 
-		WHERE module_srl = ? AND name = 'access' AND group_srl = -1
-	`, p.config.XEPrefix)
+        SELECT
+			group_srls 
+        FROM %smenu_item
+        WHERE url=?
+    `, p.config.XEPrefix)
 
-	var count int
-	err := p.db.QueryRow(query, moduleSrl).Scan(&count)
+	var groupSrls sql.NullString
+	err := p.db.QueryRow(query, mid).Scan(&groupSrls)
 	if err != nil {
 		return false, err
 	}
 
-	return count > 0, nil
+	// 메뉴 아이템이 있고 group_srls 값이 없거나 빈 문자열이면 일반 게시판
+	if !groupSrls.Valid || strings.TrimSpace(groupSrls.String) == "" {
+		return true, nil
+	}
+
+	// group_srls에 음수 값이 포함되어 있는지 확인
+	groupValues, err := strconv.Atoi(strings.TrimSpace(groupSrls.String))
+	if err != nil {
+		return false, fmt.Errorf("group_srls 값 변환 실패: %w", err)
+	}
+	if groupValues < 0 {
+		return false, nil // 소모임 게시판
+	}
+	// group_srls에 양수 값이 포함되어 있는지 확인
+	if groupValues > 0 {
+		return true, nil // 일반 게시판
+	}
+	// group_srls가 0인 경우 (정상적인 경우는 아님)
+	// 여기까지 왔다면 일반 게시판
+	return true, nil
 }
 
 // getBoardFileCount 게시판의 첨부파일 갯수 설정 조회
