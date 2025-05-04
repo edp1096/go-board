@@ -397,11 +397,23 @@ func (m *Migration) createBoardTable(boardID int64, xeBoard XEBoard) error {
 			"file TEXT", // 파일 첨부 필드 추가
 		}
 	} else {
+		var contentType string
+
+		switch {
+		case strings.HasPrefix(m.config.TargetDriver, "mysql"):
+			contentType = "MEDIUMTEXT"
+		case strings.HasPrefix(m.config.TargetDriver, "postgres"):
+			contentType = "TEXT"
+		default:
+			return fmt.Errorf("지원하지 않는 데이터베이스 드라이버: %s", m.config.TargetDriver)
+		}
+
 		// MySQL/PostgreSQL용 컬럼 정의
 		columns = []string{
 			"id INT AUTO_INCREMENT PRIMARY KEY",
 			"title VARCHAR(200) NOT NULL",
-			"content TEXT NOT NULL",
+			// "content TEXT NOT NULL",
+			fmt.Sprintf("content %s NOT NULL", contentType),
 			"user_id INT NOT NULL",
 			"view_count INT NOT NULL DEFAULT 0",
 			"comment_count INT NOT NULL DEFAULT 0",

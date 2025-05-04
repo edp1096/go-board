@@ -77,14 +77,17 @@ func (s *dynamicBoardService) getColumnDefinition(field *models.BoardField) stri
 
 // 기본 테이블 컬럼 정의 반환
 func (s *dynamicBoardService) getBaseColumns() []string {
-	var idType string
+	var idType, contentType string
 	switch {
 	case utils.IsPostgres(s.db):
 		idType = "SERIAL PRIMARY KEY"
+		contentType = "TEXT"
 	case utils.IsSQLite(s.db):
 		idType = "INTEGER PRIMARY KEY AUTOINCREMENT"
+		contentType = "TEXT"
 	case utils.IsMySQL(s.db):
 		idType = "INT AUTO_INCREMENT PRIMARY KEY"
+		contentType = "MEDIUMTEXT"
 	default:
 		// 기본적으로 MySQL/MariaDB로 처리
 		idType = "INT AUTO_INCREMENT PRIMARY KEY"
@@ -93,7 +96,7 @@ func (s *dynamicBoardService) getBaseColumns() []string {
 	return []string{
 		fmt.Sprintf("id %s", idType),
 		"title VARCHAR(200) NOT NULL",
-		"content TEXT NOT NULL",
+		fmt.Sprintf("content %s NOT NULL", contentType),
 		"user_id INTEGER NOT NULL REFERENCES users(id)",
 		"view_count INTEGER NOT NULL DEFAULT 0",
 		"comment_count INTEGER NOT NULL DEFAULT 0",
