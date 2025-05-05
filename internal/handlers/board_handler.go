@@ -1159,3 +1159,36 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 	// 웹 요청인 경우 게시판 목록 페이지로 리다이렉트
 	return c.Redirect("/boards/" + strconv.FormatInt(boardID, 10) + "/posts")
 }
+
+// ListBoardsAPI API용 게시판 목록 조회
+func (h *BoardHandler) ListBoardsAPI(c *fiber.Ctx) error {
+	// 활성 게시판만 조회할지 여부
+	onlyActive := c.Query("active") == "true"
+
+	// 게시판 목록 조회
+	boards, err := h.boardService.ListBoards(c.Context(), onlyActive)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "게시판 목록을 불러오는데 실패했습니다: " + err.Error(),
+		})
+	}
+
+	// 간소화된 게시판 데이터 구성
+	boardData := make([]map[string]interface{}, 0, len(boards))
+	for _, board := range boards {
+		boardData = append(boardData, map[string]interface{}{
+			"id":          board.ID,
+			"name":        board.Name,
+			"slug":        board.Slug,
+			"description": board.Description,
+			"boardType":   board.BoardType,
+			"active":      board.Active,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"boards":  boardData,
+	})
+}

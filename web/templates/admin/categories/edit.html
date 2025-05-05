@@ -1,0 +1,192 @@
+<!-- web/templates/admin/categories/edit.html -->
+<div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">카테고리 수정</h1>
+        <a href="/admin/categories" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
+            카테고리 목록으로 돌아가기
+        </a>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6" x-data="categoryManagement()">
+        <form action="/admin/categories/{{.category.ID}}" method="POST" @submit.prevent="submitting = true; $el.submit()">
+            <input type="hidden" name="csrf" value="{{.csrf}}">
+            <input type="hidden" name="_method" value="PUT">
+
+            <div class="mb-4">
+                <label for="name" class="block text-sm font-medium mb-2">
+                    이름 <span class="text-error">*</span>
+                </label>
+                <input type="text" id="name" name="name" value="{{.category.Name}}" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="slug" class="block text-sm font-medium mb-2">
+                    슬러그 (URL)
+                </label>
+                <input type="text" id="slug" name="slug" value="{{.category.Slug}}" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <p class="mt-1 text-xs">영문, 숫자, 대시(-)로 구성.</p>
+            </div>
+
+            <div class="mb-4">
+                <label for="description" class="block text-sm font-medium mb-2">
+                    설명
+                </label>
+                <textarea id="description" name="description" rows="4" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">{{.category.Description}}</textarea>
+            </div>
+
+            <div class="mb-4">
+                <label for="parent_id" class="block text-sm font-medium mb-2">
+                    부모 카테고리
+                </label>
+
+                {{$parentID := print (deref $.category.ParentID)}}
+                <select id="parent_id" name="parent_id" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <option value="">없음 (최상위 카테고리)</option>
+                    {{range .parentCategories}}
+                    {{$currentID := (print .ID)}}
+                    <option value="{{.ID}}" {{if eq $parentID $currentID}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label for="sort_order" class="block text-sm font-medium mb-2">
+                    정렬 순서
+                </label>
+                <input type="number" id="sort_order" name="sort_order" value="{{.category.SortOrder}}" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <p class="mt-1 text-xs">낮은 값이 먼저 표시됩니다.</p>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex items-center">
+                    <input id="active" name="active" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" {{if .category.Active}}checked{{end}}>
+                    <label for="active" class="ml-2 block text-sm">
+                        활성화
+                    </label>
+                </div>
+            </div>
+
+            <hr class="my-8">
+
+            <!-- 카테고리 항목 관리 -->
+            <h2 class="text-lg font-medium mb-4">카테고리 항목 관리</h2>
+
+            <!-- 게시판 항목 목록 -->
+            <div class="mb-6">
+                <h3 class="text-md font-medium mb-2">게시판</h3>
+                <div>
+                    <div class="mb-3 flex space-x-2">
+                        <select x-ref="boardSelect" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            <option value="">게시판 선택...</option>
+                            <template x-for="board in boardOptions" :key="board.id">
+                                <option :value="board.id" x-text="board.name"></option>
+                            </template>
+                        </select>
+                        <button type="button" @click="addBoardItem({{.category.ID}})" class="inline-flex justify-center py-2 px-4 border border-current/25 shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none">
+                            추가
+                        </button>
+                    </div>
+
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">ID</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">이름</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">정렬 순서</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">액션</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {{range .boardItems}}
+                            <tr>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">{{.itemID}}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">{{.name}}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">{{.sortOrder}}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">
+                                    <button type="button" @click="removeItem({{$.category.ID}}, {{.itemID}}, 'board')" class="text-action-delete hover:text-action-delete-hover">
+                                        제거
+                                    </button>
+                                </td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="4" class="px-3 py-2 text-center text-sm">
+                                    카테고리에 게시판이 없습니다.
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 페이지 항목 목록 -->
+            <div class="mb-6">
+                <h3 class="text-md font-medium mb-2">페이지</h3>
+                <div>
+                    <div class="mb-3 flex space-x-2">
+                        <select x-ref="pageSelect" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            <option value="">페이지 선택...</option>
+                            <template x-for="page in pageOptions" :key="page.id">
+                                <option :value="page.id" x-text="page.title"></option>
+                            </template>
+                        </select>
+                        <button type="button" @click="addPageItem({{.category.ID}})" class="inline-flex justify-center py-2 px-4 border border-current/25 shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none">
+                            추가
+                        </button>
+                    </div>
+
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">ID</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">이름</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">정렬 순서</th>
+                                <th scope="col" class="px-3 py-2 text-left text-xs font-medium tracking-wider">액션</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {{range .pageItems}}
+                            <tr>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">{{.itemID}}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">{{.name}}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">{{.sortOrder}}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-sm">
+                                    <button type="button" @click="removeItem({{$.category.ID}}, {{.itemID}}, 'page')" class="text-action-delete hover:text-action-delete-hover">
+                                        제거
+                                    </button>
+                                </td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="4" class="px-3 py-2 text-center text-sm">
+                                    카테고리에 페이지가 없습니다.
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-between">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-current/25 shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                    <span x-show="!submitting">카테고리 수정</span>
+                    <span x-show="submitting" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        처리 중...
+                    </span>
+                </button>
+
+                <button type="button" @click="deleteCategory({{.category.ID}})" class="inline-flex justify-center py-2 px-4 border border-red-500 text-sm font-medium rounded-md text-red-500 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    카테고리 삭제
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/js/pages/admin-categories.js"></script>

@@ -156,7 +156,7 @@ func main() {
 		return result
 	})
 
-	// 경로 관련 함수
+	// 경로 관련
 	engine.AddFunc("jsPath", func(fileName string) string {
 		return "/static/js/" + fileName
 	})
@@ -165,7 +165,7 @@ func main() {
 		return "/static/css/" + fileName
 	})
 
-	// NullString 처리 헬퍼 함수
+	// NullString 처리 헬퍼
 	engine.AddFunc("getNullString", func(v any) string {
 		if v == nil {
 			return ""
@@ -183,7 +183,15 @@ func main() {
 		return fmt.Sprintf("%v", v)
 	})
 
-	// 레퍼러 봇 확인 함수
+	// 포인터값
+	engine.AddFunc("deref", func(ptr *int64) int64 {
+		if ptr == nil {
+			return 0 // 또는 적절한 기본값
+		}
+		return *ptr
+	})
+
+	// 레퍼러 봇 확인
 	engine.AddFunc("checkBot", func(userAgents string) bool {
 		// results := make([]bool, len(userAgents))
 
@@ -248,6 +256,8 @@ func main() {
 	commentRepo := repository.NewCommentRepository(db)
 	attachmentRepo := repository.NewAttachmentRepository(db)
 	participantRepo := repository.NewBoardParticipantRepository(db)
+	pageRepo := repository.NewPageRepository(db)
+	categoryRepo := repository.NewCategoryRepository(db)
 	referrerRepo := repository.NewReferrerRepository(db)
 
 	// 서비스 초기화
@@ -261,6 +271,8 @@ func main() {
 	commentVoteService := service.NewCommentVoteService(commentVoteRepo, boardService, commentRepo)
 	qnaService := service.NewQnAService(db, boardRepo, boardService)
 	uploadService := service.NewUploadService(attachmentRepo, cfg)
+	pageService := service.NewPageService(pageRepo)
+	categoryService := service.NewCategoryService(categoryRepo, boardRepo, pageRepo)
 	sitemapService := service.NewSitemapService(boardRepo, boardService)
 	referrerService := service.NewReferrerService(referrerRepo)
 
@@ -273,6 +285,8 @@ func main() {
 	voteHandler := handlers.NewVoteHandler(postVoteService, commentVoteService)
 	qnaHandler := handlers.NewQnAHandler(boardService, qnaService)
 	uploadHandler := handlers.NewUploadHandler(uploadService, boardService, cfg)
+	pageHandler := handlers.NewPageHandler(pageService)
+	categoryHandler := handlers.NewCategoryHandler(categoryService, boardService, pageService)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 	sitemapHandler := handlers.NewSitemapHandler(sitemapService)
 	robotsHandler := handlers.NewRobotsHandler()
@@ -324,6 +338,8 @@ func main() {
 		voteHandler,
 		qnaHandler,
 		uploadHandler,
+		pageHandler,
+		categoryHandler,
 		adminHandler,
 		sitemapHandler,
 		robotsHandler,
@@ -526,6 +542,8 @@ func setupRoutes(
 	voteHandler *handlers.VoteHandler,
 	qnaHandler *handlers.QnAHandler,
 	uploadHandler *handlers.UploadHandler,
+	pageHandler *handlers.PageHandler,
+	categoryHandler *handlers.CategoryHandler,
 	adminHandler *handlers.AdminHandler,
 	sitemapHandler *handlers.SitemapHandler,
 	robotsHandler *handlers.RobotsHandler,
@@ -608,6 +626,25 @@ func setupRoutes(
 	admin.Delete("/users/:userID", adminHandler.DeleteUser)
 	admin.Put("/users/:userID/role", adminHandler.UpdateUserRole)
 
+	// 관리자 페이지 라우트 (페이지 관리)
+	admin.Get("/pages/create", pageHandler.CreatePagePage)
+	admin.Get("/pages/:pageID/edit", pageHandler.EditPagePage)
+	admin.Post("/pages/:pageID", pageHandler.UpdatePage)
+	admin.Delete("/pages/:pageID", pageHandler.DeletePage)
+	admin.Get("/pages", pageHandler.ListPages)
+	admin.Post("/pages", pageHandler.CreatePage)
+
+	// 일반 페이지 라우트
+	app.Get("/page/:slug", pageHandler.GetPage)
+
+	// 관리자 페이지 라우트 (카테고리 관리)
+	admin.Get("/categories/create", categoryHandler.CreateCategoryPage)
+	admin.Get("/categories/:categoryID/edit", categoryHandler.EditCategoryPage)
+	admin.Post("/categories/:categoryID", categoryHandler.UpdateCategory)
+	admin.Delete("/categories/:categoryID", categoryHandler.DeleteCategory)
+	admin.Get("/categories", categoryHandler.ListCategories)
+	admin.Post("/categories", categoryHandler.CreateCategory)
+
 	// API 라우트 (댓글 기능)
 	api := app.Group("/api")
 
@@ -653,13 +690,24 @@ func setupRoutes(
 	answerAPI.Post("/vote", authMiddleware.RequireAuth, qnaHandler.VoteAnswer)
 
 	adminAPI := api.Group("/admin", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin)
+
 	adminAPI.Put("/boards/:boardID/order", adminHandler.ChangeOrder)
 	adminAPI.Get("/boards/:boardID/participants", adminHandler.GetBoardParticipants)
 	adminAPI.Post("/boards/:boardID/participants", adminHandler.AddBoardParticipant)
 	adminAPI.Put("/boards/:boardID/participants/:userID/role", adminHandler.UpdateBoardParticipantRole)
 	adminAPI.Delete("/boards/:boardID/participants/:userID", adminHandler.RemoveBoardParticipant)
+	adminAPI.Get("/boards", boardHandler.ListBoardsAPI)
 	adminAPI.Get("/users/search", adminHandler.SearchUsers)
 	adminAPI.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
+
+	// API 라우트 (카테고리 항목 관리)
+	adminAPI.Get("/categories/menu-structure", categoryHandler.GetCategoryMenuStructure)
+	adminAPI.Post("/categories/:categoryID/items", categoryHandler.AddItemToCategory)
+	adminAPI.Delete("/categories/:categoryID/items/:itemID/:itemType", categoryHandler.RemoveItemFromCategory)
+
+	// 페이지 및 카테고리 API 라우트
+	adminAPI.Get("/pages", pageHandler.ListPagesAPI)
+	adminAPI.Get("/categories", categoryHandler.ListCategoriesAPI)
 
 	// 레퍼러
 	adminAPI.Get("/referrer-stats", referrerHandler.GetReferrerData)

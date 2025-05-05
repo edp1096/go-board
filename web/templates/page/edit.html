@@ -1,0 +1,100 @@
+<!-- web/templates/page/edit.html -->
+<div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">페이지 수정</h1>
+        <div class="flex space-x-2">
+            <a href="/admin/pages" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
+                페이지 목록으로 돌아가기
+            </a>
+            <a href="/page/{{.page.Slug}}" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md text-green-600 bg-white focus:outline-none" target="_blank">
+                페이지 보기
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6">
+        <form action="/admin/pages/{{.page.ID}}" method="POST" x-data="{ submitting: false }" @submit.prevent="submitting = true; $el.submit()">
+            <input type="hidden" name="csrf" value="{{.csrf}}">
+            <input type="hidden" name="_method" value="PUT">
+
+            <div class="mb-4">
+                <label for="title" class="block text-sm font-medium mb-2">
+                    제목 <span class="text-error">*</span>
+                </label>
+                <input type="text" id="title" name="title" value="{{.page.Title}}" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="slug" class="block text-sm font-medium mb-2">
+                    슬러그 (URL)
+                </label>
+                <input type="text" id="slug" name="slug" value="{{.page.Slug}}" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <p class="mt-1 text-xs">영문, 숫자, 대시(-)로 구성. 주의: 변경 시 기존 URL이 작동하지 않게 됩니다.</p>
+            </div>
+
+            <div class="mb-4">
+                <label for="content" class="block text-sm font-medium mb-2">
+                    내용
+                </label>
+                <textarea id="content" name="content" rows="15" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">{{.page.Content}}</textarea>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex items-center">
+                    <input id="active" name="active" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" {{if .page.Active}}checked{{end}}>
+                    <label for="active" class="ml-2 block text-sm">
+                        활성화
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex items-center">
+                    <input id="show_in_menu" name="show_in_menu" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" {{if .page.ShowInMenu}}checked{{end}}>
+                    <label for="show_in_menu" class="ml-2 block text-sm">
+                        메뉴에 표시
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-between">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-current/25 shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                    <span x-show="!submitting">페이지 수정</span>
+                    <span x-show="submitting" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        처리 중...
+                    </span>
+                </button>
+
+                <button type="button" x-data="{}" @click="if(confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) { 
+                    const csrfToken = document.querySelector('meta[name=\'csrf-token\']').content;
+                    fetch('/admin/pages/{{.page.ID}}', {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-Token': csrfToken,
+                        }
+                    }).then(res => res.json())
+                    .then(data => {
+                        if(data.success) {
+                            window.location.href = '/admin/pages';
+                        } else {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error:', err);
+                        alert('오류가 발생했습니다.');
+                    });
+                }" class="inline-flex justify-center py-2 px-4 border border-red-500 text-sm font-medium rounded-md text-red-500 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    페이지 삭제
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/js/pages/admin-pages.js"></script>

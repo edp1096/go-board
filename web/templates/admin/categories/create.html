@@ -1,0 +1,81 @@
+<!-- web/templates/admin/categories/create.html -->
+<div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">카테고리 생성</h1>
+        <a href="/admin/categories" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
+            카테고리 목록으로 돌아가기
+        </a>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg p-6">
+        <form action="/admin/categories" method="POST" x-data="{ submitting: false }" @submit.prevent="submitting = true; $el.submit()">
+            <input type="hidden" name="csrf" value="{{.csrf}}">
+
+            <div class="mb-4">
+                <label for="name" class="block text-sm font-medium mb-2">
+                    이름 <span class="text-error">*</span>
+                </label>
+                <input type="text" id="name" name="name" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="slug" class="block text-sm font-medium mb-2">
+                    슬러그 (URL)
+                </label>
+                <input type="text" id="slug" name="slug" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="비워두면 이름에서 자동 생성">
+                <p class="mt-1 text-xs">영문, 숫자, 대시(-)로 구성. 비워두면 이름에서 자동 생성됩니다.</p>
+            </div>
+
+            <div class="mb-4">
+                <label for="description" class="block text-sm font-medium mb-2">
+                    설명
+                </label>
+                <textarea id="description" name="description" rows="4" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label for="parent_id" class="block text-sm font-medium mb-2">
+                    부모 카테고리
+                </label>
+                <select id="parent_id" name="parent_id" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <option value="">없음 (최상위 카테고리)</option>
+                    {{range .parentCategories}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label for="sort_order" class="block text-sm font-medium mb-2">
+                    정렬 순서
+                </label>
+                <input type="number" id="sort_order" name="sort_order" value="0" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                <p class="mt-1 text-xs">낮은 값이 먼저 표시됩니다.</p>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex items-center">
+                    <input id="active" name="active" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                    <label for="active" class="ml-2 block text-sm">
+                        활성화
+                    </label>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-current/25 shadow-sm text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" :disabled="submitting">
+                    <span x-show="!submitting">카테고리 생성</span>
+                    <span x-show="submitting" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        처리 중...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/js/pages/admin-categories.js"></script>

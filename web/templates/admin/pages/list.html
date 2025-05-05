@@ -1,0 +1,76 @@
+<!-- web/templates/admin/pages/list.html -->
+<div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">페이지 관리</h1>
+        <div class="flex space-x-2">
+            <a href="/admin" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md text-blue-600 bg-white focus:outline-none">
+                관리자 대시보드
+            </a>
+            <a href="/admin/pages/create" class="inline-flex items-center px-4 py-2 border border-current/25 text-sm font-medium rounded-md text-white btn-primary focus:outline-none">
+                새 페이지 생성
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider">ID</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider">제목</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider">슬러그</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider">상태</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider">메뉴 표시</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider">생성일</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium tracking-wider">액션</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {{range .pages}}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">{{.ID}}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{.Title}}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">{{.Slug}}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {{if .Active}}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            활성
+                        </span>
+                        {{else}}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            비활성
+                        </span>
+                        {{end}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {{if .ShowInMenu}}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            표시
+                        </span>
+                        {{else}}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            숨김
+                        </span>
+                        {{end}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">{{.CreatedAt.Format "2006-01-02"}}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <a href="/page/{{.Slug}}" target="_blank" class="text-action-view hover:text-action-view-hover">보기</a>
+                            <a href="/admin/pages/{{.ID}}/edit" class="text-action-edit hover:text-action-edit-hover">수정</a>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-sm">
+                        생성된 페이지가 없습니다. 첫 페이지를 생성해보세요!
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="/static/js/pages/admin-pages.js"></script>
