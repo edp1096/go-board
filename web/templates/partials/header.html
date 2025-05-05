@@ -1,4 +1,4 @@
-<!-- web/templates/partials/header.html - 메뉴 표시 추가 -->
+<!-- web/templates/partials/header.html -->
 <header class="bg-white shadow">
     <div class="container mx-auto px-4">
         <div class="flex justify-between h-16">
@@ -20,7 +20,7 @@
                 </div>
 
                 <!-- 네비게이션 링크 -->
-                <div x-data="{ 
+                <div x-data="{
                     menuOpen: false,
                     categories: [],
                     async loadMenu() {
@@ -40,80 +40,49 @@
                         게시판
                     </a>
 
-                    <!-- 동적 카테고리 메뉴 - 최상위 카테고리만 표시 -->
-                    <template x-for="category in categories" :key="category.id">
+                    <!-- 동적 메뉴 항목 -->
+                    <template x-for="item in categories.filter(i => i.type == 'category')" :key="item.id">
+                        <!-- 카테고리 메뉴 -->
                         <div class="relative" x-data="{ open: false }">
-                            <a href="#" @click.prevent="open = !open" class="border-transparent hover:border-gray-300 text-action-view inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" x-text="category.name">
-                            </a>
+                            <a href="#" @click.prevent="open = !open" class="border-transparent hover:border-gray-300 text-action-view inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" x-text="item.name"></a>
 
-                            <!-- 드롭다운 메뉴 - 클릭 시 토글 -->
-                            <div x-show="open" @click.away="open = false" class="origin-top-right absolute left-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10" style="display: none;">
-                                <template x-for="item in category.children" :key="item.id">
+                            <!-- 드롭다운 메뉴 -->
+                            <div x-show="open" @click.away="open = false" class="origin-top-right absolute left-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                                <template x-for="child in item.children" :key="child.id">
                                     <div>
-                                        <template x-if="item.type === 'board'">
-                                            <a :href="'/boards/' + item.id" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="item.name"></a>
-                                        </template>
-                                        <template x-if="item.type === 'page'">
-                                            <a :href="'/page/' + item.slug" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="item.name"></a>
-                                        </template>
-                                        <template x-if="item.type === 'category'">
-                                            <div class="relative" x-data="{ subOpen: false }">
-                                                <a href="#" @click.prevent="subOpen = !subOpen" @click.stop class="block px-4 py-2 text-sm hover:bg-gray-100 flex justify-between items-center">
-                                                    <span x-text="item.name"></span>
-                                                    <!-- 하위 항목이 있는 경우 화살표 아이콘 추가 -->
-                                                    <template x-if="item.children && item.children.length > 0">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                        </svg>
-                                                    </template>
-                                                </a>
+                                        <a x-show="child.type == 'board'" :href="'/boards/' + child.id" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="child.name"></a>
+                                        <a x-show="child.type == 'page'" :href="'/page/' + child.slug" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="child.name"></a>
+                                        <div x-show="child.type == 'category'" class="relative" x-data="{ subOpen: false }">
+                                            <a href="#" @click.prevent="subOpen = !subOpen" @click.stop class="block px-4 py-2 text-sm hover:bg-gray-100 flex justify-between items-center">
+                                                <span x-text="child.name"></span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </a>
 
-                                                <!-- 하위 메뉴 -->
-                                                <div x-show="subOpen" class="absolute left-full top-0 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
-                                                    <template x-for="subItem in item.children" :key="subItem.id">
-                                                        <div>
-                                                            <template x-if="subItem.type === 'board'">
-                                                                <a :href="'/boards/' + subItem.id" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="subItem.name"></a>
-                                                            </template>
-                                                            <template x-if="subItem.type === 'page'">
-                                                                <a :href="'/page/' + subItem.slug" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="subItem.name"></a>
-                                                            </template>
-                                                            <template x-if="subItem.type === 'category'">
-                                                                <div class="relative" x-data="{ thirdOpen: false }">
-                                                                    <a href="#" @click.prevent="thirdOpen = !thirdOpen" @click.stop class="block px-4 py-2 text-sm hover:bg-gray-100 flex justify-between items-center">
-                                                                        <span x-text="subItem.name"></span>
-                                                                        <!-- 하위 항목이 있는 경우 화살표 아이콘 추가 -->
-                                                                        <template x-if="subItem.children && subItem.children.length > 0">
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                                                            </svg>
-                                                                        </template>
-                                                                    </a>
-
-                                                                    <!-- 3차 메뉴 -->
-                                                                    <div x-show="thirdOpen" class="absolute left-full top-0 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
-                                                                        <template x-for="thirdItem in subItem.children" :key="thirdItem.id">
-                                                                            <div>
-                                                                                <template x-if="thirdItem.type === 'board'">
-                                                                                    <a :href="'/boards/' + thirdItem.id" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="thirdItem.name"></a>
-                                                                                </template>
-                                                                                <template x-if="thirdItem.type === 'page'">
-                                                                                    <a :href="'/page/' + thirdItem.slug" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="thirdItem.name"></a>
-                                                                                </template>
-                                                                            </div>
-                                                                        </template>
-                                                                    </div>
-                                                                </div>
-                                                            </template>
-                                                        </div>
-                                                    </template>
-                                                </div>
+                                            <div x-show="subOpen" class="absolute left-full top-0 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                <template x-for="subItem in child.children" :key="subItem.id">
+                                                    <div>
+                                                        <a x-show="subItem.type == 'board'" :href="'/boards/' + subItem.id" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="subItem.name"></a>
+                                                        <a x-show="subItem.type == 'page'" :href="'/page/' + subItem.slug" class="block px-4 py-2 text-sm hover:bg-gray-100" x-text="subItem.name"></a>
+                                                    </div>
+                                                </template>
                                             </div>
-                                        </template>
+                                        </div>
                                     </div>
                                 </template>
                             </div>
                         </div>
+                    </template>
+
+                    <!-- 페이지 메뉴 항목 -->
+                    <template x-for="item in categories.filter(i => i.type == 'page')" :key="item.id">
+                        <a :href="'/page/' + item.slug" class="border-transparent hover:border-gray-300 text-action-view inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" x-text="item.name"></a>
+                    </template>
+                    
+                    <!-- 게시판 메뉴 항목 -->
+                    <template x-for="item in categories.filter(i => i.type == 'board')" :key="item.id">
+                        <a :href="'/boards/' + item.id" class="border-transparent hover:border-gray-300 text-action-view inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" x-text="item.name"></a>
                     </template>
 
                     {{if .user}}

@@ -340,6 +340,38 @@ func (s *categoryService) GetMenuStructure(ctx context.Context, onlyRoot bool) (
 		menuItems = append(menuItems, categoryItem)
 	}
 
+	// 독립적인 페이지 항목 추가 (수정된 부분: 모든 메뉴에 표시 옵션이 활성화된 페이지를 표시)
+	if onlyRoot {
+		// 메뉴에 표시 설정이 활성화된 모든 페이지 가져오기
+		pages, err := s.pageRepo.List(ctx, true)
+		if err != nil {
+			return nil, err
+		}
+
+		// 각 페이지에 대해 처리
+		for _, page := range pages {
+			// 메뉴에 표시 옵션이 비활성화된 경우 건너뛰기
+			if !page.ShowInMenu || !page.Active {
+				continue
+			}
+
+			// 이 부분 제거: 카테고리에 속한 페이지도 최상위 메뉴에 표시
+			// 카테고리 속함 여부와 관계없이 모든 페이지 표시
+
+			// 페이지 메뉴 항목 추가
+			pageItem := map[string]interface{}{
+				"id":        page.ID,
+				"name":      page.Title,
+				"slug":      page.Slug,
+				"type":      "page",
+				"sortOrder": page.SortOrder,
+				"children":  []map[string]interface{}{}, // 빈 자식 배열
+			}
+
+			menuItems = append(menuItems, pageItem)
+		}
+	}
+
 	return menuItems, nil
 }
 
