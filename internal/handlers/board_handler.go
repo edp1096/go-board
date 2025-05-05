@@ -118,7 +118,7 @@ func (h *BoardHandler) GetBoard(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 			"error":   err.Error(),
 		})
 	}
@@ -142,7 +142,7 @@ func (h *BoardHandler) ListPosts(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 			"error":   err.Error(),
 		})
 	}
@@ -303,7 +303,7 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 			"error":   err.Error(),
 		})
 	}
@@ -513,7 +513,7 @@ func (h *BoardHandler) CreatePostPage(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 			"error":   err.Error(),
 		})
 	}
@@ -541,7 +541,7 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 		})
 	}
 
@@ -727,7 +727,7 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 			"error":   err.Error(),
 		})
 	}
@@ -807,7 +807,7 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 		})
 	}
 
@@ -1075,7 +1075,7 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 		})
 	}
 

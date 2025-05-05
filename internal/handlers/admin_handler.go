@@ -370,7 +370,7 @@ func (h *AdminHandler) EditBoardPage(c *fiber.Ctx) error {
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 			"error":   err.Error(),
 		})
 	}
@@ -430,7 +430,7 @@ func (h *AdminHandler) UpdateBoard(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 		})
 	}
 
@@ -863,7 +863,7 @@ func (h *AdminHandler) DeleteBoard(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 		})
 	}
 
@@ -1436,7 +1436,7 @@ func (h *AdminHandler) ChangeOrder(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 		})
 	}
 

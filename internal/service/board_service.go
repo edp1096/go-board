@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	ErrBoardNotFound = errors.New("게시판을 찾을 수 없음")
+	ErrBoardNotFound = errors.New("페이지를 찾을 수 없음")
 	ErrInvalidBoard  = errors.New("유효하지 않은 게시판")
 	ErrPostNotFound  = errors.New("게시물을 찾을 수 없음")
 )

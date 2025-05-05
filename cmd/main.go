@@ -476,6 +476,15 @@ func setupMiddleware(
 		}))
 	}
 
+	// 사이트 이름
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("siteName", cfg.SiteName)
+		c.Locals("logoPath", cfg.LogoPath)
+		c.Locals("logoDisplayMode", cfg.LogoDisplayMode)
+
+		return c.Next()
+	})
+
 	// UTF-8 인코딩 강제 적용 미들웨어
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Content-Type", "text/html; charset=utf-8")
@@ -489,7 +498,7 @@ func setupMiddleware(
 	app.Use(middleware.GlobalAuth(authService))
 
 	if cfg.RequireSetup {
-		app.Use(middleware.SetupMiddleware(setupService))
+		app.Use(middleware.InitializeMiddleware(setupService))
 	}
 
 	// MIME 타입

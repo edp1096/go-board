@@ -1,11 +1,22 @@
-<!-- web/templates/partials/header.html - 수정된 버전 -->
+<!-- web/templates/partials/header.html -->
 <header class="bg-white shadow">
     <div class="container mx-auto px-4">
         <div class="flex justify-between h-16">
             <div class="flex">
                 <!-- 로고 -->
                 <div class="flex-shrink-0 flex items-center">
-                    <a href="/" class="text-xl font-bold">게시판</a>
+                    <a href="/" class="text-xl font-bold flex items-center">
+                        {{$logoMode := .logoDisplayMode}}
+                        {{if not $logoMode}}{{$logoMode = "text"}}{{end}}
+
+                        {{if or (eq $logoMode "image") (eq $logoMode "both")}}
+                        <img src="{{.logoPath}}" alt="{{.siteName}} 로고" class="h-8 w-auto mr-2">
+                        {{end}}
+
+                        {{if or (eq $logoMode "text") (eq $logoMode "both")}}
+                        {{if .siteName}}{{.siteName}}{{else}}게시판{{end}}
+                        {{end}}
+                    </a>
                 </div>
 
                 <!-- 네비게이션 링크 -->

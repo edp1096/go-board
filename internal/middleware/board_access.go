@@ -42,7 +42,7 @@ func (m *boardAccessMiddleware) CheckBoardAccess(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"message": "게시판을 찾을 수 없습니다",
+			"message": "페이지를 찾을 수 없습니다",
 		})
 	}
 

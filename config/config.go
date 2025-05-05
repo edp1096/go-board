@@ -21,23 +21,26 @@ const (
 
 // Config 구조체 정의
 type Config struct {
-	Environment    Environment
-	Debug          bool
-	RequireSetup   bool
-	ServerAddress  string
-	DBDriver       string
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	DBPath         string // SQLite 파일 경로
-	JWTSecret      string
-	SessionSecret  string
-	CookieSecure   bool
-	CookieHTTPOnly bool
-	TemplateDir    string
-	StaticDir      string
+	SiteName        string // 사이트 이름
+	LogoPath        string // 로고 이미지 경로
+	LogoDisplayMode string // 로고 표시 모드 (text, image, both)
+	Environment     Environment
+	Debug           bool
+	RequireSetup    bool
+	ServerAddress   string
+	DBDriver        string
+	DBHost          string
+	DBPort          string
+	DBUser          string
+	DBPassword      string
+	DBName          string
+	DBPath          string // SQLite 파일 경로
+	JWTSecret       string
+	SessionSecret   string
+	CookieSecure    bool
+	CookieHTTPOnly  bool
+	TemplateDir     string
+	StaticDir       string
 
 	// 파일 업로드 관련 설정
 	UploadDir          string // 업로드 디렉토리 경로
@@ -63,6 +66,13 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 	envFile := fmt.Sprintf(".env.%s", env)
 	_ = godotenv.Load(envFile)
+
+	// 사이트 이름
+	siteName := getEnvWithDefault("SITE_NAME", "게시판")
+
+	// 로고
+	logoPath := getEnvWithDefault("LOGO_PATH", "/static/images/logo.png")
+	logoDisplayMode := getEnvWithDefault("LOGO_DISPLAY_MODE", "both") // 기본값: 모두 표시
 
 	// 디버그 모드 설정 (환경변수 기반)
 	debug := os.Getenv("DEBUG") == "true"
@@ -170,6 +180,9 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
+		SiteName:           siteName,
+		LogoPath:           logoPath,
+		LogoDisplayMode:    logoDisplayMode,
 		Environment:        env,
 		Debug:              debug,
 		RequireSetup:       requireSetup,

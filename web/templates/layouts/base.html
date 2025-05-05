@@ -8,7 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
 
-    <title>{{if .title}}{{.title}} - {{end}}게시판 시스템</title>
+    {{$siteName := .siteName}}
+    {{if not $siteName}}{{$siteName = "게시판 시스템"}}{{end}}
+    <title>{{if .title}}{{.title}} - {{end}}{{$siteName}}</title>
 
     <!-- 기본 메타 태그 -->
     <meta name="description" content="{{if .metaDescription}}{{.metaDescription}}{{else}}{{if .description}}{{.description}}{{else}}게시판 시스템{{end}}{{end}}">

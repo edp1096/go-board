@@ -12,10 +12,24 @@ func RenderWithUser(c *fiber.Ctx, template string, data fiber.Map) error {
 		data = fiber.Map{}
 	}
 
-	// c.Locals에 저장된 "user" 값을 데이터에 추가합니다.
 	user := c.Locals("user")
 	if user != nil {
 		data["user"] = user
+	}
+
+	siteName := c.Locals("siteName")
+	if siteName != nil {
+		data["siteName"] = siteName
+	}
+
+	logoPath := c.Locals("logoPath")
+	if logoPath != nil {
+		data["logoPath"] = logoPath
+	}
+
+	logoDisplayMode := c.Locals("logoDisplayMode")
+	if logoDisplayMode != nil {
+		data["logoDisplayMode"] = logoDisplayMode
 	}
 
 	// CSRF 토큰 추가

@@ -9,8 +9,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// SetupMiddleware는 시스템 설정이 필요한 경우 설정 페이지로 리다이렉트합니다
-func SetupMiddleware(setupService service.SetupService) fiber.Handler {
+// InitializeMiddleware는 시스템 초기 설정이 필요한 경우 설정 페이지로 리다이렉트합니다
+func InitializeMiddleware(setupService service.SetupService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// 이미 설정 페이지인 경우 처리 진행
 		if strings.HasPrefix(c.Path(), "/admin/setup") {
