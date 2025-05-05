@@ -701,7 +701,7 @@ func setupRoutes(
 	adminAPI.Put("/users/:userID/status", adminHandler.UpdateUserStatus)
 
 	// API 라우트 (카테고리 항목 관리)
-	adminAPI.Get("/categories/menu-structure", categoryHandler.GetCategoryMenuStructure)
+	api.Get("/categories/menu-structure", categoryHandler.GetCategoryMenuStructure)
 	adminAPI.Post("/categories/:categoryID/items", categoryHandler.AddItemToCategory)
 	adminAPI.Delete("/categories/:categoryID/items/:itemID/:itemType", categoryHandler.RemoveItemFromCategory)
 

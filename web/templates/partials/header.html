@@ -25,7 +25,7 @@
                     categories: [],
                     async loadMenu() {
                         try {
-                            const response = await fetch('/api/admin/categories/menu-structure');
+                            const response = await fetch('/api/categories/menu-structure');
                             const result = await response.json();
                             if (result.success) {
                                 this.categories = result.data;

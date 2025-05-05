@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"errors"
+	"sort"
 	"time"
 
 	"github.com/edp1096/go-board/internal/models"
@@ -24,6 +25,7 @@ type CategoryService interface {
 	UpdateCategory(ctx context.Context, category *models.Category) error
 	DeleteCategory(ctx context.Context, id int64) error
 	ListCategories(ctx context.Context, onlyActive bool, parentID *int64) ([]*models.Category, error)
+	ListCategoriesWithRelations(ctx context.Context, onlyActive bool) ([]*models.Category, error)
 
 	// 계층 구조 관련
 	GetCategoryTree(ctx context.Context, onlyActive bool) ([]*models.Category, error)
@@ -92,6 +94,71 @@ func (s *categoryService) ListCategories(ctx context.Context, onlyActive bool, p
 	return s.categoryRepo.List(ctx, onlyActive, parentID)
 }
 
+// ListCategoriesWithRelations 함수 수정
+func (s *categoryService) ListCategoriesWithRelations(ctx context.Context, onlyActive bool) ([]*models.Category, error) {
+	// 모든 카테고리 가져오기
+	allCategories, err := s.categoryRepo.List(ctx, onlyActive, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 카테고리 ID 맵 만들기 및 부모 참조 연결
+	categoryMap := make(map[int64]*models.Category)
+	for _, cat := range allCategories {
+		categoryMap[cat.ID] = cat
+		cat.Children = []*models.Category{} // 자식 목록 초기화
+	}
+
+	// 부모-자식 관계 구성
+	for _, cat := range allCategories {
+		if cat.ParentID != nil {
+			if parent, exists := categoryMap[*cat.ParentID]; exists {
+				cat.Parent = parent
+				parent.Children = append(parent.Children, cat)
+			}
+		}
+	}
+
+	// 계층 구조에 맞게 정렬된 결과 생성
+	var result []*models.Category
+
+	// 최상위 카테고리만 먼저 찾음 (ParentID가 nil인 카테고리들)
+	var rootCategories []*models.Category
+	for _, cat := range allCategories {
+		if cat.ParentID == nil {
+			rootCategories = append(rootCategories, cat)
+		}
+	}
+
+	// 최상위 카테고리들을 정렬
+	sort.Slice(rootCategories, func(i, j int) bool {
+		return rootCategories[i].SortOrder < rootCategories[j].SortOrder
+	})
+
+	// 계층적으로 정렬된 목록 생성
+	for _, root := range rootCategories {
+		result = append(result, root)
+		s.appendSortedChildren(root, &result)
+	}
+
+	return result, nil
+}
+
+// 자식 카테고리를 정렬하여 추가하는 재귀 헬퍼 함수
+func (s *categoryService) appendSortedChildren(parent *models.Category, result *[]*models.Category) {
+	// 자식 카테고리들을 정렬
+	sort.Slice(parent.Children, func(i, j int) bool {
+		return parent.Children[i].SortOrder < parent.Children[j].SortOrder
+	})
+
+	// 정렬된 자식들을 결과에 추가
+	for _, child := range parent.Children {
+		*result = append(*result, child)
+		// 재귀적으로 자식의 자식들도 처리
+		s.appendSortedChildren(child, result)
+	}
+}
+
 // GetCategoryTree 카테고리 트리 구조 가져오기
 func (s *categoryService) GetCategoryTree(ctx context.Context, onlyActive bool) ([]*models.Category, error) {
 	// 모든 카테고리 조회 (플랫 구조)
@@ -123,25 +190,6 @@ func (s *categoryService) GetCategoryTree(ctx context.Context, onlyActive bool) 
 	}
 
 	return rootCategories, nil
-}
-
-// 하위 카테고리 재귀적 로드
-func (s *categoryService) loadChildCategories(ctx context.Context, parent *models.Category, onlyActive bool) error {
-	childCategories, err := s.categoryRepo.List(ctx, onlyActive, &parent.ID)
-	if err != nil {
-		return err
-	}
-
-	parent.Children = childCategories
-
-	// 각 하위 카테고리에 대해 재귀 호출
-	for _, child := range childCategories {
-		if err := s.loadChildCategories(ctx, child, onlyActive); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // 카테고리-아이템 관계 관리 메서드

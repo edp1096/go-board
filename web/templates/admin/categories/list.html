@@ -44,7 +44,7 @@
                         {{if .Parent}}
                         {{.Parent.Name}}
                         {{else}}
-                        <span class="text-gray-400">최상위</span>
+                        <span class="text-gray-400">{{if .ParentID}}부모 ID: {{.ParentID}}{{else}}최상위{{end}}</span>
                         {{end}}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">

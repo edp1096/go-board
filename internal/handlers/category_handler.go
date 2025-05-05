@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"log"
 	"strconv"
 	"time"
 
@@ -33,8 +34,25 @@ func NewCategoryHandler(
 
 // ListCategories 관리자용 카테고리 목록 핸들러
 func (h *CategoryHandler) ListCategories(c *fiber.Ctx) error {
-	// 모든 카테고리를 플랫하게 조회 (계층 구조 무시)
-	allCategories, err := h.categoryService.ListCategories(c.Context(), false, nil)
+	var allCategories []*models.Category
+	var err error
+
+	// 	allCategories, err = h.categoryService.ListCategories(c.Context(), false, nil)
+	// 계층 구조
+	allCategories, err = h.categoryService.ListCategoriesWithRelations(c.Context(), false)
+
+	for i, category := range allCategories {
+		// 부모 카테고리 정보 설정
+		if category.ParentID != nil {
+			parentCategory, err := h.categoryService.GetCategoryByID(c.Context(), *category.ParentID)
+			if err == nil {
+				allCategories[i].Parent = parentCategory
+			} else {
+				log.Printf("부모 카테고리 조회 실패: %v", err)
+			}
+		}
+	}
+
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).Render("error", fiber.Map{
 			"title":   "오류",
