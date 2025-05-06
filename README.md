@@ -41,7 +41,8 @@ go-board
 
 ## 설정
 
-* `.env` 파일 수정
+* `.env` 파일 수정 - [.env.example](docs/env_samples/.env.example) 참고
+* 환경변수(도커, 쿠버네티스) - [setenv.sh](docs/env_samples/setenv.sh)를 참고
 
 
 ## 템플릿
