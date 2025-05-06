@@ -577,11 +577,23 @@ func (m *Migration) migratePost(boardID int64, tableName string, xeDoc XEDocumen
 
 // migrateComments 게시물 댓글 마이그레이션
 func (m *Migration) migrateComments(tx *sql.Tx, boardID, postID int64, xeDoc XEDocument) error {
+	// // XE 댓글 조회
+	// comments, err := m.xeParser.GetComments(xeDoc.DocumentSrl)
+	// if err != nil {
+	// 	return fmt.Errorf("댓글 조회 실패: %w", err)
+	// }
+
+	fmt.Printf("    댓글 마이그레이션 시작 (게시물 ID: %d, 댓글 수: %d)\n",
+		xeDoc.DocumentSrl, xeDoc.CommentCount)
+
 	// XE 댓글 조회
 	comments, err := m.xeParser.GetComments(xeDoc.DocumentSrl)
 	if err != nil {
+		fmt.Printf("    댓글 조회 실패: %v\n", err)
 		return fmt.Errorf("댓글 조회 실패: %w", err)
 	}
+
+	fmt.Printf("    총 %d개의 댓글을 찾았습니다.\n", len(comments))
 
 	if len(comments) == 0 {
 		return nil

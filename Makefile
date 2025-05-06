@@ -67,6 +67,7 @@ build-windows-amd64:
 	@go env -w GOOS=windows
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_windows_amd64.$(FILE_EXTENSION) ./cmd
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_windows_amd64.$(FILE_EXTENSION) ./cmd/migrate
+#	@go build -ldflags "-w -s" -trimpath -o ./bin/xe_convert.$(FILE_EXTENSION) ./cmd/xe_convert
 
 build-linux-amd64:
 	@go env -w GOOS=linux
