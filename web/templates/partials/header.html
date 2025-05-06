@@ -36,9 +36,9 @@
                     }
                 }" x-init="loadMenu()" class="hidden sm:ml-6 sm:flex sm:space-x-8">
                     <!-- 정적 메뉴 항목 -->
-                    <a href="/boards" class="border-transparent hover:border-gray-300 text-action-view inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                    <!-- <a href="/boards" class="border-transparent hover:border-gray-300 text-action-view inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                         게시판
-                    </a>
+                    </a> -->
 
                     <!-- 동적 메뉴 항목 -->
                     <template x-for="item in categories.filter(i => i.type == 'category')" :key="item.id">
@@ -138,9 +138,9 @@
                 <!-- 모바일 메뉴 -->
                 <div x-show="open" class="sm:hidden absolute top-16 right-0 left-0 bg-white shadow-md z-50" id="mobile-menu">
                     <div class="pt-2 pb-3 space-y-1">
-                        <a href="/boards" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
+                        <!-- <a href="/boards" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">
                             게시판 목록
-                        </a>
+                        </a> -->
                         {{if .user}}
                         {{if eq .user.Role "admin"}}
                         <a href="/admin" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium hover:border-gray-300 hover:text-secondary">

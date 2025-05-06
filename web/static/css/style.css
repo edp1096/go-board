@@ -403,6 +403,8 @@ p img {
 
 @media (max-width: 640px) {
     p img {
+        position: relative;
+        left: -15px;
         width: 100%;
     }
 
