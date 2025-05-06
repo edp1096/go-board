@@ -20,7 +20,7 @@
 * 템플릿(html, js, css) 내보내기, 사용자정의
 * 데이터 이전
     * DB간 스키마/데이터 이전
-    * 제로보드XE 1.11.x - 회원정보를 제외한 게시물과 댓글, 첨부파일만
+    * 제로보드XE 1.8.x ~ 1.11.x - 회원정보를 제외한 게시물과 댓글, 첨부파일만
 
 
 ## 실행
@@ -43,6 +43,13 @@ go-board
 
 * `.env` 파일 수정 - [.env.example](docs/env_samples/.env.example) 참고
 * 환경변수(도커, 쿠버네티스) - [setenv.sh](docs/env_samples/setenv.sh)를 참고
+* 리버스프록시 - [REVERSE_PROXY.md](docs/REVERSE_PROXY.md) 참고
+
+
+## 마이그레이션
+
+* 이 기종 DB 마이그레이션 - [MIGRATION.md](docs/MIGRATION.md) 참고
+* 제로보드XE - [MIGRATION_XE.md](docs/MIGRATION_XE.md) 참고
 
 
 ## 템플릿
