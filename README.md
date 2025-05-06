@@ -48,8 +48,8 @@ go-board
 
 ## 마이그레이션
 
-* 이기종 DB 마이그레이션 - [MIGRATION.md](docs/MIGRATION.md) 참고
-* 제로보드XE - [MIGRATION_XE.md](docs/MIGRATION_XE.md) 참고
+* 이기종 DB 마이그레이션 - [MIGRATION.md](docs/MIGRATION.md)
+* 제로보드XE - [MIGRATION_XE.md](docs/MIGRATION_XE.md)
 
 
 ## 템플릿
