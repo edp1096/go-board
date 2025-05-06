@@ -29,6 +29,9 @@ var PostgresMigrationsFS embed.FS
 //go:embed migrations/sqlite
 var SQLiteMigrationsFS embed.FS
 
+//go:embed web/static/fonts/NotoSansKR-Bold.ttf
+var fontsFS embed.FS
+
 // GetEnvExampleContent는 .env.example 파일의 내용을 반환합니다
 func GetEnvExampleContent() ([]byte, error) {
 	return envExampleFS.ReadFile(".env.example")
@@ -177,4 +180,9 @@ func ExportEnvExample(destPath string) error {
 
 	fmt.Printf(".env.example 파일이 %s에 성공적으로 내보내졌습니다\n", destPath)
 	return nil
+}
+
+// GetFontContent은 embed된 폰트 파일의 내용을 반환합니다
+func GetFontContent(fontName string) ([]byte, error) {
+	return fontsFS.ReadFile(fmt.Sprintf("web/static/fonts/%s", fontName))
 }

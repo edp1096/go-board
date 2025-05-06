@@ -97,8 +97,7 @@ func (h *FileHandler) ProcessFile(xeFile XEFile, boardID, postID int64) (string,
 	}
 
 	// 상대 경로 반환 (URL 생성용)
-	urlPath := fmt.Sprintf("/uploads/boards/%d/posts/%d/attachments/%s",
-		boardID, postID, fileName)
+	urlPath := fmt.Sprintf("/uploads/boards/%d/posts/%d/attachments/%s", boardID, postID, fileName)
 
 	// 경로 구분자를 URL 형식으로 변환
 	urlPath = strings.ReplaceAll(urlPath, string(os.PathSeparator), "/")

@@ -5,9 +5,11 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/edp1096/go-board/config"
 	"github.com/edp1096/go-board/internal/models"
@@ -460,8 +462,12 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	if board.BoardType == models.BoardTypeGallery {
 		thumbnails, _ := h.boardService.GetPostThumbnails(c.Context(), boardID, []int64{postID})
 		if url, ok := thumbnails[postID]; ok {
-			thumbnailURL = url
+			// thumbnailURL = url
+			thumbnailURL = c.BaseURL() + url
 		}
+	} else {
+		// Create og:image URL from board ID and post ID - eg. http://localhost:3000/uploads/boards/4/posts/15388/og/og_image.png
+		thumbnailURL = c.BaseURL() + filepath.ToSlash(filepath.Join("/", strings.ReplaceAll(h.config.UploadDir, "./", ""), "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "og", "og_image.png"))
 	}
 
 	// // 서버 주소 가져오기
@@ -497,8 +503,8 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	})
 }
 
-// CreatePostPage 게시물 작성 페이지 렌더링
-func (h *BoardHandler) CreatePostPage(c *fiber.Ctx) error {
+// CreatePostScreen 게시물 작성 페이지 렌더링
+func (h *BoardHandler) CreatePostScreen(c *fiber.Ctx) error {
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
@@ -526,7 +532,7 @@ func (h *BoardHandler) CreatePostPage(c *fiber.Ctx) error {
 	})
 }
 
-// CreatePost 게시물 작성 처리
+// CreatePost 게시물 작성
 func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
 	if err != nil {
@@ -689,6 +695,35 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		}
 	}
 
+	// OG 이미지 생성 (갤러리 타입이 아닌 경우에만)
+	if board.BoardType != models.BoardTypeGallery {
+		// OG 이미지 저장 경로 생성
+		ogImageDir := filepath.Join(h.config.UploadDir, "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "og")
+		ogImagePath := filepath.Join(ogImageDir, "og_image.png")
+
+		// // OG 이미지 URL (상대 경로)
+		// ogImageURL := filepath.ToSlash(filepath.Join("/uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "og", "og_image.png"))
+
+		// 디렉토리 생성
+		if err := os.MkdirAll(ogImageDir, 0755); err != nil {
+			fmt.Printf("OG 이미지 디렉토리 생성 실패: %v\n", err)
+		} else {
+			// OG 이미지 생성
+			_, err := utils.CreateOGImageFromText(
+				post.Title,
+				user.Username,
+				time.Now(),
+				ogImagePath,
+				"게시판 시스템",
+			)
+
+			if err != nil {
+				// OG 이미지 생성 실패 시 로그만 남기고 계속 진행
+				fmt.Printf("OG 이미지 생성 실패: %v\n", err)
+			}
+		}
+	}
+
 	// JSON 요청인 경우
 	if c.Get("Accept") == "application/json" {
 		return c.JSON(fiber.Map{
@@ -784,7 +819,7 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 	})
 }
 
-// UpdatePost 게시물 수정 처리
+// UpdatePost 게시물
 func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	boardID, err := strconv.ParseInt(c.Params("boardID"), 10, 64)
 	if err != nil {
@@ -1040,6 +1075,35 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		}
 	}
 
+	// OG 이미지 업데이트 (갤러리 타입이 아닌 경우에만)
+	if board.BoardType != models.BoardTypeGallery {
+		// OG 이미지 저장 경로 생성
+		ogImageDir := filepath.Join(h.config.UploadDir, "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "og")
+		ogImagePath := filepath.Join(ogImageDir, "og_image.png")
+
+		// // OG 이미지 URL (상대 경로)
+		// ogImageURL := filepath.ToSlash(filepath.Join("/uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "og", "og_image.png"))
+
+		// 디렉토리 생성
+		if err := os.MkdirAll(ogImageDir, 0755); err != nil {
+			fmt.Printf("OG 이미지 디렉토리 생성 실패: %v\n", err)
+		} else {
+			// OG 이미지 생성
+			_, err := utils.CreateOGImageFromText(
+				post.Title,
+				user.Username,
+				time.Now(),
+				ogImagePath,
+				"게시판 시스템",
+			)
+
+			if err != nil {
+				// OG 이미지 생성 실패 시 로그만 남기고 계속 진행
+				fmt.Printf("OG 이미지 업데이트 실패: %v\n", err)
+			}
+		}
+	}
+
 	// JSON 요청인 경우
 	if c.Get("Accept") == "application/json" {
 		return c.JSON(fiber.Map{
@@ -1146,6 +1210,13 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 			"success": false,
 			"message": "게시물 삭제에 실패했습니다: " + err.Error(),
 		})
+	}
+
+	// 게시물 삭제 후에 업로드 폴더 삭제
+	uploadFolderPath := filepath.Join(h.config.UploadDir, "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10))
+	if err := os.RemoveAll(uploadFolderPath); err != nil {
+		// 폴더 삭제 실패는 로그만 남기고 계속 진행
+		fmt.Printf("게시물 업로드 폴더 삭제 실패 (경로: %s): %v\n", uploadFolderPath, err)
 	}
 
 	// JSON 요청인 경우

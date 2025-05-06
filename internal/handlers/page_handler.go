@@ -63,6 +63,15 @@ func (h *PageHandler) GetPage(c *fiber.Ctx) error {
 	// 메타 데이터 생성
 	metaDescription := utils.TruncateText(page.Content, 150)
 
+	// // OG 이미지 URL 설정
+	// var metaImage string
+	// ogImagePath := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(page.ID, 10), "og", "og_image.png")
+	// if _, err := os.Stat(ogImagePath); err == nil {
+	// 	metaImage = filepath.ToSlash(filepath.Join("/uploads", "pages", strconv.FormatInt(page.ID, 10), "og", "og_image.png"))
+	// }
+	// Create og:image URL from board ID and post ID - eg. http://localhost:3000/uploads/boards/4/posts/15388/og/og_image.png
+	metaImage := c.BaseURL() + filepath.ToSlash(filepath.Join("/", strings.TrimPrefix(h.config.UploadDir, "./"), "pages", strconv.FormatInt(page.ID, 10), "og", "og_image.png"))
+
 	return utils.RenderWithUser(c, "page/view", fiber.Map{
 		"title":           page.Title,
 		"description":     metaDescription,
@@ -71,6 +80,8 @@ func (h *PageHandler) GetPage(c *fiber.Ctx) error {
 		"metaDescription": metaDescription,
 		"metaURL":         c.BaseURL() + c.Path(),
 		"metaSiteName":    "게시판 시스템",
+		"metaImage":       metaImage,
+		"metaAuthor":      "관리자", // 페이지는 관리자가 작성
 	})
 }
 
@@ -142,6 +153,32 @@ func (h *PageHandler) CreatePage(c *fiber.Ctx) error {
 			if err := h.pageService.UpdatePage(c.Context(), page); err != nil {
 				fmt.Printf("페이지 내용 업데이트 중 오류: %v\n", err)
 			}
+		}
+	}
+
+	// OG 이미지 생성
+	ogImageDir := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(page.ID, 10), "og")
+	ogImagePath := filepath.Join(ogImageDir, "og_image.png")
+
+	// // OG 이미지 URL (상대 경로)
+	// ogImageURL := filepath.ToSlash(filepath.Join("/uploads", "pages", strconv.FormatInt(page.ID, 10), "og", "og_image.png"))
+
+	// 디렉토리 생성
+	if err := os.MkdirAll(ogImageDir, 0755); err != nil {
+		fmt.Printf("OG 이미지 디렉토리 생성 실패: %v\n", err)
+	} else {
+		// OG 이미지 생성
+		_, err := utils.CreateOGImageFromText(
+			page.Title,
+			"관리자", // 페이지는 관리자가 작성
+			time.Now(),
+			ogImagePath,
+			"게시판 시스템",
+		)
+
+		if err != nil {
+			// OG 이미지 생성 실패 시 로그만 남기고 계속 진행
+			fmt.Printf("OG 이미지 생성 실패: %v\n", err)
 		}
 	}
 
@@ -589,6 +626,32 @@ func (h *PageHandler) UpdatePage(c *fiber.Ctx) error {
 		})
 	}
 
+	// OG 이미지 업데이트
+	ogImageDir := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(page.ID, 10), "og")
+	ogImagePath := filepath.Join(ogImageDir, "og_image.png")
+
+	// // OG 이미지 URL (상대 경로)
+	// ogImageURL := filepath.ToSlash(filepath.Join("/uploads", "pages", strconv.FormatInt(page.ID, 10), "og", "og_image.png"))
+
+	// 디렉토리 생성
+	if err := os.MkdirAll(ogImageDir, 0755); err != nil {
+		fmt.Printf("OG 이미지 디렉토리 생성 실패: %v\n", err)
+	} else {
+		// OG 이미지 생성
+		_, err := utils.CreateOGImageFromText(
+			page.Title,
+			"관리자", // 페이지는 관리자가 작성
+			time.Now(),
+			ogImagePath,
+			"게시판 시스템",
+		)
+
+		if err != nil {
+			// OG 이미지 생성 실패 시 로그만 남기고 계속 진행
+			fmt.Printf("OG 이미지 업데이트 실패: %v\n", err)
+		}
+	}
+
 	// JSON 요청인 경우
 	if c.Get("Accept") == "application/json" {
 		return c.JSON(fiber.Map{
@@ -627,6 +690,13 @@ func (h *PageHandler) DeletePage(c *fiber.Ctx) error {
 			"success": false,
 			"message": "페이지 삭제 중 오류가 발생했습니다: " + err.Error(),
 		})
+	}
+
+	// 페이지 삭제 후에 업로드 폴더 삭제
+	uploadFolderPath := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(pageID, 10))
+	if err := os.RemoveAll(uploadFolderPath); err != nil {
+		// 폴더 삭제 실패는 로그만 남기고 계속 진행
+		fmt.Printf("페이지 업로드 폴더 삭제 실패 (경로: %s): %v\n", uploadFolderPath, err)
 	}
 
 	// JSON 요청인 경우

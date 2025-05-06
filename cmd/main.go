@@ -33,7 +33,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.27"
+const APP_VERSION = "v0.0.28"
 
 func main() {
 	// // 시작 시간 기록
@@ -589,13 +589,13 @@ func setupRoutes(
 	boardsWithID := boards.Group("/:boardID", boardAccessMiddleware.CheckBoardAccess)
 	boardsWithID.Get("", boardHandler.GetBoard)
 	boardsWithID.Get("/posts", boardHandler.ListPosts)
-	boards.Get("/:boardID/posts/create", authMiddleware.RequireAuth, boardHandler.CreatePostPage)
+	boards.Get("/:boardID/posts/create", authMiddleware.RequireAuth, boardHandler.CreatePostScreen)
 	boardsWithID.Get("/posts/:postID", boardHandler.GetPost)
 
 	// 게시물 작성/수정/삭제 (인증 필요)
 	boardsAuthWithID := boards.Group("/:boardID", authMiddleware.RequireAuth)
 	boardsAuthWithID.Post("/posts", boardHandler.CreatePost)
-	boardsAuthWithID.Get("/posts/create", boardHandler.CreatePostPage)
+	boardsAuthWithID.Get("/posts/create", boardHandler.CreatePostScreen)
 	boardsAuthWithID.Get("/posts/:postID/edit", boardHandler.EditPostPage)
 	boardsAuthWithID.Put("/posts/:postID", boardHandler.UpdatePost)
 	boardsAuthWithID.Delete("/posts/:postID", boardHandler.DeletePost)
@@ -723,7 +723,10 @@ func setupRoutes(
 
 	// 업로드된 파일 정적 제공
 	app.Static("/uploads", uploadDir, fiber.Static{
-		Browse: false,
+		Compress:  true,
+		Browse:    false,
+		MaxAge:    3600,
+		ByteRange: true,
 	})
 
 	// 썸네일 생성 미들웨어 - 요청된 썸네일이 없으면 자동 생성
