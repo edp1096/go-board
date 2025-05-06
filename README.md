@@ -42,7 +42,7 @@ go-board
 ## 설정
 
 * `.env` 파일 수정 - [.env.example](docs/env_samples/.env.example) 참고
-* 환경변수(도커, 쿠버네티스) - [setenv.sh](docs/env_samples/setenv.sh)를 참고
+* 환경변수(도커, 쿠버네티스) - [setenv.sh](docs/env_samples/setenv.sh) 참고
 * 리버스프록시 - [REVERSE_PROXY.md](docs/REVERSE_PROXY.md) 참고
 
 
