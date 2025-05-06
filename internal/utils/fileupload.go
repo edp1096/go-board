@@ -311,3 +311,45 @@ func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize 
 
 	return uploadedFiles, nil
 }
+
+// MoveFile은 파일을 소스에서 타겟으로 이동합니다
+func MoveFile(source, target string) error {
+	// 먼저 파일 복사 시도
+	err := CopyFile(source, target)
+	if err != nil {
+		return err
+	}
+
+	// 성공하면 원본 파일 삭제
+	return os.Remove(source)
+}
+
+// CopyFile은 파일을 소스에서 타겟으로 복사합니다
+func CopyFile(source, target string) error {
+	// 소스 파일 열기
+	s, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	// 타겟 파일 생성
+	t, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+	defer t.Close()
+
+	// 파일 복사
+	_, err = io.Copy(t, s)
+	if err != nil {
+		return err
+	}
+
+	// 성공적으로 복사되면 파일 권한 설정
+	info, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(target, info.Mode())
+}

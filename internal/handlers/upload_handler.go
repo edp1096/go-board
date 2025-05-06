@@ -314,3 +314,95 @@ func (h *UploadHandler) DeleteAttachment(c *fiber.Ctx) error {
 		"message": "첨부 파일이 삭제되었습니다",
 	})
 }
+
+// 페이지 이미지 업로드 처리
+func (h *UploadHandler) UploadPageImages(c *fiber.Ctx) error {
+	// 페이지 ID 확인 (없으면 0으로 설정 - 새 페이지 생성 시)
+	pageID, err := strconv.ParseInt(c.Params("pageID", "0"), 10, 64)
+	if err != nil {
+		pageID = 0 // 임시 저장
+	}
+
+	// 현재 사용자 확인
+	user := c.Locals("user").(*models.User)
+	if user == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "로그인이 필요합니다",
+		})
+	}
+
+	// 관리자 권한 확인
+	if user.Role != models.RoleAdmin {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"message": "권한이 없습니다",
+		})
+	}
+
+	// 파일 확인
+	form, err := c.MultipartForm()
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "파일 업로드 데이터가 올바르지 않습니다",
+		})
+	}
+
+	// 에디터 요구사항에 맞게 필드 이름 검색
+	var files []*multipart.FileHeader
+	for key, fileHeaders := range form.File {
+		// 필드 이름이 upload-files[]인 경우 또는 인덱스가 있는 경우
+		if key == "upload-files[]" || strings.HasPrefix(key, "upload-files[") {
+			files = append(files, fileHeaders...)
+		}
+	}
+
+	if len(files) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "업로드할 이미지가 없습니다",
+		})
+	}
+
+	// 세션 ID 가져오기 (없으면 빈 문자열로 설정)
+	sessionId := c.Query("sessionId", "")
+	if sessionId == "" && pageID == 0 {
+		// 세션 ID가 없고 페이지 ID도 없으면 사용자 ID를 대신 사용
+		sessionId = strconv.FormatInt(user.ID, 10)
+	}
+
+	// 업로드 경로 생성
+	var uploadPath string
+	if pageID > 0 {
+		// 기존 페이지 수정인 경우
+		uploadPath = filepath.Join("uploads", "pages", strconv.FormatInt(pageID, 10), "images")
+	} else {
+		// 새 페이지 생성인 경우 - 세션별 임시 디렉토리 사용
+		uploadPath = filepath.Join("uploads", "pages", "temp", sessionId, "images")
+	}
+
+	// 이미지 업로드
+	uploadedFiles, err := utils.UploadImages(files, uploadPath, h.config.MaxImageUploadSize, h.config.UploadDir)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "이미지 업로드 실패: " + err.Error(),
+		})
+	}
+
+	// 응답 포맷
+	response := make([]map[string]any, 0, len(uploadedFiles))
+	for _, file := range uploadedFiles {
+		fileResponse := map[string]any{
+			"storagename": file.StorageName,
+			"thumbnail":   file.ThumbnailURL,
+			"url":         file.URL,
+		}
+		response = append(response, fileResponse)
+	}
+
+	return c.JSON(fiber.Map{
+		"files": response,
+	})
+}

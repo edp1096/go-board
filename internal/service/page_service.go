@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/edp1096/go-board/internal/models"
@@ -27,12 +28,14 @@ type PageService interface {
 }
 
 type pageService struct {
-	pageRepo repository.PageRepository
+	pageRepo      repository.PageRepository
+	uploadService UploadService
 }
 
-func NewPageService(pageRepo repository.PageRepository) PageService {
+func NewPageService(pageRepo repository.PageRepository, uploadService UploadService) PageService {
 	return &pageService{
-		pageRepo: pageRepo,
+		pageRepo:      pageRepo,
+		uploadService: uploadService,
 	}
 }
 
@@ -65,6 +68,15 @@ func (s *pageService) UpdatePage(ctx context.Context, page *models.Page) error {
 }
 
 func (s *pageService) DeletePage(ctx context.Context, id int64) error {
+	// 먼저 페이지 이미지 삭제
+	if s.uploadService != nil {
+		if err := s.uploadService.DeletePageImages(ctx, id); err != nil {
+			// 이미지 삭제 실패는 로깅만 하고 계속 진행
+			log.Printf("페이지 이미지 삭제 실패 (ID: %d): %v", id, err)
+		}
+	}
+
+	// 페이지 삭제
 	return s.pageRepo.Delete(ctx, id)
 }
 

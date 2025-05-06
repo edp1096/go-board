@@ -271,7 +271,7 @@ func main() {
 	commentVoteService := service.NewCommentVoteService(commentVoteRepo, boardService, commentRepo)
 	qnaService := service.NewQnAService(db, boardRepo, boardService)
 	uploadService := service.NewUploadService(attachmentRepo, cfg)
-	pageService := service.NewPageService(pageRepo)
+	pageService := service.NewPageService(pageRepo, uploadService)
 	categoryService := service.NewCategoryService(categoryRepo, boardRepo, pageRepo)
 	sitemapService := service.NewSitemapService(boardRepo, boardService)
 	referrerService := service.NewReferrerService(referrerRepo)
@@ -285,7 +285,7 @@ func main() {
 	voteHandler := handlers.NewVoteHandler(postVoteService, commentVoteService)
 	qnaHandler := handlers.NewQnAHandler(boardService, qnaService)
 	uploadHandler := handlers.NewUploadHandler(uploadService, boardService, cfg)
-	pageHandler := handlers.NewPageHandler(pageService)
+	pageHandler := handlers.NewPageHandler(pageService, cfg)
 	categoryHandler := handlers.NewCategoryHandler(categoryService, boardService, pageService)
 	adminHandler := handlers.NewAdminHandler(dynamicBoardService, boardService, authService)
 	sitemapHandler := handlers.NewSitemapHandler(sitemapService)
@@ -629,7 +629,7 @@ func setupRoutes(
 	admin.Put("/users/:userID/role", adminHandler.UpdateUserRole)
 
 	// 관리자 페이지 라우트 (페이지 관리)
-	admin.Get("/pages/create", pageHandler.CreatePagePage)
+	admin.Get("/pages/create", pageHandler.CreatePageScreen)
 	admin.Get("/pages/:pageID/edit", pageHandler.EditPagePage)
 	admin.Post("/pages/:pageID", pageHandler.UpdatePage)
 	admin.Delete("/pages/:pageID", pageHandler.DeletePage)
@@ -652,6 +652,10 @@ func setupRoutes(
 
 	// Whois 정보 조회 라우트
 	api.Get("/whois", whoisHandler.GetWhoisInfo)
+
+	// 페이지 이미지 업로드 라우트
+	api.Post("/pages/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageImages)
+	api.Post("/pages/:pageID/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageImages)
 
 	// 업로드, 다운로드 관련 라우트
 	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)

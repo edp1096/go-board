@@ -8,7 +8,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/edp1096/go-board/config"
 	"github.com/edp1096/go-board/internal/models"
@@ -24,6 +27,7 @@ type UploadService interface {
 	DeleteAttachment(ctx context.Context, id int64) error
 	DeleteAttachmentsByPostID(ctx context.Context, boardID, postID int64) error
 	IncrementDownloadCount(ctx context.Context, id int64) error
+	DeletePageImages(ctx context.Context, pageID int64) error
 }
 
 type uploadService struct {
@@ -253,4 +257,73 @@ func isDirEmpty(dir string) (bool, error) {
 		return true, nil
 	}
 	return false, err
+}
+
+// DeletePageImages는 페이지 관련 모든 이미지를 삭제합니다
+func (s *uploadService) DeletePageImages(ctx context.Context, pageID int64) error {
+	// 페이지 이미지 디렉토리 경로 계산
+	pageDir := filepath.Join(s.config.UploadDir, "pages", strconv.FormatInt(pageID, 10))
+
+	// 디렉토리 존재 여부 확인
+	if _, err := os.Stat(pageDir); os.IsNotExist(err) {
+		// 디렉토리가 없으면 삭제할 것도 없음
+		return nil
+	}
+
+	// 비동기 삭제 처리를 위한 고루틴 시작
+	go func() {
+		// 10초 지연 후 삭제 시도 (브라우저가 파일 참조를 해제할 시간을 줌)
+		time.Sleep(10 * time.Second)
+
+		// 디렉토리 내 파일 트리 순회 (RemoveAll 대신 파일별로 처리)
+		err := filepath.Walk(pageDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil // 오류 무시하고 계속 진행
+			}
+
+			if !info.IsDir() {
+				// 파일만 삭제 시도
+				err := os.Remove(path)
+				if err != nil {
+					fmt.Printf("파일 삭제 실패 (%s): %v\n", path, err)
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			fmt.Printf("페이지 이미지 디렉토리 순회 중 오류: %v\n", err)
+		}
+
+		// 순회가 끝난 후 다시 한 번 디렉토리 삭제 시도
+		// 디렉토리를 아래에서 위로 삭제 시도 (빈 디렉토리부터)
+		dirs := []string{}
+
+		filepath.Walk(pageDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil
+			}
+
+			if info.IsDir() && path != pageDir {
+				dirs = append(dirs, path)
+			}
+			return nil
+		})
+
+		// 디렉토리를 깊이 우선으로 정렬 (더 깊은 경로가 먼저 삭제되도록)
+		sort.Slice(dirs, func(i, j int) bool {
+			return len(dirs[i]) > len(dirs[j])
+		})
+
+		// 디렉토리 삭제 시도
+		for _, dir := range dirs {
+			os.Remove(dir) // 오류 무시
+		}
+
+		// 마지막으로 루트 디렉토리 삭제 시도
+		os.Remove(pageDir)
+	}()
+
+	// 성공으로 반환 (실제 삭제는 비동기로 처리됨)
+	return nil
 }
