@@ -63,7 +63,7 @@ migrate -h
 ## 빌드
 
 * 요구사항
-    * Go 1.24
+    * Go >= 1.24
     * PostgreSQL >= 13 / MariaDB >= 10.6 / SQLite 3.x
     * tailwindcss >= 4.1
     * yarn classic
