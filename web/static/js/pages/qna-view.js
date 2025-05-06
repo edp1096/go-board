@@ -133,7 +133,7 @@ document.addEventListener('alpine:init', () => {
             // 베스트 답변 ID 가져오기
             const bestAnswerId = getBestAnswerId();
 
-            fetch(`/api/boards/${boardId}/posts/${postId}/answers`)
+            fetch(`/api/boards/${boardId}/qnas/${postId}/answers`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -204,7 +204,7 @@ document.addEventListener('alpine:init', () => {
 
             this.submitting = true;
 
-            fetch(`/api/boards/${boardId}/posts/${postId}/answers`, {
+            fetch(`/api/boards/${boardId}/qnas/${postId}/answers`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -653,7 +653,7 @@ document.addEventListener('alpine:init', () => {
             // CSRF 토큰 가져오기
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-            fetch(`/api/boards/${boardId}/posts/${postId}/best-answer`, {
+            fetch(`/api/boards/${boardId}/qnas/${postId}/best-answer`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

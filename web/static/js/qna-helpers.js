@@ -10,7 +10,7 @@ async function voteQuestion(direction) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     try {
-        const response = await fetch(`/api/boards/${boardId}/posts/${postId}/vote`, {
+        const response = await fetch(`/api/boards/${boardId}/qnas/${postId}/vote`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ async function changeQuestionStatus(status) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     try {
-        const response = await fetch(`/api/boards/${boardId}/posts/${postId}/status`, {
+        const response = await fetch(`/api/boards/${boardId}/qnas/${postId}/status`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ async function getQuestionVoteCount() {
     const postId = document.getElementById('postId').value;
 
     try {
-        const response = await fetch(`/api/boards/${boardId}/posts/${postId}/vote-count`);
+        const response = await fetch(`/api/boards/${boardId}/qnas/${postId}/vote-count`);
         const data = await response.json();
 
         if (data.success) {

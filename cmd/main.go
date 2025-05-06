@@ -33,7 +33,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.28"
+const APP_VERSION = "v0.0.29"
 
 func main() {
 	// // 시작 시간 기록
@@ -680,7 +680,7 @@ func setupRoutes(
 	api.Post("/comments/vote-statuses", voteHandler.GetMultipleCommentVoteStatuses)
 
 	// Q&A 관련 API 라우트
-	qnaAPI := api.Group("/boards/:boardID/posts/:postID")
+	qnaAPI := api.Group("/boards/:boardID/qnas/:postID")
 	qnaAPI.Get("/answers", qnaHandler.GetAnswers)
 	qnaAPI.Post("/answers", authMiddleware.RequireAuth, qnaHandler.CreateAnswer)
 	qnaAPI.Put("/status", authMiddleware.RequireAuth, qnaHandler.UpdateQuestionStatus)
