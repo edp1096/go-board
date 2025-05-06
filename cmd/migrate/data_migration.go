@@ -167,6 +167,9 @@ func getBasicTables() []string {
 		"qna_question_votes", // users와 boards 참조
 		"qna_answer_votes",   // users와 boards와 qna_answers 참조
 		"referrer_stats",     // users 참조 (선택 사항)
+		"pages",              // 독립 테이블 (페이지 데이터)
+		"categories",         // 독립 테이블 (카테고리 데이터)
+		"category_items",     // categories, boards, pages 참조 (카테고리-아이템 관계)
 	}
 }
 
