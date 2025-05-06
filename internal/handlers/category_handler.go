@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"strconv"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/service"
 	"github.com/edp1096/go-board/internal/utils"
+
+	"maps"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
@@ -479,7 +482,7 @@ func (h *CategoryHandler) RemoveItemFromCategory(c *fiber.Ctx) error {
 
 // GetCategoryMenuStructure 메뉴 구조 조회 API 핸들러
 func (h *CategoryHandler) GetCategoryMenuStructure(c *fiber.Ctx) error {
-	// 메뉴 구조 조회 - 최상위 카테고리만 표시하도록 수정
+	// 메뉴 구조 조회
 	menuStructure, err := h.categoryService.GetMenuStructure(c.Context(), true)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -488,10 +491,95 @@ func (h *CategoryHandler) GetCategoryMenuStructure(c *fiber.Ctx) error {
 		})
 	}
 
+	// 현재 로그인한 사용자 정보 가져오기
+	var user *models.User
+	if userLocal := c.Locals("user"); userLocal != nil {
+		user = userLocal.(*models.User)
+	}
+
+	// 게시판 권한 필터링
+	filteredStructure := filterBoardsByPermission(menuStructure, user, h.boardService)
+
 	return c.JSON(fiber.Map{
 		"success": true,
-		"data":    menuStructure,
+		"data":    filteredStructure,
 	})
+}
+
+// 게시판 권한에 따라 메뉴 구조 필터링
+func filterBoardsByPermission(menuItems []map[string]any, user *models.User, boardService service.BoardService) []map[string]any {
+	result := make([]map[string]any, 0)
+
+	for _, item := range menuItems {
+		itemType, _ := item["type"].(string)
+
+		if itemType == "board" {
+			// 게시판 권한 체크
+			boardID, _ := item["id"].(int64)
+			if !hasBoardAccess(boardID, user, boardService) {
+				continue
+			}
+			result = append(result, item)
+		} else if itemType == "category" {
+			// 카테고리인 경우 하위 항목 필터링
+			children, _ := item["children"].([]map[string]any)
+			filteredChildren := filterBoardsByPermission(children, user, boardService)
+
+			// 필터링된 하위 항목이 있는 경우에만 카테고리 추가
+			if len(filteredChildren) > 0 {
+				newItem := make(map[string]any)
+				maps.Copy(newItem, item)
+				newItem["children"] = filteredChildren
+				result = append(result, newItem)
+			}
+		} else {
+			// 페이지나 다른 항목은 그대로 추가
+			result = append(result, item)
+		}
+	}
+
+	return result
+}
+
+// 게시판 접근 권한 확인
+func hasBoardAccess(boardID int64, user *models.User, boardService service.BoardService) bool {
+	ctx := context.Background()
+
+	// 게시판 정보 조회
+	board, err := boardService.GetBoardByID(ctx, boardID)
+	if err != nil || !board.Active {
+		return false
+	}
+
+	// 1. 익명 접근이 허용된 게시판은 모두 접근 가능
+	if board.AllowAnonymous {
+		return true
+	}
+
+	// 2. 익명 접근이 허용되지 않았으면 로그인 필요
+	if user == nil {
+		return false
+	}
+
+	// 3. 관리자는 모든 게시판에 접근 가능
+	if user.Role == models.RoleAdmin {
+		return true
+	}
+
+	// 4. 소모임 게시판은 참여자인지 확인
+	if board.BoardType == models.BoardTypeGroup {
+		isParticipant, _ := boardService.IsParticipant(ctx, boardID, user.ID)
+		return isParticipant
+	}
+
+	// 5. 일반/갤러리/QnA 게시판은 로그인 사용자는 접근 가능
+	return true
+}
+
+// Context 컨텍스트 생성
+func (h *CategoryHandler) Context(c *fiber.Ctx) context.Context {
+	ctx := c.Context()
+	return ctx
 }
 
 // ListCategoriesAPI 모든 카테고리 조회 API

@@ -348,6 +348,7 @@ func main() {
 		authMiddleware,
 		boardAccessMiddleware,
 		adminMiddleware,
+		pageService,
 	)
 
 	// 서버 시작
@@ -552,6 +553,7 @@ func setupRoutes(
 	authMiddleware middleware.AuthMiddleware,
 	boardAccessMiddleware middleware.BoardAccessMiddleware,
 	adminMiddleware middleware.AdminMiddleware,
+	pageService service.PageService,
 ) {
 	// favicon
 	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
@@ -754,8 +756,17 @@ func setupRoutes(
 		return c.Next()
 	})
 
-	// 루트 라우트
+	// 루트 라우트 - FrontPage 우선 리다이렉트
 	app.Get("/", func(c *fiber.Ctx) error {
+		// "front-page" 슬러그를 가진 페이지 찾기
+		frontPage, err := pageService.GetPageBySlug(c.Context(), "front-page")
+
+		// 프론트 페이지가 있고 활성화되어 있으면 해당 페이지로 리다이렉트
+		if err == nil && frontPage != nil && frontPage.Active {
+			return c.Redirect("/page/" + frontPage.Slug)
+		}
+
+		// 없으면 기본 게시판 목록으로 리다이렉트
 		return c.Redirect("/boards")
 	})
 

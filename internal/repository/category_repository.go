@@ -99,6 +99,7 @@ func (r *categoryRepository) List(ctx context.Context, onlyActive bool, parentID
 	if err != nil {
 		return nil, err
 	}
+
 	return categories, nil
 }
 
