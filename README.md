@@ -5,7 +5,7 @@
 예시: https://bbs.enjoytools.net
 
 
-## 기능
+## 기능, 특징
 
 * Golang 단일 파일
 * DB - mysql, postgresql, sqlite3
