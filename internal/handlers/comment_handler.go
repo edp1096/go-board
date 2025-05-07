@@ -6,6 +6,7 @@ import (
 
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/service"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -108,8 +109,11 @@ func (h *CommentHandler) CreateComment(c *fiber.Ctx) error {
 		})
 	}
 
+	// IP 주소 획득
+	visitorIP := utils.GetClientIP(c)
+
 	// 댓글 생성
-	comment, err := h.commentService.CreateComment(c.Context(), boardID, postID, user.ID, req.Content, req.ParentID)
+	comment, err := h.commentService.CreateComment(c.Context(), boardID, postID, user.ID, req.Content, req.ParentID, visitorIP)
 	if err != nil {
 		if err == service.ErrCommentsDisabled {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{

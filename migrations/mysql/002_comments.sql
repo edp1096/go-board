@@ -8,6 +8,7 @@ CREATE TABLE comments (
     user_id INT NOT NULL,
     content TEXT NOT NULL,
     parent_id INT DEFAULT NULL,
+    ip_address VARCHAR(90),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

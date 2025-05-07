@@ -31,6 +31,7 @@ type DynamicPost struct {
 	LikeCount    int       // 좋아요 수
 	DislikeCount int       // 싫어요 수
 	IsPrivate    bool      // 비밀글 여부
+	IpAddress    string    // 작성자 IP 주소
 	CreatedAt    time.Time // 생성일
 	UpdatedAt    time.Time // 수정일
 

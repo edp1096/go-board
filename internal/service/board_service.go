@@ -334,12 +334,17 @@ func (s *boardService) CreatePost(ctx context.Context, boardID int64, post *mode
 
 	// 값 맵 생성
 	values := map[string]any{
-		"title":      post.Title,
-		"content":    post.Content,
-		"user_id":    post.UserID,
-		"is_private": post.IsPrivate,
-		"created_at": time.Now(),
-		"updated_at": time.Now(),
+		"title":         post.Title,
+		"content":       post.Content,
+		"user_id":       post.UserID,
+		"is_private":    post.IsPrivate,
+		"view_count":    0,
+		"comment_count": 0,
+		"like_count":    0,
+		"dislike_count": 0,
+		"ip_address":    post.IpAddress,
+		"created_at":    time.Now(),
+		"updated_at":    time.Now(),
 	}
 
 	// 동적 필드 추가

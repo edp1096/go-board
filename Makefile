@@ -74,6 +74,7 @@ build-linux-amd64:
 	@go env -w GOARCH=amd64
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_amd64 ./cmd
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_amd64 ./cmd/migrate
+#	@go build -ldflags "-w -s" -trimpath -o ./bin/add_ipaddress_linux_amd64 ./cmd/add_ipaddress
 
 build-linux-arm64:
 	@go env -w GOOS=linux

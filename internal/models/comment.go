@@ -19,6 +19,7 @@ type Comment struct {
 	ParentID     *int64    `bun:"parent_id" json:"parentId,omitempty"`
 	LikeCount    int       `bun:"like_count,notnull,default:0" json:"likeCount"`
 	DislikeCount int       `bun:"dislike_count,notnull,default:0" json:"dislikeCount"`
+	IpAddress    string    `bun:"ip_address" json:"ipAddress,omitempty"`
 	CreatedAt    time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
 	UpdatedAt    time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
 

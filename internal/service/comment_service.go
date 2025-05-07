@@ -18,7 +18,7 @@ var (
 
 // CommentService 인터페이스
 type CommentService interface {
-	CreateComment(ctx context.Context, boardID, postID, userID int64, content string, parentID *int64) (*models.Comment, error)
+	CreateComment(ctx context.Context, boardID, postID, userID int64, content string, parentID *int64, ipAddress string) (*models.Comment, error)
 	GetCommentByID(ctx context.Context, id int64) (*models.Comment, error)
 	GetCommentsByPostID(ctx context.Context, boardID, postID int64, includeReplies bool) ([]*models.Comment, error)
 	UpdateComment(ctx context.Context, id, userID int64, content string, isAdmin bool) (*models.Comment, error)
@@ -41,7 +41,7 @@ func NewCommentService(commentRepo repository.CommentRepository, boardRepo repos
 }
 
 // CreateComment - 새 댓글 생성
-func (s *commentService) CreateComment(ctx context.Context, boardID, postID, userID int64, content string, parentID *int64) (*models.Comment, error) {
+func (s *commentService) CreateComment(ctx context.Context, boardID, postID, userID int64, content string, parentID *int64, ipAddress string) (*models.Comment, error) {
 	// 게시판 정보 조회하여 댓글 기능 활성화 여부 확인
 	board, err := s.boardRepo.GetByID(ctx, boardID)
 	if err != nil {
@@ -78,6 +78,7 @@ func (s *commentService) CreateComment(ctx context.Context, boardID, postID, use
 		UserID:    userID,
 		Content:   content,
 		ParentID:  parentID,
+		IpAddress: ipAddress,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

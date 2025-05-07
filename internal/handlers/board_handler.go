@@ -575,12 +575,16 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		})
 	}
 
+	// IP 주소 획득
+	visitorIP := utils.GetClientIP(c)
+
 	// 동적 게시물 객체 생성
 	post := &models.DynamicPost{
 		Title:     title,
 		Content:   content,
 		UserID:    user.ID,
 		IsPrivate: isPrivate,
+		IpAddress: visitorIP,
 		Fields:    make(map[string]models.DynamicField),
 	}
 

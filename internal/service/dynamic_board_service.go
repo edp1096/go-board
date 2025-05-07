@@ -103,6 +103,7 @@ func (s *dynamicBoardService) getBaseColumns() []string {
 		"like_count INTEGER NOT NULL DEFAULT 0",
 		"dislike_count INTEGER NOT NULL DEFAULT 0",
 		"is_private BOOLEAN NOT NULL DEFAULT false",
+		"ip_address VARCHAR(90)",
 		"created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 		"updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
 	}

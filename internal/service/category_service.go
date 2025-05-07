@@ -388,7 +388,7 @@ func (s *categoryService) GetMenuStructure(ctx context.Context, onlyRoot bool) (
 		menuItems = append(menuItems, categoryItem)
 	}
 
-	// 독립적인 페이지 항목 추가 (수정된 부분: 모든 메뉴에 표시 옵션이 활성화된 페이지를 표시)
+	// 독립적인 페이지 항목 추가 (모든 메뉴에 표시 옵션이 활성화된 페이지를 표시)
 	if onlyRoot {
 		// 메뉴에 표시 설정이 활성화된 모든 페이지 가져오기
 		pages, err := s.pageRepo.List(ctx, true)
