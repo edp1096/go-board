@@ -1,4 +1,6 @@
 <!-- web/templates/board/qna_view.html -->
+{{$isAdmin := eq .user.Role "admin"}}
+
 <input type="hidden" id="boardId" value="{{.board.ID}}">
 <input type="hidden" id="postId" value="{{.post.ID}}">
 
@@ -52,7 +54,7 @@
                 <div class="flex items-center">
                     <div class="text-sm">
                         <!-- <span>{{.post.Username}}</span> -->
-                        <span>{{.post.Fullname}}</span>
+                        <span>{{.post.Fullname}} {{if $isAdmin}} ({{.post.IpAddress}}) {{end}}</span>
                         <span class="mx-1">·</span>
                         <span>{{.post.CreatedAt.Format "2006-01-02 15:04"}}</span>
                         {{if ne .post.UpdatedAt .post.CreatedAt}}
@@ -262,7 +264,7 @@
                                     </div>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <div class="text-sm font-medium" x-text="bestAnswer.displayName"></div>
+                                    <div class="text-sm font-medium" x-text="bestAnswer.displayName {{if and $isAdmin}} + '('+bestAnswer.ipAddress+')' {{end}}"></div>
                                     <div class="mt-1 text-sm" x-text="formatDate(bestAnswer.createdAt)"></div>
                                 </div>
                             </div>
@@ -294,7 +296,7 @@
                                                 </div>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <div class="text-xs font-medium" x-text="reply.user ? reply.user.fullName : '알 수 없음'"></div>
+                                                <div class="text-xs font-medium" x-text="reply.user ? reply.user.fullName {{if $isAdmin}} + '('+reply.ipAddress+')' {{end}} : '알 수 없음'"></div>
                                                 <div class="mt-1 text-sm prose prose-sm max-w-none" x-html="reply.content"></div>
                                             </div>
                                         </div>
@@ -383,7 +385,7 @@
                                     </div>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <div class="text-sm font-medium" x-text="answer.displayName"></div>
+                                    <div class="text-sm font-medium" x-text="answer.displayName {{if and $isAdmin}} + '('+answer.ipAddress+')' {{end}}"></div>
                                     <div class="mt-1 text-sm" x-text="formatDate(answer.createdAt)"></div>
                                 </div>
                             </div>
@@ -435,7 +437,7 @@
                                         </div>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.fullName : '알 수 없음'"></div>
+                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.fullName {{if $isAdmin}} + '('+reply.ipAddress+')' {{end}} : '알 수 없음'"></div>
                                         <div class="mt-1 text-sm prose prose-sm max-w-none" x-html="reply.content"></div>
                                         <div class="mt-2 text-xs flex items-center space-x-2">
                                             <span x-text="formatDate(reply.createdAt)"></span>

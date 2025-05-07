@@ -33,7 +33,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.30"
+const APP_VERSION = "v0.0.31"
 
 func main() {
 	// // 시작 시간 기록
@@ -744,12 +744,13 @@ func setupRoutes(
 		path := c.Path()
 
 		// 요청 경로에 '/thumbs/'가 포함되어 있는지 확인
-		if strings.Contains(path, "/thumbs/") {
+		if strings.Contains(path, "/thumbs/") || strings.Contains(path, "\\thumbs\\") {
 			// 서버 내 실제 파일 경로 계산
 			filePath := filepath.Join(".", path)
 
 			// thumbs 부분을 제거한 원본 이미지 경로 생성
 			originalPath := strings.Replace(filePath, "/thumbs/", "/", 1)
+			originalPath = strings.Replace(originalPath, "\\thumbs\\", "\\", 1)
 
 			// 원본 이미지는 있지만 썸네일이 없는 경우 썸네일 생성
 			if _, err := os.Stat(filePath); os.IsNotExist(err) {

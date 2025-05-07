@@ -15,7 +15,7 @@ import (
 type CommentRepository interface {
 	Create(ctx context.Context, comment *models.Comment) error
 	GetByID(ctx context.Context, id int64) (*models.Comment, error)
-	GetByPostID(ctx context.Context, boardID, postID int64, includeReplies bool) ([]*models.Comment, error)
+	GetByPostID(ctx context.Context, boardID, postID int64, includeReplies, showIP bool) ([]*models.Comment, error)
 	Update(ctx context.Context, comment *models.Comment) error
 	Delete(ctx context.Context, id int64) error
 	DeleteByPostID(ctx context.Context, boardID, postID int64) error
@@ -55,7 +55,7 @@ func (r *commentRepository) GetByID(ctx context.Context, id int64) (*models.Comm
 }
 
 // GetByPostID - 게시물 ID로 댓글 목록 조회
-func (r *commentRepository) GetByPostID(ctx context.Context, boardID, postID int64, includeReplies bool) ([]*models.Comment, error) {
+func (r *commentRepository) GetByPostID(ctx context.Context, boardID, postID int64, includeReplies, showIP bool) ([]*models.Comment, error) {
 	var comments []*models.Comment
 
 	query := r.db.NewSelect().
@@ -67,6 +67,10 @@ func (r *commentRepository) GetByPostID(ctx context.Context, boardID, postID int
 	if !includeReplies {
 		// 최상위 댓글만 조회
 		query = query.Where("c.parent_id IS NULL")
+	}
+
+	if !showIP {
+		query = query.ExcludeColumn("ip_address")
 	}
 
 	err := query.Order("c.created_at ASC").Scan(ctx)

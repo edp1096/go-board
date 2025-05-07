@@ -78,9 +78,9 @@ func (h *UploadHandler) UploadAttachments(c *fiber.Ctx) error {
 	}
 
 	// 업로드 경로 생성
-	uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
+	uploadPath := filepath.Join("boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
 
-	// 파일 업로드 - 수정된 utils.UploadAttachments 함수 호출
+	// 파일 업로드
 	uploadedFiles, err := utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize, h.config.UploadDir)
 	if err != nil {
 		if strings.Contains(err.Error(), "파일 크기가 허용 한도를 초과") {
@@ -158,7 +158,7 @@ func (h *UploadHandler) UploadImages(c *fiber.Ctx) error {
 	}
 
 	// 업로드 경로 생성
-	uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "images")
+	uploadPath := filepath.Join("boards", strconv.FormatInt(boardID, 10), "images")
 
 	// 이미지 업로드 - 수정된 utils.UploadImages 함수 호출
 	uploadedFiles, err := utils.UploadImages(files, uploadPath, h.config.MaxImageUploadSize, h.config.UploadDir)
@@ -251,6 +251,7 @@ func (h *UploadHandler) DownloadAttachment(c *fiber.Ctx) error {
 
 	c.Set(fiber.HeaderContentDisposition, fmt.Sprintf(`attachment; filename="%s"`, attachment.FileName))
 	c.Set("Content-Type", attachment.MimeType)
+
 	return c.SendFile(attachment.FilePath)
 }
 
@@ -376,10 +377,10 @@ func (h *UploadHandler) UploadPageImages(c *fiber.Ctx) error {
 	var uploadPath string
 	if pageID > 0 {
 		// 기존 페이지 수정인 경우
-		uploadPath = filepath.Join("uploads", "pages", strconv.FormatInt(pageID, 10), "images")
+		uploadPath = filepath.Join("pages", strconv.FormatInt(pageID, 10), "images")
 	} else {
 		// 새 페이지 생성인 경우 - 세션별 임시 디렉토리 사용
-		uploadPath = filepath.Join("uploads", "pages", "temp", sessionId, "images")
+		uploadPath = filepath.Join("pages", "temp", sessionId, "images")
 	}
 
 	// 이미지 업로드

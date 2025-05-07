@@ -1,4 +1,5 @@
 <!-- web/templates/board/view.html -->
+{{$isAdmin := eq .user.Role "admin"}}
 {{$admin := or (eq .user.Role "admin") .isManager .isModerator}}
 
 <input type="hidden" id="boardId" value="{{.board.ID}}">
@@ -46,7 +47,7 @@
                 <div class="flex items-center">
                     <div class="text-sm">
                         <!-- <span>{{.post.Username}}</span> -->
-                        <span>{{.post.Fullname}}</span>
+                        <span>{{.post.Fullname}} {{if $isAdmin}} ({{.post.IpAddress}}) {{end}}</span>
                         <span class="mx-1">·</span>
                         <span>{{.post.CreatedAt.Format "2006-01-02 15:04"}}</span>
                         {{if ne .post.UpdatedAt .post.CreatedAt}}
@@ -256,7 +257,8 @@
                             </div>
                         </div>
                         <div class="min-w-0 flex-1">
-                            <div class="text-sm font-medium" x-text="comment.user ? comment.user.fullName : '알 수 없음'"></div>
+                            {{$isAdmin := eq .user.Role "admin"}}
+                            <div class="text-sm font-medium" x-text="comment.user ? comment.user.fullName {{if $isAdmin}} + '('+comment.ipAddress+')' {{end}} : '알 수 없음'"></div>
                             <div class="mt-1 text-sm" x-html="comment.content.replace(/\n/g, '<br>')"></div>
                             <div class="mt-2 text-xs flex items-center space-x-2">
                                 <span x-text="new Date(comment.createdAt).toLocaleString()"></span>

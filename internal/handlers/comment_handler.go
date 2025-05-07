@@ -46,8 +46,17 @@ func (h *CommentHandler) GetComments(c *fiber.Ctx) error {
 	// 답글 포함 여부 (기본값: true)
 	includeReplies := c.Query("includeReplies", "true") == "true"
 
+	// 현재 로그인한 사용자 정보
+	user := c.Locals("user")
+	var isAdmin bool
+
+	if user != nil {
+		userObj := user.(*models.User)
+		isAdmin = (userObj.Role == models.RoleAdmin)
+	}
+
 	// 댓글 목록 조회
-	comments, err := h.commentService.GetCommentsByPostID(c.Context(), boardID, postID, includeReplies)
+	comments, err := h.commentService.GetCommentsByPostID(c.Context(), boardID, postID, includeReplies, isAdmin)
 	if err != nil {
 		if err == service.ErrCommentsDisabled {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{

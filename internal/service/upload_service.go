@@ -98,9 +98,9 @@ func (s *uploadService) GetAttachmentsByPostID(ctx context.Context, boardID, pos
 	for _, attachment := range attachments {
 		if attachment != nil && !filepath.IsAbs(attachment.FilePath) && !strings.HasPrefix(attachment.FilePath, s.config.UploadDir) {
 			// uploads/ 또는 ./uploads/로 시작하는지 확인
-			if strings.HasPrefix(attachment.FilePath, "uploads/") {
+			if strings.HasPrefix(attachment.FilePath, "uploads/") || strings.HasPrefix(attachment.FilePath, "uploads\\") {
 				attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[8:])
-			} else if strings.HasPrefix(attachment.FilePath, "./uploads/") {
+			} else if strings.HasPrefix(attachment.FilePath, "./uploads/") || strings.HasPrefix(attachment.FilePath, ".\\uploads\\") {
 				attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[10:])
 			} else {
 				attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath)
@@ -122,9 +122,9 @@ func (s *uploadService) GetAttachmentByID(ctx context.Context, id int64) (*model
 	// 절대 경로인 경우는 그대로 유지
 	if attachment != nil && !filepath.IsAbs(attachment.FilePath) && !strings.HasPrefix(attachment.FilePath, s.config.UploadDir) {
 		// uploads/ 또는 ./uploads/로 시작하는지 확인
-		if strings.HasPrefix(attachment.FilePath, "uploads/") {
+		if strings.HasPrefix(attachment.FilePath, "uploads/") || strings.HasPrefix(attachment.FilePath, "uploads\\") {
 			attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[8:])
-		} else if strings.HasPrefix(attachment.FilePath, "./uploads/") {
+		} else if strings.HasPrefix(attachment.FilePath, "./uploads/") || strings.HasPrefix(attachment.FilePath, ".\\uploads\\") {
 			attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath[10:])
 		} else {
 			attachment.FilePath = filepath.Join(s.config.UploadDir, attachment.FilePath)

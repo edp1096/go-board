@@ -9,6 +9,7 @@ CREATE TABLE qna_answers (
     content TEXT NOT NULL,
     vote_count INT NOT NULL DEFAULT 0,
     parent_id INT DEFAULT NULL,
+    ip_address VARCHAR(90),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

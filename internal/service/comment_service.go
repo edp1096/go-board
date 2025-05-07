@@ -20,7 +20,7 @@ var (
 type CommentService interface {
 	CreateComment(ctx context.Context, boardID, postID, userID int64, content string, parentID *int64, ipAddress string) (*models.Comment, error)
 	GetCommentByID(ctx context.Context, id int64) (*models.Comment, error)
-	GetCommentsByPostID(ctx context.Context, boardID, postID int64, includeReplies bool) ([]*models.Comment, error)
+	GetCommentsByPostID(ctx context.Context, boardID, postID int64, includeReplies, showIP bool) ([]*models.Comment, error)
 	UpdateComment(ctx context.Context, id, userID int64, content string, isAdmin bool) (*models.Comment, error)
 	DeleteComment(ctx context.Context, id, userID int64, isAdmin bool) error
 	DeleteCommentsByPostID(ctx context.Context, boardID, postID int64) error
@@ -102,7 +102,7 @@ func (s *commentService) GetCommentByID(ctx context.Context, id int64) (*models.
 }
 
 // GetCommentsByPostID - 게시물 댓글 목록 조회
-func (s *commentService) GetCommentsByPostID(ctx context.Context, boardID, postID int64, includeReplies bool) ([]*models.Comment, error) {
+func (s *commentService) GetCommentsByPostID(ctx context.Context, boardID, postID int64, includeReplies, showIP bool) ([]*models.Comment, error) {
 	// 게시판 정보 조회하여 댓글 기능 활성화 여부 확인
 	board, err := s.boardRepo.GetByID(ctx, boardID)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *commentService) GetCommentsByPostID(ctx context.Context, boardID, postI
 		return []*models.Comment{}, nil // 댓글 기능이 비활성화된 경우 빈 배열 반환
 	}
 
-	return s.commentRepo.GetByPostID(ctx, boardID, postID, includeReplies)
+	return s.commentRepo.GetByPostID(ctx, boardID, postID, includeReplies, showIP)
 }
 
 // UpdateComment - 댓글 수정

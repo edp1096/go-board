@@ -673,7 +673,7 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		files := form.File["files"]
 
 		// 업로드 경로 생성
-		uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "attachments")
+		uploadPath := filepath.Join("boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(post.ID, 10), "attachments")
 
 		var uploadedFiles []*utils.UploadedFile
 		var err error
@@ -1053,7 +1053,7 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		files := form.File["files"]
 
 		// 업로드 경로 생성
-		uploadPath := filepath.Join("uploads", "boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
+		uploadPath := filepath.Join("boards", strconv.FormatInt(boardID, 10), "posts", strconv.FormatInt(postID, 10), "attachments")
 
 		var uploadedFiles []*utils.UploadedFile
 		var err error

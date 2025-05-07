@@ -1,4 +1,6 @@
 <!-- web/templates/board/qna_posts_embed.html -->
+{{$isAdmin := eq .user.Role "admin"}}
+
 <div>
     <div class="flex justify-between items-center mb-6">
         <!-- <h1 class="text-2xl font-bold">{{.board.Name}}</h1> -->
@@ -76,7 +78,7 @@
                                 {{.Username}} · 조회수 {{.ViewCount}}
                             </p> -->
                             <p class="mt-1 text-xs truncate">
-                                {{.Fullname}} · 조회수 {{.ViewCount}}
+                                {{.Fullname}} {{if $isAdmin}} ({{.IpAddress}}) {{end}} · 조회수 {{.ViewCount}}
                             </p>
                             <!-- 질문 상태 표시 -->
                             <div class="mt-2 flex flex-wrap gap-2">

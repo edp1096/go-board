@@ -21,8 +21,8 @@ var (
 // QnAService는 Q&A 게시판 관련 서비스입니다.
 type QnAService interface {
 	// 답변 관련 메서드
-	CreateAnswer(ctx context.Context, boardID, questionID, userID int64, content string) (*models.Answer, error)
-	GetAnswersByQuestionID(ctx context.Context, boardID, questionID int64) ([]*models.Answer, error)
+	CreateAnswer(ctx context.Context, boardID, questionID, userID int64, content, ipAddress string) (*models.Answer, error)
+	GetAnswersByQuestionID(ctx context.Context, boardID, questionID int64, showIP bool) ([]*models.Answer, error)
 	GetAnswerByID(ctx context.Context, answerID int64) (*models.Answer, error)
 	UpdateAnswer(ctx context.Context, answerID, userID int64, content string, isAdmin bool) (*models.Answer, error)
 	DeleteAnswer(ctx context.Context, answerID, userID int64, isAdmin bool) error
@@ -37,7 +37,7 @@ type QnAService interface {
 	SetBestAnswer(ctx context.Context, boardID, questionID, answerID, userID int64) error
 
 	// 답글 관련 메서드
-	CreateAnswerReply(ctx context.Context, answerID, userID int64, content string) (*models.Answer, error)
+	CreateAnswerReply(ctx context.Context, answerID, userID int64, content, ipAddress string) (*models.Answer, error)
 }
 
 type qnaService struct {
@@ -56,7 +56,7 @@ func NewQnAService(db *bun.DB, boardRepo repository.BoardRepository, boardSvc Bo
 }
 
 // CreateAnswer는 새 답변을 생성합니다.
-func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, userID int64, content string) (*models.Answer, error) {
+func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, userID int64, content, ipAddress string) (*models.Answer, error) {
 	// 답변 객체 생성
 	now := time.Now()
 	answer := &models.Answer{
@@ -65,6 +65,7 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 		UserID:     userID,
 		Content:    content,
 		VoteCount:  0,
+		IpAddress:  ipAddress,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
@@ -139,7 +140,7 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 }
 
 // GetAnswersByQuestionID는 질문의 모든 답변과 답글을 조회합니다.
-func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questionID int64) ([]*models.Answer, error) {
+func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questionID int64, showIP bool) ([]*models.Answer, error) {
 	// 게시물 가져오기 - 베스트 답변 ID 확인을 위해
 	post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
 	if err != nil {
@@ -154,12 +155,17 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 
 	// 모든 답변 및 답글 조회
 	var allAnswers []*models.Answer
-	err = s.db.NewSelect().
+	query := s.db.NewSelect().
 		Model(&allAnswers).
 		Relation("User").
 		Where("board_id = ? AND question_id = ?", boardID, questionID).
-		OrderExpr("CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END, vote_count DESC, a.created_at ASC").
-		Scan(ctx)
+		OrderExpr("CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END, vote_count DESC, a.created_at ASC")
+
+	if !showIP {
+		query = query.ExcludeColumn("ip_address")
+	}
+
+	err = query.Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -629,7 +635,7 @@ func (s *qnaService) SetBestAnswer(ctx context.Context, boardID, questionID, ans
 }
 
 // CreateAnswerReply는 답변에 대한 답글을 생성합니다.
-func (s *qnaService) CreateAnswerReply(ctx context.Context, answerID, userID int64, content string) (*models.Answer, error) {
+func (s *qnaService) CreateAnswerReply(ctx context.Context, answerID, userID int64, content, ipAddress string) (*models.Answer, error) {
 	// 부모 답변 조회
 	parentAnswer, err := s.GetAnswerByID(ctx, answerID)
 	if err != nil {
@@ -650,6 +656,7 @@ func (s *qnaService) CreateAnswerReply(ctx context.Context, answerID, userID int
 		Content:    content,
 		ParentID:   &answerID, // 부모 답변 ID 설정
 		VoteCount:  0,
+		IpAddress:  ipAddress,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}

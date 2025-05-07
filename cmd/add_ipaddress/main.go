@@ -30,7 +30,7 @@ func main() {
 	defer database.Close()
 	db := database.DB
 
-	// 1. 댓글 테이블(comments)에 ip_address 컬럼 추가
+	// 1-1. 댓글 테이블(comments)에 ip_address 컬럼 추가
 	log.Println("댓글 테이블에 IP 주소 컬럼을 추가합니다...")
 	ipColumnExistsInComments := false
 
@@ -66,6 +66,44 @@ func main() {
 			}
 		} else {
 			log.Printf("comments 테이블에 ip_address 컬럼이 추가되었습니다")
+		}
+	}
+
+	// 1-2. qna답변 테이블(qna_answers)에 ip_address 컬럼 추가
+	log.Println("qna답변 테이블에 IP 주소 컬럼을 추가합니다...")
+	ipColumnExistsInComments = false
+
+	if utils.IsPostgres(db) {
+		commentAlterSQL = "ALTER TABLE qna_answers ADD COLUMN IF NOT EXISTS ip_address VARCHAR(90)"
+	} else if utils.IsMySQL(db) {
+		// MySQL에서는 IF NOT EXISTS가 지원되지 않으므로 컬럼 존재 여부 확인
+		checkSQL := "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'qna_answers' AND column_name = 'ip_address'"
+		var count int
+		if err := db.QueryRowContext(context.Background(), checkSQL).Scan(&count); err != nil {
+			log.Printf("qna_answers 테이블의 ip_address 컬럼 존재 여부 확인 실패: %v", err)
+		} else if count == 0 {
+			commentAlterSQL = "ALTER TABLE `qna_answers` ADD COLUMN `ip_address` VARCHAR(90)"
+		} else {
+			ipColumnExistsInComments = true
+			log.Printf("qna_answers 테이블에 이미 ip_address 컬럼이 존재합니다")
+		}
+	} else if utils.IsSQLite(db) {
+		// SQLite는 컬럼 존재 여부 확인이 어려우므로 바로 추가
+		commentAlterSQL = "ALTER TABLE qna_answers ADD COLUMN ip_address VARCHAR(90)"
+	}
+
+	// 컬럼이 없거나 SQLite인 경우에만 ALTER TABLE 실행
+	if !ipColumnExistsInComments && commentAlterSQL != "" {
+		_, err := db.ExecContext(context.Background(), commentAlterSQL)
+		if err != nil {
+			// SQLite에서 이미 컬럼이 존재하는 경우 duplicate column name 오류 발생
+			if utils.IsSQLite(db) && strings.Contains(err.Error(), "duplicate column name") {
+				log.Printf("qna_answers 테이블에 이미 ip_address 컬럼이 존재합니다")
+			} else {
+				log.Printf("qna_answers 테이블에 ip_address 컬럼 추가 실패: %v", err)
+			}
+		} else {
+			log.Printf("qna_answers 테이블에 ip_address 컬럼이 추가되었습니다")
 		}
 	}
 

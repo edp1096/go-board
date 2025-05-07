@@ -19,6 +19,7 @@ type Answer struct {
 	VoteCount    int       `bun:"vote_count,notnull,default:0" json:"voteCount"`
 	ParentID     *int64    `bun:"parent_id" json:"parentId,omitempty"`
 	IsBestAnswer bool      `bun:"-" json:"isBestAnswer"`
+	IpAddress    string    `bun:"ip_address" json:"ipAddress,omitempty"`
 	CreatedAt    time.Time `bun:"created_at,notnull,default:current_timestamp" json:"createdAt"`
 	UpdatedAt    time.Time `bun:"updated_at,notnull,default:current_timestamp" json:"updatedAt"`
 

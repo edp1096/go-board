@@ -476,6 +476,8 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 		RawData:      row,
 	}
 
+	post.IpAddress = utils.InterfaceToString(row["ip_address"])
+
 	// 동적 필드 처리
 	for _, field := range fields {
 		if val, ok := row[field.ColumnName]; ok {
@@ -644,6 +646,8 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 			Fields:       make(map[string]models.DynamicField),
 			RawData:      row,
 		}
+
+		post.IpAddress = utils.InterfaceToString(row["ip_address"])
 
 		// 동적 필드 처리
 		for _, field := range fields {

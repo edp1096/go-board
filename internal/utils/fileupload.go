@@ -114,10 +114,12 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig, uploadDir strin
 	basePath := config.BasePath
 	if !filepath.IsAbs(basePath) && !strings.HasPrefix(basePath, uploadDir) {
 		// 상대 경로인 경우 uploadDir을 기준으로 설정
-		if strings.HasPrefix(basePath, "uploads/") {
+		if strings.HasPrefix(basePath, "uploads/") || strings.HasPrefix(basePath, "uploads\\") {
 			basePath = filepath.Join(uploadDir, basePath[8:])
-		} else if strings.HasPrefix(basePath, "./uploads/") {
+		} else if strings.HasPrefix(basePath, "./uploads/") || strings.HasPrefix(basePath, ".\\uploads\\") {
 			basePath = filepath.Join(uploadDir, basePath[10:])
+		} else {
+			basePath = filepath.Join(uploadDir, basePath)
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/service"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -42,8 +43,17 @@ func (h *QnAHandler) GetAnswers(c *fiber.Ctx) error {
 		})
 	}
 
+	// 현재 로그인한 사용자 정보
+	user := c.Locals("user")
+	var isAdmin bool
+
+	if user != nil {
+		userObj := user.(*models.User)
+		isAdmin = (userObj.Role == models.RoleAdmin)
+	}
+
 	// 답변 목록 조회
-	answers, err := h.qnaService.GetAnswersByQuestionID(c.Context(), boardID, postID)
+	answers, err := h.qnaService.GetAnswersByQuestionID(c.Context(), boardID, postID, isAdmin)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -98,8 +108,11 @@ func (h *QnAHandler) CreateAnswer(c *fiber.Ctx) error {
 		})
 	}
 
+	// IP 주소 획득
+	visitorIP := utils.GetClientIP(c)
+
 	// 답변 생성
-	answer, err := h.qnaService.CreateAnswer(c.Context(), boardID, postID, user.ID, req.Content)
+	answer, err := h.qnaService.CreateAnswer(c.Context(), boardID, postID, user.ID, req.Content, visitorIP)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
@@ -515,8 +528,11 @@ func (h *QnAHandler) CreateAnswerReply(c *fiber.Ctx) error {
 		})
 	}
 
+	// IP 주소 획득
+	visitorIP := utils.GetClientIP(c)
+
 	// 답글 생성
-	reply, err := h.qnaService.CreateAnswerReply(c.Context(), answerID, user.ID, req.Content)
+	reply, err := h.qnaService.CreateAnswerReply(c.Context(), answerID, user.ID, req.Content, visitorIP)
 	if err != nil {
 		if err == service.ErrAnswerNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{

@@ -1,4 +1,6 @@
 <!-- web/templates/board/posts.html -->
+{{$isAdmin := eq .user.Role "admin"}}
+
 <div>
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">{{.board.Name}}</h1>
@@ -55,7 +57,7 @@
                                     {{.Username}} · 조회수 {{.ViewCount}}
                                 </p> -->
                                 <p class="mt-1 text-xs truncate">
-                                    {{.Fullname}} · 조회수 {{.ViewCount}}
+                                    {{.Fullname}} {{if $isAdmin}} ({{.IpAddress}}) {{end}} · 조회수 {{.ViewCount}}
                                 </p>
                             </div>
                             <div class="ml-2 flex-shrink-0 flex">
