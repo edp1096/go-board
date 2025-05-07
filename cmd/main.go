@@ -191,6 +191,15 @@ func main() {
 		return *ptr
 	})
 
+	// 첫글자
+	engine.AddFunc("firstChar", func(s string) string {
+		runes := []rune(s)
+		if len(runes) > 0 {
+			return string(runes[0])
+		}
+		return ""
+	})
+
 	// 레퍼러 봇 확인
 	engine.AddFunc("checkBot", func(userAgents string) bool {
 		// results := make([]bool, len(userAgents))

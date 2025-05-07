@@ -498,7 +498,8 @@
                             <div class="flex-shrink-0">
                                 {{if .user}}
                                 <div class="bg-accent h-8 w-8 rounded-full flex items-center justify-center">
-                                    <span class="text-xs font-medium">{{slice .user.Username 0 1}}</span>
+                                    <!-- <span class="text-xs font-medium">{{slice .user.Username 0 1}}</span> -->
+                                    <span class="text-xs font-medium">{{firstChar .user.FullName}}</span>
                                 </div>
                                 {{end}}
                             </div>
