@@ -71,8 +71,11 @@
                             <p class="text-sm font-medium truncate">
                                 {{toUTF8 .Title}}
                             </p>
-                            <p class="mt-1 text-xs truncate">
+                            <!-- <p class="mt-1 text-xs truncate">
                                 {{.Username}} · 조회수 {{.ViewCount}}
+                            </p> -->
+                            <p class="mt-1 text-xs truncate">
+                                {{.Fullname}} · 조회수 {{.ViewCount}}
                             </p>
                             <!-- 질문 상태 표시 -->
                             <div class="mt-2 flex flex-wrap gap-2">

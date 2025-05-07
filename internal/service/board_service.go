@@ -409,6 +409,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 			TableExpr(fmt.Sprintf("\"%s\" AS p", board.TableName)).
 			Column("p.*").
 			ColumnExpr("u.username").
+			ColumnExpr("u.full_name").
 			Join("LEFT JOIN users AS u ON u.id = p.user_id").
 			Where("p.id = ?", postID)
 	} else {
@@ -416,6 +417,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 			TableExpr(fmt.Sprintf("`%s` AS p", board.TableName)).
 			Column("p.*").
 			ColumnExpr("u.username").
+			ColumnExpr("u.full_name").
 			Join("LEFT JOIN users AS u ON u.id = p.user_id").
 			Where("p.id = ?", postID)
 	}
@@ -457,6 +459,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 		Content:      utils.InterfaceToString(row["content"]),
 		UserID:       utils.InterfaceToInt64(row["user_id"]),
 		Username:     utils.InterfaceToString(row["username"]),
+		Fullname:     utils.InterfaceToString(row["full_name"]),
 		ViewCount:    viewCount + 1, // 방금 증가한 조회수 반영
 		CommentCount: utils.InterfaceToInt(row["comment_count"]),
 		LikeCount:    utils.InterfaceToInt(row["like_count"]),
@@ -594,6 +597,7 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 		TableExpr(tableExpr).
 		Column("p.*").
 		ColumnExpr("u.username").
+		ColumnExpr("u.full_name").
 		Join("LEFT JOIN users AS u ON u.id = p.user_id").
 		OrderExpr(fmt.Sprintf("p.%s %s", sortField, sortDir)).
 		Limit(pageSize).
@@ -626,6 +630,7 @@ func (s *boardService) ListPosts(ctx context.Context, boardID int64, page, pageS
 			Content:      utils.InterfaceToString(row["content"]),
 			UserID:       utils.InterfaceToInt64(row["user_id"]),
 			Username:     utils.InterfaceToString(row["username"]),
+			Fullname:     utils.InterfaceToString(row["full_name"]),
 			ViewCount:    utils.InterfaceToInt(row["view_count"]),
 			CommentCount: utils.InterfaceToInt(row["comment_count"]),
 			IsPrivate:    utils.InterfaceToBool(row["is_private"]),
@@ -749,6 +754,7 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 		// Column("p.id", "p.title", "p.content", "p.user_id", "p.view_count", "p.created_at", "p.updated_at").
 		Column("p.*").
 		ColumnExpr("u.username").
+		ColumnExpr("u.full_name").
 		Join("LEFT JOIN users AS u ON u.id = p.user_id").
 		Where(selectWhereClause, selectParams...).
 		OrderExpr("p.created_at DESC").
@@ -788,6 +794,7 @@ func (s *boardService) SearchPosts(ctx context.Context, boardID int64, query str
 			Content:      utils.InterfaceToString(row["content"]),
 			UserID:       utils.InterfaceToInt64(row["user_id"]),
 			Username:     utils.InterfaceToString(row["username"]),
+			Fullname:     utils.InterfaceToString(row["full_name"]),
 			ViewCount:    utils.InterfaceToInt(row["view_count"]),
 			CommentCount: utils.InterfaceToInt(row["comment_count"]),
 			IsPrivate:    utils.InterfaceToBool(row["is_private"]),
@@ -975,6 +982,7 @@ func (s *boardService) SearchPostsWithStatus(ctx context.Context, boardID int64,
 		TableExpr(tableExpr).
 		Column("p.*").
 		ColumnExpr("u.username").
+		ColumnExpr("u.full_name").
 		Join("LEFT JOIN users AS u ON u.id = p.user_id")
 
 	if selectWhereClause != "" {
@@ -1019,6 +1027,7 @@ func (s *boardService) SearchPostsWithStatus(ctx context.Context, boardID int64,
 			Content:      utils.InterfaceToString(row["content"]),
 			UserID:       utils.InterfaceToInt64(row["user_id"]),
 			Username:     utils.InterfaceToString(row["username"]),
+			Fullname:     utils.InterfaceToString(row["full_name"]),
 			ViewCount:    utils.InterfaceToInt(row["view_count"]),
 			CommentCount: utils.InterfaceToInt(row["comment_count"]),
 			IsPrivate:    utils.InterfaceToBool(row["is_private"]),

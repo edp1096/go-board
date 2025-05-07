@@ -151,7 +151,7 @@ select {
     position: relative;
     color: var(--color-text-primary);
     /* max-width: 65ch; */
-    margin: 0 10px 0 10px;
+    /* margin: 0 10px 0 0px; */
 }
 
 .prose p {
@@ -404,7 +404,6 @@ p img {
 @media (max-width: 640px) {
     p img {
         position: relative;
-        left: -15px;
         width: 100%;
     }
 

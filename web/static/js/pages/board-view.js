@@ -243,11 +243,11 @@ document.addEventListener('alpine:init', () => {
                     if (data.success) {
                         this.comments = data.comments;
 
-                        // 로그인 사용자인 경우 댓글 투표 상태 로드
-                        const currentUserId = document.getElementById('currentUserId');
-                        if (!currentUserId || !currentUserId.value) {
-                            await this.loadCommentVoteStatuses();
-                        }
+                        // // 로그인 사용자인 경우 댓글 투표 상태 로드 - 필요없음
+                        // const currentUserId = document.getElementById('currentUserId');
+                        // if (!currentUserId || !currentUserId.value) {
+                        //     await this.loadCommentVoteStatuses();
+                        // }
                     } else {
                         this.error = data.message;
                     }

@@ -7,7 +7,7 @@
         </a>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg p-6">
+    <div class="bg-white shadow-md rounded-lg p-4">
         <form action="/admin/categories" method="POST" x-data="{ submitting: false }" @submit.prevent="submitting = true; $el.submit()">
             <input type="hidden" name="csrf" value="{{.csrf}}">
 

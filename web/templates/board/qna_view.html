@@ -51,7 +51,8 @@
             <div class="mt-2 flex justify-between items-center">
                 <div class="flex items-center">
                     <div class="text-sm">
-                        <span>{{.post.Username}}</span>
+                        <!-- <span>{{.post.Username}}</span> -->
+                        <span>{{.post.Fullname}}</span>
                         <span class="mx-1">·</span>
                         <span>{{.post.CreatedAt.Format "2006-01-02 15:04"}}</span>
                         {{if ne .post.UpdatedAt .post.CreatedAt}}
@@ -289,11 +290,11 @@
                                         <div class="flex space-x-3">
                                             <div class="flex-shrink-0">
                                                 <div class="h-6 w-6 rounded-full flex items-center justify-center">
-                                                    <span class="text-xs font-medium" x-text="reply.user ? reply.user.username.charAt(0) : '?'"></span>
+                                                    <span class="text-xs font-medium" x-text="reply.user ? reply.user.fullName.charAt(0) : '?'"></span>
                                                 </div>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <div class="text-xs font-medium" x-text="reply.user ? reply.user.username : '알 수 없음'"></div>
+                                                <div class="text-xs font-medium" x-text="reply.user ? reply.user.fullName : '알 수 없음'"></div>
                                                 <div class="mt-1 text-sm prose prose-sm max-w-none" x-html="reply.content"></div>
                                             </div>
                                         </div>
@@ -403,7 +404,7 @@
                         {{end}}
 
                         {{if .user}}
-                        <button @click="setReplyInfo(answer.id, answer.user ? answer.user.username : '알 수 없음')" class="inline-flex items-center px-2 py-1 border border-current/25 text-xs font-medium rounded text-blue-700 btn-primary">
+                        <button @click="setReplyInfo(answer.id, answer.user ? answer.user.fullName : '알 수 없음')" class="inline-flex items-center px-2 py-1 border border-current/25 text-xs font-medium rounded text-blue-700 btn-primary">
                             답글
                         </button>
 
@@ -430,16 +431,16 @@
                                 <div class="flex space-x-3">
                                     <div class="flex-shrink-0">
                                         <div class="bg-accent h-8 w-8 rounded-full flex items-center justify-center">
-                                            <span class="text-xs font-medium" x-text="reply.user ? reply.user.username.charAt(0) : '?'"></span>
+                                            <span class="text-xs font-medium" x-text="reply.user ? reply.user.fullName.charAt(0) : '?'"></span>
                                         </div>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.username : '알 수 없음'"></div>
+                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.fullName : '알 수 없음'"></div>
                                         <div class="mt-1 text-sm prose prose-sm max-w-none" x-html="reply.content"></div>
                                         <div class="mt-2 text-xs flex items-center space-x-2">
                                             <span x-text="formatDate(reply.createdAt)"></span>
                                             {{if .user}}
-                                            <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(answer.id, answer.user ? answer.user.username : '알 수 없음')">
+                                            <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(answer.id, answer.user ? answer.user.fullName : '알 수 없음')">
                                                 답글
                                             </button>
 
@@ -466,11 +467,11 @@
                                 <div class="flex space-x-3">
                                     <div class="flex-shrink-0">
                                         <div class="bg-accent h-8 w-8 rounded-full flex items-center justify-center">
-                                            <span class="text-xs font-medium" x-text="reply.user ? reply.user.username.charAt(0) : '?'"></span>
+                                            <span class="text-xs font-medium" x-text="reply.user ? reply.user.fullName.charAt(0) : '?'"></span>
                                         </div>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.username : '알 수 없음'"></div>
+                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.fullName : '알 수 없음'"></div>
                                         <div class="mt-1">
                                             <textarea x-model="editContent" class="edit-textarea w-full px-3 py-2 text-sm border border-current/25 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" rows="3" placeholder="답글 내용을 수정하세요"></textarea>
                                         </div>

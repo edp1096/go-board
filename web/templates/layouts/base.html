@@ -47,7 +47,7 @@
     {{ template "partials/header" . }}
 
     <!-- 메인 컨텐츠 -->
-    <main class="flex-grow container mx-auto px-4 py-6">
+    <main class="flex-grow container mx-auto px-2 py-6">
         {{if .message}}
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)" class="bg-success border-l-4 border-success p-4 mb-4">
             <div class="flex">

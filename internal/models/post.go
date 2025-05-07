@@ -24,7 +24,8 @@ type DynamicPost struct {
 	Title        string    // 제목
 	Content      string    // 내용
 	UserID       int64     // 작성자 ID
-	Username     string    // 작성자 이름 (조인 데이터)
+	Username     string    // 작성자 아이디 (조인 데이터)
+	Fullname     string    // 작성자 이름 (조인 데이터)
 	ViewCount    int       // 조회수
 	CommentCount int       // 댓글수
 	LikeCount    int       // 좋아요 수

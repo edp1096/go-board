@@ -141,7 +141,8 @@ document.addEventListener('alpine:init', () => {
                         const answersWithMeta = (data.answers || []).map(answer => ({
                             ...answer,
                             isBestAnswer: answer.id === bestAnswerId,
-                            displayName: answer.user ? answer.user.username : '알 수 없음'
+                            // displayName: answer.user ? answer.user.username : '알 수 없음'
+                            displayName: answer.user ? answer.user.fullName : '알 수 없음'
                         }));
 
                         // 베스트 답변 찾기

@@ -7,7 +7,7 @@
         </a>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg p-6">
+    <div class="bg-white shadow-md rounded-lg p-4">
         <form action="/admin/pages" method="POST" x-data="{ submitting: false }" @submit.prevent="saveContent(); submitting = true; $el.submit()">
             <input type="hidden" name="csrf" value="{{.csrf}}">
             <input type="hidden" name="content" id="content">
