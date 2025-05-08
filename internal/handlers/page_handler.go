@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -16,9 +17,9 @@ import (
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/service"
 	"github.com/edp1096/go-board/internal/utils"
+	"github.com/gosimple/slug"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gosimple/slug"
 )
 
 type PageHandler struct {
@@ -108,13 +109,52 @@ func (h *PageHandler) CreatePage(c *fiber.Ctx) error {
 	content := c.FormValue("content")
 	pageSlug := c.FormValue("slug")
 	showInMenu := c.FormValue("show_in_menu") == "on"
-	sessionId := c.FormValue("editorSessionId", "") // 에디터 세션 ID
+	sessionId := c.FormValue("editorSessionId", "")
 
-	// 필수 필드 검증
-	if title == "" {
+	// 제목 유효성 검사
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "제목을 입력해주세요.",
+		})
+	}
+
+	if len(trimmedTitle) < 2 || len(trimmedTitle) > 100 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목은 2자 이상 100자 이하로 입력해주세요.",
+		})
+	}
+
+	// 금칙 문자 검사
+	validator := utils.NewInputValidator()
+	if validator.ContainsForbiddenChars(trimmedTitle) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목에 허용되지 않는 특수문자가 포함되어 있습니다",
+		})
+	}
+
+	// 슬러그 유효성 검사
+	if pageSlug != "" {
+		trimmedSlug := strings.TrimSpace(pageSlug)
+		// 슬러그 형식 검증 (알파벳, 숫자, 하이픈만 허용)
+		slugRegex := regexp.MustCompile(`^[a-z0-9\-]+$`)
+		if !slugRegex.MatchString(trimmedSlug) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": "슬러그는 소문자, 숫자, 하이픈만 사용 가능합니다",
+			})
+		}
+		pageSlug = trimmedSlug
+	}
+
+	// 내용 유효성 검사
+	if strings.TrimSpace(content) == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "내용을 입력해주세요",
 		})
 	}
 
@@ -125,7 +165,7 @@ func (h *PageHandler) CreatePage(c *fiber.Ctx) error {
 
 	// 페이지 객체 생성
 	page := &models.Page{
-		Title:      title,
+		Title:      trimmedTitle,
 		Content:    content,
 		Slug:       pageSlug,
 		Active:     true,
@@ -598,12 +638,59 @@ func (h *PageHandler) UpdatePage(c *fiber.Ctx) error {
 	showInMenu := c.FormValue("show_in_menu") == "on"
 	active := c.FormValue("active") == "on"
 
-	// 필수 필드 검증
-	if title == "" {
+	// 제목 유효성 검사
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "제목을 입력해주세요.",
 		})
+	}
+
+	// 제목 길이 검증
+	if len(trimmedTitle) < 2 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목은 최소 2자 이상이어야 합니다.",
+		})
+	}
+
+	if len(trimmedTitle) > 100 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목은 최대 100자까지 입력 가능합니다.",
+		})
+	}
+
+	// 금칙 문자 검사
+	validator := utils.NewInputValidator()
+	if validator.ContainsForbiddenChars(trimmedTitle) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목에 허용되지 않는 특수문자가 포함되어 있습니다.",
+		})
+	}
+
+	// 내용 유효성 검사
+	if strings.TrimSpace(content) == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "내용을 입력해주세요.",
+		})
+	}
+
+	// 슬러그 유효성 검사 (변경된 경우)
+	trimmedSlug := strings.TrimSpace(pageSlug)
+	if trimmedSlug != "" && trimmedSlug != page.Slug {
+		// 슬러그 형식 검증 (알파벳, 숫자, 하이픈만 허용)
+		slugRegex := regexp.MustCompile(`^[a-z0-9\-]+$`)
+		if !slugRegex.MatchString(trimmedSlug) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": "슬러그는 소문자, 숫자, 하이픈만 사용 가능합니다.",
+			})
+		}
+		page.Slug = trimmedSlug
 	}
 
 	// 슬러그 업데이트
@@ -612,7 +699,7 @@ func (h *PageHandler) UpdatePage(c *fiber.Ctx) error {
 	}
 
 	// 페이지 객체 업데이트
-	page.Title = title
+	page.Title = trimmedTitle
 	page.Content = content
 	page.ShowInMenu = showInMenu
 	page.Active = active

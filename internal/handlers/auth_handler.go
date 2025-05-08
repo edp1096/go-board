@@ -4,6 +4,7 @@ package handlers
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"github.com/edp1096/go-board/internal/models"
@@ -43,8 +44,40 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	password := c.FormValue("password")
 	redirect := c.FormValue("redirect", "/")
 
-	// 로그인 처리
-	_, token, err := h.authService.Login(c.Context(), username, password)
+	// 기본 유효성 검사
+	trimmedUsername := strings.TrimSpace(username)
+	if trimmedUsername == "" || len(trimmedUsername) < 3 {
+		return utils.RenderWithUser(c, "auth/login", fiber.Map{
+			"title":    "로그인",
+			"error":    "아이디 또는 비밀번호가 올바르지 않습니다",
+			"username": username,
+			"redirect": redirect,
+		})
+	}
+
+	// 비밀번호 빈 값 체크
+	if strings.TrimSpace(password) == "" {
+		return utils.RenderWithUser(c, "auth/login", fiber.Map{
+			"title":    "로그인",
+			"error":    "아이디 또는 비밀번호가 올바르지 않습니다",
+			"username": username,
+			"redirect": redirect,
+		})
+	}
+
+	// 금지된 문자 체크 (옵션)
+	validator := utils.NewInputValidator()
+	if validator.ContainsForbiddenChars(trimmedUsername) {
+		return utils.RenderWithUser(c, "auth/login", fiber.Map{
+			"title":    "로그인",
+			"error":    "아이디 또는 비밀번호가 올바르지 않습니다",
+			"username": username,
+			"redirect": redirect,
+		})
+	}
+
+	// 로그인 처리 - 검증된 사용자명 전달
+	_, token, err := h.authService.Login(c.Context(), trimmedUsername, password)
 	if err != nil {
 		return utils.RenderWithUser(c, "auth/login", fiber.Map{
 			"title":    "로그인",
@@ -93,6 +126,42 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	passwordConfirm := c.FormValue("password_confirm")
 	fullName := c.FormValue("full_name")
 
+	// 유효성 검사기 생성
+	validator := utils.NewInputValidator()
+
+	// 사용자명 검증
+	if valid, errorMsg := validator.ValidateUsername(username); !valid {
+		return utils.RenderWithUser(c, "auth/register", fiber.Map{
+			"title":    "회원가입",
+			"error":    errorMsg,
+			"username": username,
+			"email":    email,
+			"fullName": fullName,
+		})
+	}
+
+	// 이메일 검증
+	if valid, errorMsg := validator.ValidateEmail(email); !valid {
+		return utils.RenderWithUser(c, "auth/register", fiber.Map{
+			"title":    "회원가입",
+			"error":    errorMsg,
+			"username": username,
+			"email":    email,
+			"fullName": fullName,
+		})
+	}
+
+	// 비밀번호 검증
+	if valid, errorMsg := validator.ValidatePassword(password); !valid {
+		return utils.RenderWithUser(c, "auth/register", fiber.Map{
+			"title":    "회원가입",
+			"error":    errorMsg,
+			"username": username,
+			"email":    email,
+			"fullName": fullName,
+		})
+	}
+
 	// 비밀번호 확인
 	if password != passwordConfirm {
 		return utils.RenderWithUser(c, "auth/register", fiber.Map{
@@ -104,8 +173,26 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		})
 	}
 
-	// 회원가입 처리
-	_, err := h.authService.Register(c.Context(), username, email, password, fullName)
+	// 이름 검증
+	if valid, errorMsg := validator.ValidateFullName(fullName); !valid {
+		return utils.RenderWithUser(c, "auth/register", fiber.Map{
+			"title":    "회원가입",
+			"error":    errorMsg,
+			"username": username,
+			"email":    email,
+			"fullName": fullName,
+		})
+	}
+
+	// 검증이 모두 통과된 데이터로 회원가입 처리
+	_, err := h.authService.Register(
+		c.Context(),
+		strings.TrimSpace(username),
+		strings.TrimSpace(email),
+		password,
+		strings.TrimSpace(fullName),
+	)
+
 	if err != nil {
 		return utils.RenderWithUser(c, "auth/register", fiber.Map{
 			"title":    "회원가입",
@@ -155,9 +242,28 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	currentPassword := c.FormValue("current_password")
 	newPassword := c.FormValue("new_password")
 
-	// 사용자 정보 업데이트
-	user.Email = email
-	user.FullName = fullName
+	// 유효성 검사기 생성
+	validator := utils.NewInputValidator()
+
+	// 이메일 검증
+	if valid, errorMsg := validator.ValidateEmail(email); !valid {
+		return utils.RenderWithUser(c, "auth/profile", fiber.Map{
+			"title": "내 프로필",
+			"error": errorMsg,
+		})
+	}
+
+	// 이름 검증
+	if valid, errorMsg := validator.ValidateFullName(fullName); !valid {
+		return utils.RenderWithUser(c, "auth/profile", fiber.Map{
+			"title": "내 프로필",
+			"error": errorMsg,
+		})
+	}
+
+	// 검증된 값으로 사용자 정보 업데이트
+	user.Email = strings.TrimSpace(email)
+	user.FullName = strings.TrimSpace(fullName)
 
 	// 프로필 업데이트
 	err := h.authService.UpdateUser(c.Context(), user)
@@ -170,12 +276,21 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 
 	// 비밀번호 변경이 요청된 경우
 	if currentPassword != "" && newPassword != "" {
+		// 새 비밀번호 검증
+		if valid, errorMsg := validator.ValidatePassword(newPassword); !valid {
+			return utils.RenderWithUser(c, "auth/profile", fiber.Map{
+				"title":   "내 프로필",
+				"error":   "새 비밀번호: " + errorMsg,
+				"success": "이메일과 이름이 업데이트되었습니다.",
+			})
+		}
+
 		err := h.authService.ChangePassword(c.Context(), user.ID, currentPassword, newPassword)
 		if err != nil {
 			return utils.RenderWithUser(c, "auth/profile", fiber.Map{
 				"title":   "내 프로필",
 				"error":   "비밀번호 변경에 실패했습니다: " + err.Error(),
-				"success": "프로필이 업데이트되었습니다.",
+				"success": "이메일과 이름이 업데이트되었습니다.",
 			})
 		}
 	}

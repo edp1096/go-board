@@ -568,10 +568,47 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 	content := c.FormValue("content")
 	isPrivate := c.FormValue("is_private") == "on"
 
-	if title == "" {
+	// 제목 유효성 검사
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "제목을 입력해주세요",
+		})
+	}
+
+	// 제목 길이 제한 (예: 3~100자)
+	if len(trimmedTitle) < 3 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목은 최소 3자 이상이어야 합니다",
+		})
+	}
+
+	if len(trimmedTitle) > 100 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목은 최대 100자까지 입력 가능합니다",
+		})
+	}
+
+	// 금칙 문자 검사
+	validator := utils.NewInputValidator()
+	if validator.ContainsForbiddenChars(trimmedTitle) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목에 허용되지 않는 특수문자가 포함되어 있습니다",
+		})
+	}
+
+	// 유효성 검사가 통과된 제목으로 설정
+	title = trimmedTitle
+
+	// 내용 유효성 검사 (HTML 내용이므로 최소 길이만 체크)
+	if strings.TrimSpace(content) == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "내용을 입력해주세요",
 		})
 	}
 
@@ -897,15 +934,49 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	content := c.FormValue("content")
 	isPrivate := c.FormValue("is_private") == "on"
 
-	if title == "" {
+	// 제목 유효성 검사
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "제목을 입력해주세요",
 		})
 	}
 
-	// 기본 필드 업데이트
-	post.Title = title
+	// 제목 길이 제한 (예: 3~100자)
+	if len(trimmedTitle) < 3 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목은 최소 3자 이상이어야 합니다",
+		})
+	}
+
+	if len(trimmedTitle) > 100 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목은 최대 100자까지 입력 가능합니다",
+		})
+	}
+
+	// 금칙 문자 검사
+	validator := utils.NewInputValidator()
+	if validator.ContainsForbiddenChars(trimmedTitle) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "제목에 허용되지 않는 특수문자가 포함되어 있습니다",
+		})
+	}
+
+	// 내용 유효성 검사 (HTML 내용이므로 최소 길이만 체크)
+	if strings.TrimSpace(content) == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "내용을 입력해주세요",
+		})
+	}
+
+	// 기본 필드 업데이트 (검증된 값으로)
+	post.Title = trimmedTitle
 	post.Content = content
 	post.IsPrivate = isPrivate
 
@@ -970,6 +1041,15 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		// 필드값 가져오기
 		value := c.FormValue(field.Name)
 
+		// 필드 값 검증
+		if field.Required && strings.TrimSpace(value) == "" && field.FieldType != models.FieldTypeFile {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"message": field.DisplayName + "을(를) 입력해주세요",
+				"field":   field.Name,
+			})
+		}
+
 		// 갤러리 이미지 필드인 경우 특별 처리
 		if board.BoardType == models.BoardTypeGallery && field.FieldType == models.FieldTypeFile && field.Required {
 			// 새 파일이 업로드되었거나, 기존 이미지가 있고 모두 삭제되지 않는 경우 - 필수 검증 건너뛰기
@@ -985,6 +1065,20 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 				}
 				continue
 			}
+		}
+
+		// 문자열 필드의 경우 금칙 문자 검사
+		if field.FieldType == models.FieldTypeText || field.FieldType == models.FieldTypeTextarea {
+			if validator.ContainsForbiddenChars(value) {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"success": false,
+					"message": field.DisplayName + "에 허용되지 않는 특수문자가 포함되어 있습니다",
+					"field":   field.Name,
+				})
+			}
+
+			// 공백 제거 후 저장
+			value = strings.TrimSpace(value)
 		}
 
 		// 일반적인 필수 필드 검증
