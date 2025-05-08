@@ -74,19 +74,21 @@ build-linux-amd64:
 	@go env -w GOARCH=amd64
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_amd64 ./cmd
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_amd64 ./cmd/migrate
-#	@go build -ldflags "-w -s" -trimpath -o ./bin/add_ipaddress_linux_amd64 ./cmd/add_ipaddress
+#	@go build -ldflags "-w -s" -trimpath -o ./bin/xe_convert_linux_amd64 ./cmd/xe_convert
 
 build-linux-arm64:
 	@go env -w GOOS=linux
 	@go env -w GOARCH=arm64
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_arm64 ./cmd
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_arm64 ./cmd/migrate
+#	@go build -ldflags "-w -s" -trimpath -o ./bin/xe_convert_linux_arm64 ./cmd/xe_convert
 
 build-linux-arm:
 	@go env -w GOOS=linux
 	@go env -w GOARCH=arm
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(APP_NAME)_linux_arm ./cmd
 	@go build -ldflags "-w -s" -trimpath -o ./bin/$(MIGRATE_NAME)_linux_arm ./cmd/migrate
+#	@go build -ldflags "-w -s" -trimpath -o ./bin/xe_convert_linux_arm ./cmd/xe_convert
 
 dev:
 	@echo "Running in development mode..."
