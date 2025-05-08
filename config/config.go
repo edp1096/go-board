@@ -47,6 +47,12 @@ type Config struct {
 	MaxUploadSize      int64  // 일반 파일 업로드 최대 크기 (바이트)
 	MaxImageUploadSize int64  // 이미지 업로드 최대 크기 (바이트)
 	MaxBodyLimit       int    // HTTP 요청 본문 최대 크기 (바이트)
+
+	// Go Fiber 설정
+	FiberStartupMessage bool // Fiber Startup Message show
+	FiberPrintRoute     bool // Fiber Print route
+	FiberPrefork        bool // Fiber Prefork
+	FiberImmutable      bool // Fiber Immutable
 }
 
 // Load 함수는 환경에 따라 config를 로드하고 반환
@@ -179,31 +185,59 @@ func Load() (*Config, error) {
 		maxBodyLimitKB = DefaultBodyLimitKB
 	}
 
+	// Fiber Startup Message 출력
+	fiberStartupMessage := os.Getenv("FIBER_STARTUP_MESSAGE")
+	if fiberStartupMessage == "" {
+		fiberStartupMessage = "false"
+	}
+
+	// Fiber Prefork
+	fiberPrefork := os.Getenv("FIBER_PREFORK")
+	if fiberPrefork == "" {
+		fiberPrefork = "false"
+	}
+
+	// Fiber Immutable
+	fiberImmutable := os.Getenv("FIBER_IMMUTABLE")
+	if fiberImmutable == "" {
+		fiberImmutable = "false"
+	}
+
+	// Fiber Print route
+	fiberPrintRoute := os.Getenv("FIBER_PRINT_ROUTE")
+	if fiberPrintRoute == "" {
+		fiberPrintRoute = "false"
+	}
+
 	return &Config{
-		SiteName:           siteName,
-		LogoPath:           logoPath,
-		LogoDisplayMode:    logoDisplayMode,
-		Environment:        env,
-		Debug:              debug,
-		RequireSetup:       requireSetup,
-		ServerAddress:      serverAddress,
-		DBDriver:           dbDriver,
-		DBHost:             getEnvWithDefault("DB_HOST", "localhost"),
-		DBPort:             getEnvWithDefault("DB_PORT", "5432"),
-		DBUser:             getEnvWithDefault("DB_USER", "postgres"),
-		DBPassword:         os.Getenv("DB_PASSWORD"),
-		DBName:             getEnvWithDefault("DB_NAME", "go_board"),
-		DBPath:             dbPath,
-		JWTSecret:          jwtSecret,
-		SessionSecret:      sessionSecret,
-		CookieSecure:       os.Getenv("COOKIE_SECURE") == "true" || env == EnvProduction,
-		CookieHTTPOnly:     os.Getenv("COOKIE_HTTP_ONLY") != "false",
-		TemplateDir:        templateDir,
-		StaticDir:          staticDir,
-		UploadDir:          uploadDir,
-		MaxUploadSize:      maxUploadSizeKB * BytesPerKB,
-		MaxImageUploadSize: maxImageUploadSizeKB * BytesPerKB,
-		MaxBodyLimit:       maxBodyLimitKB * BytesPerKB,
+		SiteName:            siteName,
+		LogoPath:            logoPath,
+		LogoDisplayMode:     logoDisplayMode,
+		Environment:         env,
+		Debug:               debug,
+		RequireSetup:        requireSetup,
+		ServerAddress:       serverAddress,
+		DBDriver:            dbDriver,
+		DBHost:              getEnvWithDefault("DB_HOST", "localhost"),
+		DBPort:              getEnvWithDefault("DB_PORT", "5432"),
+		DBUser:              getEnvWithDefault("DB_USER", "postgres"),
+		DBPassword:          os.Getenv("DB_PASSWORD"),
+		DBName:              getEnvWithDefault("DB_NAME", "go_board"),
+		DBPath:              dbPath,
+		JWTSecret:           jwtSecret,
+		SessionSecret:       sessionSecret,
+		CookieSecure:        os.Getenv("COOKIE_SECURE") == "true" || env == EnvProduction,
+		CookieHTTPOnly:      os.Getenv("COOKIE_HTTP_ONLY") != "false",
+		TemplateDir:         templateDir,
+		StaticDir:           staticDir,
+		UploadDir:           uploadDir,
+		MaxUploadSize:       maxUploadSizeKB * BytesPerKB,
+		MaxImageUploadSize:  maxImageUploadSizeKB * BytesPerKB,
+		MaxBodyLimit:        maxBodyLimitKB * BytesPerKB,
+		FiberStartupMessage: fiberStartupMessage == "true",
+		FiberPrintRoute:     fiberPrintRoute == "true",
+		FiberPrefork:        fiberPrefork == "true",
+		FiberImmutable:      fiberImmutable == "true",
 	}, nil
 }
 

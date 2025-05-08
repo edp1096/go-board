@@ -285,7 +285,7 @@ func (h *UploadHandler) DeleteAttachment(c *fiber.Ctx) error {
 	}
 
 	// 게시물 정보 조회
-	post, err := h.boardService.GetPost(c.Context(), attachment.BoardID, attachment.PostID)
+	post, err := h.boardService.GetPost(c.Context(), attachment.BoardID, attachment.PostID, false)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,

@@ -47,7 +47,7 @@ type BoardService interface {
 
 	// 게시물 관련
 	CreatePost(ctx context.Context, boardID int64, post *models.DynamicPost) error
-	GetPost(ctx context.Context, boardID int64, postID int64) (*models.DynamicPost, error)
+	GetPost(ctx context.Context, boardID int64, postID int64, increaseViewCount bool) (*models.DynamicPost, error)
 	UpdatePost(ctx context.Context, boardID int64, post *models.DynamicPost) error
 	DeletePost(ctx context.Context, boardID int64, postID int64) error
 	ListPosts(ctx context.Context, boardID int64, page, pageSize int, sortField, sortDir string) ([]*models.DynamicPost, int, error)
@@ -393,7 +393,7 @@ func (s *boardService) CreatePost(ctx context.Context, boardID int64, post *mode
 	return nil
 }
 
-func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64) (*models.DynamicPost, error) {
+func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64, increaseViewCount bool) (*models.DynamicPost, error) {
 	// 게시판 정보 조회
 	board, err := s.boardRepo.GetByID(ctx, boardID)
 	if err != nil {
@@ -434,28 +434,31 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 		return nil, ErrPostNotFound
 	}
 
-	// 조회수 증가
-	if utils.IsPostgres(s.db) {
-		s.db.NewUpdate().
-			Table(board.TableName).
-			Set("view_count = view_count + 1").
-			Where("id = ?", postID).
-			Exec(ctx)
-	} else {
-		s.db.NewUpdate().
-			Table(board.TableName).
-			Set("view_count = view_count + 1").
-			Where("id = ?", postID).
-			Exec(ctx)
-	}
-
 	// ID 값 확인
 	if row["id"] == nil {
 		return nil, ErrPostNotFound
 	}
 
-	// 유틸리티 함수를 사용한 타입 변환
+	// 방금 증가한 조회수 반영
 	viewCount := utils.InterfaceToInt(row["view_count"])
+	if increaseViewCount {
+		// 조회수 증가
+		if utils.IsPostgres(s.db) {
+			s.db.NewUpdate().
+				Table(board.TableName).
+				Set("view_count = view_count + 1").
+				Where("id = ?", postID).
+				Exec(ctx)
+		} else {
+			s.db.NewUpdate().
+				Table(board.TableName).
+				Set("view_count = view_count + 1").
+				Where("id = ?", postID).
+				Exec(ctx)
+		}
+
+		viewCount++
+	}
 
 	// DynamicPost 객체 생성
 	post := &models.DynamicPost{
@@ -465,7 +468,7 @@ func (s *boardService) GetPost(ctx context.Context, boardID int64, postID int64)
 		UserID:       utils.InterfaceToInt64(row["user_id"]),
 		Username:     utils.InterfaceToString(row["username"]),
 		Fullname:     utils.InterfaceToString(row["full_name"]),
-		ViewCount:    viewCount + 1, // 방금 증가한 조회수 반영
+		ViewCount:    viewCount,
 		CommentCount: utils.InterfaceToInt(row["comment_count"]),
 		LikeCount:    utils.InterfaceToInt(row["like_count"]),
 		DislikeCount: utils.InterfaceToInt(row["dislike_count"]),

@@ -229,22 +229,24 @@ func main() {
 		return false
 	})
 
-	// Fiber 앱 생성
-	app := fiber.New(fiber.Config{
+	appConfig := fiber.Config{
 		IdleTimeout:           5 * time.Second,
 		Views:                 engine,
 		ViewsLayout:           "layouts/base",
-		DisableStartupMessage: true,
 		StreamRequestBody:     true,
 		ReadBufferSize:        8192,
 		ProxyHeader:           "X-Forwarded-For",
 		JSONEncoder:           json.Marshal,
 		JSONDecoder:           json.Unmarshal,
-		// BodyLimit:             cfg.MaxBodyLimit,
-		// Prefork:               true,
-		// Immutable:             true,
-		// EnablePrintRoutes:     true,
-	})
+		BodyLimit:             cfg.MaxBodyLimit,
+		DisableStartupMessage: !cfg.FiberStartupMessage,
+		EnablePrintRoutes:     cfg.FiberPrintRoute,
+		Prefork:               cfg.FiberPrefork,
+		Immutable:             cfg.FiberImmutable,
+	}
+
+	// Fiber 앱 생성
+	app := fiber.New(appConfig)
 
 	// 업로드 디렉토리 확인
 	uploadDir := cfg.UploadDir
@@ -260,11 +262,12 @@ func main() {
 	systemSettingsRepo := repository.NewSystemSettingsRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	boardRepo := repository.NewBoardRepository(db)
+	participantRepo := repository.NewBoardParticipantRepository(db)
+	commentRepo := repository.NewCommentRepository(db)
 	postVoteRepo := repository.NewPostVoteRepository(db)
 	commentVoteRepo := repository.NewCommentVoteRepository(db)
-	commentRepo := repository.NewCommentRepository(db)
+	qnaRepo := repository.NewQnARepository(db)
 	attachmentRepo := repository.NewAttachmentRepository(db)
-	participantRepo := repository.NewBoardParticipantRepository(db)
 	pageRepo := repository.NewPageRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
 	referrerRepo := repository.NewReferrerRepository(db)
@@ -278,7 +281,7 @@ func main() {
 	commentService := service.NewCommentService(commentRepo, boardRepo)
 	postVoteService := service.NewPostVoteService(postVoteRepo, boardService)
 	commentVoteService := service.NewCommentVoteService(commentVoteRepo, boardService, commentRepo)
-	qnaService := service.NewQnAService(db, boardRepo, boardService)
+	qnaService := service.NewQnAService(qnaRepo, boardRepo, boardService)
 	uploadService := service.NewUploadService(attachmentRepo, cfg)
 	pageService := service.NewPageService(pageRepo, uploadService)
 	categoryService := service.NewCategoryService(categoryRepo, boardRepo, pageRepo)
@@ -361,7 +364,7 @@ func main() {
 	)
 
 	// 서버 시작
-	go startServer(app, cfg.ServerAddress)
+	go startServer(app, cfg)
 
 	// // 준비 시간 계산 및 출력
 	// readyTime := time.Since(startTime)
@@ -797,9 +800,11 @@ func setupRoutes(
 }
 
 // startServer는 서버를 시작합니다
-func startServer(app *fiber.App, address string) {
-	fmt.Printf("서버를 시작합니다: http://%s\n", address)
-	if err := app.Listen(address); err != nil {
+func startServer(app *fiber.App, cfg *config.Config) {
+	if !cfg.FiberStartupMessage {
+		fmt.Printf("서버를 시작합니다: http://%s\n", cfg.ServerAddress)
+	}
+	if err := app.Listen(cfg.ServerAddress); err != nil {
 		log.Fatalf("서버 시작 실패: %v", err)
 	}
 }

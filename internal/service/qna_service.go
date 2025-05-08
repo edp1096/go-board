@@ -10,8 +10,6 @@ import (
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/repository"
 	"github.com/edp1096/go-board/internal/utils"
-
-	"github.com/uptrace/bun"
 )
 
 var (
@@ -41,15 +39,15 @@ type QnAService interface {
 }
 
 type qnaService struct {
-	db        *bun.DB
 	boardRepo repository.BoardRepository
 	boardSvc  BoardService
+	qnaRepo   repository.QnARepository
 }
 
 // NewQnAService는 QnAService의 새 인스턴스를 생성합니다.
-func NewQnAService(db *bun.DB, boardRepo repository.BoardRepository, boardSvc BoardService) QnAService {
+func NewQnAService(qnaRepo repository.QnARepository, boardRepo repository.BoardRepository, boardSvc BoardService) QnAService {
 	return &qnaService{
-		db:        db,
+		qnaRepo:   qnaRepo,
 		boardRepo: boardRepo,
 		boardSvc:  boardSvc,
 	}
@@ -71,21 +69,20 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 	}
 
 	// 트랜잭션 시작
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.qnaRepo.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
 	// 답변 저장
-	_, err = tx.NewInsert().Model(answer).Exec(ctx)
+	err = s.qnaRepo.CreateAnswer(ctx, answer)
 	if err != nil {
 		return nil, err
 	}
 
-	// 질문의 답변 수 업데이트
 	// 질문 가져오기
-	post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
+	post, err := s.boardSvc.GetPost(ctx, boardID, questionID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -98,10 +95,6 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 		answerCount = currentCount + 1
 	}
 
-	// 게시물 업데이트 쿼리
-	setClause := "answer_count = ?"
-	params := []any{answerCount, questionID}
-
 	// 게시판 정보 조회
 	board, err := s.boardRepo.GetByID(ctx, boardID)
 	if err != nil {
@@ -111,19 +104,9 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 	// 질문 답변 수 업데이트 쿼리 실행
 	_, err = tx.NewUpdate().
 		Table(board.TableName).
-		Set(setClause, params[0]).
-		Where("id = ?", params[1]).
+		Set("answer_count = ?", answerCount).
+		Where("id = ?", questionID).
 		Exec(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// 사용자 정보 조회하여 반환 결과에 포함
-	var user models.User
-	err = tx.NewSelect().
-		Model(&user).
-		Where("id = ?", userID).
-		Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -133,16 +116,14 @@ func (s *qnaService) CreateAnswer(ctx context.Context, boardID, questionID, user
 		return nil, err
 	}
 
-	// 반환할 결과에 사용자 정보 포함
-	answer.User = &user
-
-	return answer, nil
+	// 저장된 답변 조회
+	return s.qnaRepo.GetAnswerByID(ctx, answer.ID)
 }
 
 // GetAnswersByQuestionID는 질문의 모든 답변과 답글을 조회합니다.
 func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questionID int64, showIP bool) ([]*models.Answer, error) {
 	// 게시물 가져오기 - 베스트 답변 ID 확인을 위해
-	post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
+	post, err := s.boardSvc.GetPost(ctx, boardID, questionID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -154,18 +135,7 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 	}
 
 	// 모든 답변 및 답글 조회
-	var allAnswers []*models.Answer
-	query := s.db.NewSelect().
-		Model(&allAnswers).
-		Relation("User").
-		Where("board_id = ? AND question_id = ?", boardID, questionID).
-		OrderExpr("CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END, vote_count DESC, a.created_at ASC")
-
-	if !showIP {
-		query = query.ExcludeColumn("ip_address")
-	}
-
-	err = query.Scan(ctx)
+	allAnswers, err := s.qnaRepo.GetAnswersByQuestionID(ctx, boardID, questionID, showIP)
 	if err != nil {
 		return nil, err
 	}
@@ -200,18 +170,10 @@ func (s *qnaService) GetAnswersByQuestionID(ctx context.Context, boardID, questi
 
 // GetAnswerByID는 ID로 답변을 조회합니다.
 func (s *qnaService) GetAnswerByID(ctx context.Context, answerID int64) (*models.Answer, error) {
-	answer := new(models.Answer)
-
-	err := s.db.NewSelect().
-		Model(answer).
-		Relation("User").
-		Where("a.id = ?", answerID).
-		Scan(ctx)
-
+	answer, err := s.qnaRepo.GetAnswerByID(ctx, answerID)
 	if err != nil {
 		return nil, ErrAnswerNotFound
 	}
-
 	return answer, nil
 }
 
@@ -232,11 +194,7 @@ func (s *qnaService) UpdateAnswer(ctx context.Context, answerID, userID int64, c
 	answer.Content = content
 	answer.UpdatedAt = time.Now()
 
-	_, err = s.db.NewUpdate().
-		Model(answer).
-		Column("content", "updated_at").
-		Where("id = ?", answerID).
-		Exec(ctx)
+	err = s.qnaRepo.UpdateAnswer(ctx, answer)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +216,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 	}
 
 	// 트랜잭션 시작
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.qnaRepo.BeginTx(ctx)
 	if err != nil {
 		return err
 	}
@@ -271,7 +229,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 	}
 
 	// 질문 조회
-	post, err := s.boardSvc.GetPost(ctx, answer.BoardID, answer.QuestionID)
+	post, err := s.boardSvc.GetPost(ctx, answer.BoardID, answer.QuestionID, false)
 	if err != nil {
 		return err
 	}
@@ -295,10 +253,7 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 	}
 
 	// 답변 삭제
-	_, err = tx.NewDelete().
-		Model((*models.Answer)(nil)).
-		Where("id = ?", answerID).
-		Exec(ctx)
+	err = s.qnaRepo.DeleteAnswer(ctx, answerID)
 	if err != nil {
 		return err
 	}
@@ -337,77 +292,50 @@ func (s *qnaService) DeleteAnswer(ctx context.Context, answerID, userID int64, i
 
 // GetQuestionVoteCount는 질문의 현재 투표 수를 조회합니다.
 func (s *qnaService) GetQuestionVoteCount(ctx context.Context, boardID, questionID int64) (int, error) {
-	// 투표 수 계산
-	var voteSum int
-	err := s.db.NewSelect().
-		Model((*models.QuestionVote)(nil)).
-		ColumnExpr("COALESCE(SUM(value), 0) AS vote_sum").
-		Where("question_id = ?", questionID).
-		Scan(ctx, &voteSum)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return voteSum, nil
+	return s.qnaRepo.GetQuestionVoteCount(ctx, questionID)
 }
 
 // VoteQuestion은 질문에 투표합니다.
 func (s *qnaService) VoteQuestion(ctx context.Context, boardID, questionID, userID int64, value int) (int, error) {
 	// 질문 존재 여부 확인
-	// post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
-	_, err := s.boardSvc.GetPost(ctx, boardID, questionID)
+	_, err := s.boardSvc.GetPost(ctx, boardID, questionID, false)
 	if err != nil {
 		return 0, fmt.Errorf("질문 조회 실패: %w", err)
 	}
 
 	// 게시판 정보 조회
-	board, err := s.boardRepo.GetByID(ctx, boardID)
+	_, err = s.boardRepo.GetByID(ctx, boardID)
 	if err != nil {
 		return 0, ErrBoardNotFound
 	}
 
 	// 트랜잭션 시작
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.qnaRepo.BeginTx(ctx)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
 	// 이전 투표 기록 확인
-	var existingVote models.QuestionVote
-	err = tx.NewSelect().
-		Model(&existingVote).
-		Where("board_id = ? AND question_id = ? AND user_id = ?", boardID, questionID, userID).
-		Scan(ctx)
+	existingVote, err := s.qnaRepo.GetQuestionVote(ctx, boardID, questionID, userID)
 
-	// var voteChange int
 	if err == nil {
 		// 이전 투표가 있는 경우
 		if existingVote.Value == value {
 			// 동일한 투표 취소
-			_, err = tx.NewDelete().
-				Model((*models.QuestionVote)(nil)).
-				Where("id = ?", existingVote.ID).
-				Exec(ctx)
+			err = s.qnaRepo.DeleteQuestionVote(ctx, existingVote.ID)
 			if err != nil {
 				return 0, err
 			}
-			// voteChange = -value
 		} else {
 			// 다른 방향으로 투표 변경
 			existingVote.Value = value
 			existingVote.UpdatedAt = time.Now()
 
-			_, err = tx.NewUpdate().
-				Model(&existingVote).
-				Column("value", "updated_at").
-				Where("id = ?", existingVote.ID).
-				Exec(ctx)
+			err = s.qnaRepo.UpdateQuestionVote(ctx, existingVote)
 			if err != nil {
 				return 0, err
 			}
-			// voteChange = value * 2 // 기존 값의 반대로 변경 (-1 → 1 또는 1 → -1)
 		}
 	} else {
 		// 새 투표 생성
@@ -420,32 +348,20 @@ func (s *qnaService) VoteQuestion(ctx context.Context, boardID, questionID, user
 			UpdatedAt:  time.Now(),
 		}
 
-		_, err = tx.NewInsert().
-			Model(vote).
-			Exec(ctx)
+		err = s.qnaRepo.CreateQuestionVote(ctx, vote)
 		if err != nil {
 			return 0, err
 		}
-		// voteChange = value
 	}
 
 	// 질문 투표 수 계산
-	var voteSum int
-	err = tx.NewSelect().
-		Model((*models.QuestionVote)(nil)).
-		ColumnExpr("COALESCE(SUM(value), 0) AS vote_sum").
-		Where("question_id = ?", questionID).
-		Scan(ctx, &voteSum)
+	voteSum, err := s.qnaRepo.GetQuestionVoteCount(ctx, questionID)
 	if err != nil {
 		return 0, err
 	}
 
-	// 질문의 vote_count 필드 업데이트 - tx를 사용하여 트랜잭션 내에서 업데이트
-	_, err = tx.NewUpdate().
-		Table(board.TableName).
-		Set("vote_count = ?", voteSum).
-		Where("id = ?", questionID).
-		Exec(ctx)
+	// 질문의 vote_count 필드 업데이트
+	err = s.qnaRepo.UpdateQuestionVoteCount(ctx, boardID, questionID, voteSum)
 	if err != nil {
 		return 0, fmt.Errorf("투표 수 업데이트 실패: %w", err)
 	}
@@ -467,29 +383,21 @@ func (s *qnaService) VoteAnswer(ctx context.Context, answerID, userID int64, val
 	}
 
 	// 트랜잭션 시작
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.qnaRepo.BeginTx(ctx)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
 	// 이전 투표 기록 확인
-	var existingVote models.AnswerVote
-	err = tx.NewSelect().
-		Model(&existingVote).
-		Where("answer_id = ? AND user_id = ?",
-			answerID, userID).
-		Scan(ctx)
+	existingVote, err := s.qnaRepo.GetAnswerVote(ctx, answerID, userID)
 
 	var voteChange int
 	if err == nil {
 		// 이전 투표가 있는 경우
 		if existingVote.Value == value {
 			// 동일한 투표 취소
-			_, err = tx.NewDelete().
-				Model((*models.AnswerVote)(nil)).
-				Where("id = ?", existingVote.ID).
-				Exec(ctx)
+			err = s.qnaRepo.DeleteAnswerVote(ctx, existingVote.ID)
 			if err != nil {
 				return 0, err
 			}
@@ -499,11 +407,7 @@ func (s *qnaService) VoteAnswer(ctx context.Context, answerID, userID int64, val
 			existingVote.Value = value
 			existingVote.UpdatedAt = time.Now()
 
-			_, err = tx.NewUpdate().
-				Model(&existingVote).
-				Column("value", "updated_at").
-				Where("id = ?", existingVote.ID).
-				Exec(ctx)
+			err = s.qnaRepo.UpdateAnswerVote(ctx, existingVote)
 			if err != nil {
 				return 0, err
 			}
@@ -520,9 +424,7 @@ func (s *qnaService) VoteAnswer(ctx context.Context, answerID, userID int64, val
 			UpdatedAt: time.Now(),
 		}
 
-		_, err = tx.NewInsert().
-			Model(vote).
-			Exec(ctx)
+		err = s.qnaRepo.CreateAnswerVote(ctx, vote)
 		if err != nil {
 			return 0, err
 		}
@@ -531,11 +433,7 @@ func (s *qnaService) VoteAnswer(ctx context.Context, answerID, userID int64, val
 
 	// 답변 투표 수 업데이트
 	newVoteCount := answer.VoteCount + voteChange
-	_, err = tx.NewUpdate().
-		Model((*models.Answer)(nil)).
-		Set("vote_count = ?", newVoteCount).
-		Where("id = ?", answerID).
-		Exec(ctx)
+	err = s.qnaRepo.UpdateAnswerVoteCount(ctx, answerID, newVoteCount)
 	if err != nil {
 		return 0, err
 	}
@@ -551,13 +449,13 @@ func (s *qnaService) VoteAnswer(ctx context.Context, answerID, userID int64, val
 // UpdateQuestionStatus는 질문의 상태를 업데이트합니다.
 func (s *qnaService) UpdateQuestionStatus(ctx context.Context, boardID, questionID, userID int64, status string) error {
 	// 게시판 정보 조회
-	board, err := s.boardRepo.GetByID(ctx, boardID)
+	_, err := s.boardRepo.GetByID(ctx, boardID)
 	if err != nil {
 		return err
 	}
 
 	// 질문 조회
-	post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
+	post, err := s.boardSvc.GetPost(ctx, boardID, questionID, false)
 	if err != nil {
 		return err
 	}
@@ -573,25 +471,19 @@ func (s *qnaService) UpdateQuestionStatus(ctx context.Context, boardID, question
 	}
 
 	// 상태 업데이트
-	_, err = s.db.NewUpdate().
-		Table(board.TableName).
-		Set("status = ?", status).
-		Where("id = ?", questionID).
-		Exec(ctx)
-
-	return err
+	return s.qnaRepo.UpdateQuestionStatus(ctx, boardID, questionID, status)
 }
 
 // SetBestAnswer는 베스트 답변을 설정합니다.
 func (s *qnaService) SetBestAnswer(ctx context.Context, boardID, questionID, answerID, userID int64) error {
 	// 게시판 정보 조회
-	board, err := s.boardRepo.GetByID(ctx, boardID)
+	_, err := s.boardRepo.GetByID(ctx, boardID)
 	if err != nil {
 		return err
 	}
 
 	// 질문 조회
-	post, err := s.boardSvc.GetPost(ctx, boardID, questionID)
+	post, err := s.boardSvc.GetPost(ctx, boardID, questionID, false)
 	if err != nil {
 		return err
 	}
@@ -613,19 +505,14 @@ func (s *qnaService) SetBestAnswer(ctx context.Context, boardID, questionID, ans
 	}
 
 	// 트랜잭션 시작
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.qnaRepo.BeginTx(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
 	// 베스트 답변 설정
-	_, err = tx.NewUpdate().
-		Table(board.TableName).
-		Set("best_answer_id = ?", answerID).
-		Set("status = ?", "solved"). // 자동으로 해결됨 상태로 변경
-		Where("id = ?", questionID).
-		Exec(ctx)
+	err = s.qnaRepo.SetBestAnswer(ctx, boardID, questionID, answerID)
 	if err != nil {
 		return err
 	}
@@ -662,24 +549,14 @@ func (s *qnaService) CreateAnswerReply(ctx context.Context, answerID, userID int
 	}
 
 	// 트랜잭션 시작
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.qnaRepo.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
 	// 답글 저장
-	_, err = tx.NewInsert().Model(reply).Exec(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// 사용자 정보 조회하여 반환 결과에 포함
-	var user models.User
-	err = tx.NewSelect().
-		Model(&user).
-		Where("id = ?", userID).
-		Scan(ctx)
+	err = s.qnaRepo.CreateAnswer(ctx, reply)
 	if err != nil {
 		return nil, err
 	}
@@ -689,8 +566,6 @@ func (s *qnaService) CreateAnswerReply(ctx context.Context, answerID, userID int
 		return nil, err
 	}
 
-	// 반환할 결과에 사용자 정보 포함
-	reply.User = &user
-
-	return reply, nil
+	// 저장된 답글 조회 (사용자 정보 포함)
+	return s.qnaRepo.GetAnswerByID(ctx, reply.ID)
 }

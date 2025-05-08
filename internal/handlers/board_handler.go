@@ -311,7 +311,7 @@ func (h *BoardHandler) GetPost(c *fiber.Ctx) error {
 	}
 
 	// 게시물 정보 조회
-	post, err := h.boardService.GetPost(c.Context(), boardID, postID)
+	post, err := h.boardService.GetPost(c.Context(), boardID, postID, true)
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
@@ -809,7 +809,7 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 	}
 
 	// 게시물 정보 조회
-	post, err := h.boardService.GetPost(c.Context(), boardID, postID)
+	post, err := h.boardService.GetPost(c.Context(), boardID, postID, false)
 	if err != nil {
 		return utils.RenderWithUser(c, "error", fiber.Map{
 			"title":   "오류",
@@ -888,7 +888,7 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 	}
 
 	// 게시물 정보 조회
-	post, err := h.boardService.GetPost(c.Context(), boardID, postID)
+	post, err := h.boardService.GetPost(c.Context(), boardID, postID, false)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
@@ -1242,7 +1242,7 @@ func (h *BoardHandler) DeletePost(c *fiber.Ctx) error {
 	}
 
 	// 게시물 정보 조회
-	post, err := h.boardService.GetPost(c.Context(), boardID, postID)
+	post, err := h.boardService.GetPost(c.Context(), boardID, postID, false)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
