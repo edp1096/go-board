@@ -39,6 +39,11 @@ go-board
 ```
 
 
+## 첫페이지 만들기
+
+관리자 계정 생성 > 관리자 로그인 > 새페이지 생성 > slug를 `front-page`로 저장
+
+
 ## 설정
 
 * `.env` 파일 수정 - [.env.example](docs/env_samples/.env.example) 참고
