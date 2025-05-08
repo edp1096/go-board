@@ -314,7 +314,7 @@
                                         </div>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.fullName : '알 수 없음'"></div>
+                                        <div class="text-sm font-medium" x-text="reply.user ? reply.user.fullName {{if $isAdmin}} + '('+comment.ipAddress+')' {{end}} : '알 수 없음'"></div>
                                         <!-- <div class="mt-1 text-sm" x-html="reply.content.replace(/\n/g, '<br>')"></div> -->
                                         <div class="mt-1 text-sm prose prose-sm max-w-none" x-html="reply.content.replace(/\n/g, '<br>')"></div>
                                         <div class="mt-2 text-xs flex items-center space-x-2">
