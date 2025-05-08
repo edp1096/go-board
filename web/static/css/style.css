@@ -258,6 +258,15 @@ select {
     line-height: inherit;
 }
 
+.prose video {
+    width: 90%;
+    max-width: 800px;
+    height: auto;
+    border-radius: 4px;
+    display: block;
+    margin: 1em 0;
+}
+
 /* 테이블 스타일 */
 .table-responsive {
     overflow-x: auto;

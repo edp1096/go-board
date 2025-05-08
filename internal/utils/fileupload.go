@@ -24,6 +24,13 @@ var AllowedImageTypes = map[string]bool{
 	"image/svg+xml": true,
 }
 
+// 허용된 비디오 MIME 타입 목록
+var AllowedVideoTypes = map[string]bool{
+	"video/mp4":  true,
+	"video/webm": true,
+	"video/ogg":  true,
+}
+
 // 허용된 파일 MIME 타입 목록 (필요에 따라 확장)
 var AllowedFileTypes = map[string]bool{
 	"application/pdf":    true,
@@ -36,6 +43,15 @@ var AllowedFileTypes = map[string]bool{
 	"text/csv":                     true,
 	"application/zip":              true,
 	"application/x-zip-compressed": true,
+}
+
+// 미디어 타입 (이미지 + 비디오)
+var AllowedMediaTypes = map[string]bool{}
+
+func init() {
+	// 이미지와 비디오 타입을 합친 미디어 타입 생성
+	maps.Copy(AllowedMediaTypes, AllowedImageTypes)
+	maps.Copy(AllowedMediaTypes, AllowedVideoTypes)
 }
 
 // 파일 업로드 설정 구조체
@@ -56,6 +72,7 @@ type UploadedFile struct {
 	URL          string
 	ThumbnailURL string
 	IsImage      bool
+	IsVideo      bool
 }
 
 // 파일 업로드 처리 함수
@@ -143,6 +160,7 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig, uploadDir strin
 
 	// 결과 반환
 	isImage := AllowedImageTypes[mimeType]
+	isVideo := AllowedVideoTypes[mimeType]
 
 	// URL 경로 생성 - 항상 uploads/를 포함하도록 설정
 	relativePath := strings.TrimPrefix(config.BasePath, uploadDir)
@@ -158,6 +176,7 @@ func UploadFile(file *multipart.FileHeader, config UploadConfig, uploadDir strin
 		MimeType:     mimeType,
 		URL:          urlPath,
 		IsImage:      isImage,
+		IsVideo:      isVideo,
 	}
 
 	// 이미지인 경우 썸네일 URL 설정
@@ -219,6 +238,50 @@ func UploadImages(files []*multipart.FileHeader, basePath string, maxSize int64,
 			}
 
 			// 썸네일 URL은 이미 UploadFile 함수에서 설정됨
+		}
+	}
+
+	return uploadedFiles, nil
+}
+
+// UploadMedias 함수 - 이미지와 비디오 업로드
+func UploadMedias(files []*multipart.FileHeader, basePath string, maxSize int64, uploadDir string) ([]*UploadedFile, error) {
+	config := UploadConfig{
+		BasePath:       basePath,
+		MaxSize:        maxSize,
+		AllowedTypes:   AllowedMediaTypes, // 이미지와 비디오 모두 허용
+		UniqueFilename: true,
+	}
+
+	uploadedFiles, err := UploadFiles(files, config, uploadDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// 파일 타입에 따른 추가 처리
+	for _, file := range uploadedFiles {
+		if file.IsImage {
+			// 이미지인 경우 썸네일 생성
+			_, err := GenerateThumbnail(file.Path, GalleryThumbnailWidth, GalleryThumbnailHeight)
+			if err != nil {
+				fmt.Printf("갤러리 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 컨텐츠용 썸네일도 생성
+			_, err = GenerateThumbnail(file.Path, ContentThumbnailWidth, 0)
+			if err != nil {
+				fmt.Printf("컨텐츠 썸네일 생성 실패 (%s): %v\n", file.OriginalName, err)
+			}
+
+			// 썸네일 URL 설정
+			file.ThumbnailURL = GetThumbnailURL(file.URL)
+		}
+
+		// 비디오인 경우 추가 처리가 필요하다면 여기에 구현
+		// 예: 비디오 썸네일 생성, 트랜스코딩 등
+		if file.IsVideo {
+			// 지금은 추가 처리 없이 URL만 설정
+			// 필요하다면 나중에 비디오 썸네일 생성 기능 추가
 		}
 	}
 

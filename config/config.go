@@ -45,7 +45,7 @@ type Config struct {
 	// 파일 업로드 관련 설정
 	UploadDir          string // 업로드 디렉토리 경로
 	MaxUploadSize      int64  // 일반 파일 업로드 최대 크기 (바이트)
-	MaxImageUploadSize int64  // 이미지 업로드 최대 크기 (바이트)
+	MaxMediaUploadSize int64  // 이미지 업로드 최대 크기 (바이트)
 	MaxBodyLimit       int    // HTTP 요청 본문 최대 크기 (바이트)
 
 	// Go Fiber 설정
@@ -166,17 +166,15 @@ func Load() (*Config, error) {
 	}
 
 	// 파일 업로드 크기 설정
-	maxUploadSizeKB, err := strconv.ParseInt(getEnvWithDefault("MAX_UPLOAD_SIZE",
-		strconv.Itoa(DefaultUploadSizeKB)), 10, 64)
+	maxUploadSizeKB, err := strconv.ParseInt(getEnvWithDefault("MAX_UPLOAD_SIZE", strconv.Itoa(DefaultUploadSizeKB)), 10, 64)
 	if err != nil {
 		maxUploadSizeKB = DefaultUploadSizeKB
 	}
 
 	// 이미지 업로드 크기 설정
-	maxImageUploadSizeKB, err := strconv.ParseInt(getEnvWithDefault("MAX_IMAGE_UPLOAD_SIZE",
-		strconv.Itoa(DefaultImageUploadSizeKB)), 10, 64)
+	maxMediaUploadSizeKB, err := strconv.ParseInt(getEnvWithDefault("MAX_MEDIA_UPLOAD_SIZE", strconv.Itoa(DefaultMediaUploadSizeKB)), 10, 64)
 	if err != nil {
-		maxImageUploadSizeKB = DefaultImageUploadSizeKB
+		maxMediaUploadSizeKB = DefaultMediaUploadSizeKB
 	}
 
 	// HTTP 요청 본문 최대 크기 설정
@@ -232,7 +230,7 @@ func Load() (*Config, error) {
 		StaticDir:           staticDir,
 		UploadDir:           uploadDir,
 		MaxUploadSize:       maxUploadSizeKB * BytesPerKB,
-		MaxImageUploadSize:  maxImageUploadSizeKB * BytesPerKB,
+		MaxMediaUploadSize:  maxMediaUploadSizeKB * BytesPerKB,
 		MaxBodyLimit:        maxBodyLimitKB * BytesPerKB,
 		FiberStartupMessage: fiberStartupMessage == "true",
 		FiberPrintRoute:     fiberPrintRoute == "true",

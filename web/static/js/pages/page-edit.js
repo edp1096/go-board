@@ -30,7 +30,7 @@ function initEditor() {
     const editorOptions = {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/pages/${pageId}/upload`, // 페이지 이미지 업로드용 API 경로
-        uploadAccessURI: `/uploads/pages/${pageId}/images`, // 페이지 이미지 접근 경로
+        uploadAccessURI: `/uploads/pages/${pageId}/medias`, // 페이지 이미지 접근 경로
         uploadCallback: function (response) {
             // console.log("업로드 완료:", response);
         },

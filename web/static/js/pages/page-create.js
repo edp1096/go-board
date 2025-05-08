@@ -39,7 +39,7 @@ function initEditor() {
     const editorOptions = {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/pages/upload?sessionId=${sessionId}`, // 세션 ID 전달
-        uploadAccessURI: `/uploads/pages/temp/${sessionId}/images`, // 세션별 임시 경로
+        uploadAccessURI: `/uploads/pages/temp/${sessionId}/medias`, // 세션별 임시 경로
         uploadCallback: function (response) {
             // 업로드 파일 추적을 위한 처리는 서버에서 함
         },

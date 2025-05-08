@@ -23,7 +23,7 @@ function initAnswerEditor() {
     const editorOptions = {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/boards/${boardId}/upload`,
-        uploadAccessURI: `/uploads/boards/${boardId}/images`,
+        uploadAccessURI: `/uploads/boards/${boardId}/medias`,
         placeholder: '답변을 입력하세요...',
         uploadCallback: function (response) {
             console.log("답변 이미지 업로드 완료:", response);
@@ -55,7 +55,7 @@ function initEditCommentEditor() {
     const editorOptions = {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/boards/${boardId}/upload`,
-        uploadAccessURI: `/uploads/boards/${boardId}/images`,
+        uploadAccessURI: `/uploads/boards/${boardId}/medias`,
         placeholder: '댓글을 수정하세요...',
         uploadCallback: function (response) {
             console.log("댓글 이미지 업로드 완료:", response);

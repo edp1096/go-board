@@ -241,20 +241,20 @@ func (h *PageHandler) MoveSessionPageImages(ctx context.Context, pageID int64, s
 		return nil
 	}
 
-	// 임시 경로 패턴 (예: "/uploads/pages/temp/SESSION_ID/images/")
-	tempPattern := fmt.Sprintf("/uploads/pages/temp/%s/images/", sessionId)
+	// 임시 경로 패턴 (예: "/uploads/pages/temp/SESSION_ID/medias/")
+	tempPattern := fmt.Sprintf("/uploads/pages/temp/%s/medias/", sessionId)
 
-	// 새 경로 패턴 (예: "/uploads/pages/123/images/")
-	newPattern := fmt.Sprintf("/uploads/pages/%d/images/", pageID)
+	// 새 경로 패턴 (예: "/uploads/pages/123/medias/")
+	newPattern := fmt.Sprintf("/uploads/pages/%d/medias/", pageID)
 
 	// 새 디렉토리 생성
-	newDir := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(pageID, 10), "images")
+	newDir := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(pageID, 10), "medias")
 	if err := os.MkdirAll(newDir, 0755); err != nil {
 		return fmt.Errorf("페이지 이미지 디렉토리 생성 실패: %w", err)
 	}
 
 	// 임시 디렉토리 경로
-	tempDir := filepath.Join(h.config.UploadDir, "pages", "temp", sessionId, "images")
+	tempDir := filepath.Join(h.config.UploadDir, "pages", "temp", sessionId, "medias")
 
 	// 임시 디렉토리가 존재하는지 확인
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
@@ -381,8 +381,8 @@ func (h *PageHandler) MoveSessionPageImages(ctx context.Context, pageID int64, s
 
 		// 4. 세션 ID 폴더와 그 부모 디렉토리까지 삭제 시도
 		tempSessionDir := filepath.Join(h.config.UploadDir, "pages", "temp", sessionId)
-		os.Remove(filepath.Join(tempSessionDir, "images", "thumbs")) // 썸네일 디렉토리
-		os.Remove(filepath.Join(tempSessionDir, "images"))           // 이미지 디렉토리
+		os.Remove(filepath.Join(tempSessionDir, "medias", "thumbs")) // 썸네일 디렉토리
+		os.Remove(filepath.Join(tempSessionDir, "medias"))           // 이미지 디렉토리
 		os.Remove(tempSessionDir)                                    // 세션 디렉토리
 
 		// 5. 두 번째 시도 (3초 후): 더 강력한 방법으로 삭제
@@ -479,20 +479,20 @@ func (h *PageHandler) MovePageTempImages(ctx context.Context, pageID int64, cont
 		return nil
 	}
 
-	// 임시 경로 패턴 (예: "/uploads/pages/temp/images/")
-	tempPattern := "/uploads/pages/temp/images/"
+	// 임시 경로 패턴 (예: "/uploads/pages/temp/medias/")
+	tempPattern := "/uploads/pages/temp/medias/"
 
-	// 새 경로 패턴 (예: "/uploads/pages/123/images/")
-	newPattern := fmt.Sprintf("/uploads/pages/%d/images/", pageID)
+	// 새 경로 패턴 (예: "/uploads/pages/123/medias/")
+	newPattern := fmt.Sprintf("/uploads/pages/%d/medias/", pageID)
 
 	// 새 디렉토리 생성
-	newDir := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(pageID, 10), "images")
+	newDir := filepath.Join(h.config.UploadDir, "pages", strconv.FormatInt(pageID, 10), "medias")
 	if err := os.MkdirAll(newDir, 0755); err != nil {
 		return fmt.Errorf("페이지 이미지 디렉토리 생성 실패: %w", err)
 	}
 
 	// 임시 디렉토리 경로
-	tempDir := filepath.Join(h.config.UploadDir, "pages", "temp", "images")
+	tempDir := filepath.Join(h.config.UploadDir, "pages", "temp", "medias")
 
 	// 임시 디렉토리가 존재하는지 확인
 	if _, err := os.Stat(tempDir); os.IsNotExist(err) {

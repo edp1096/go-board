@@ -28,5 +28,5 @@ export STATIC_DIR=./web/static
 
 export UPLOAD_DIR=./uploads
 export MAX_UPLOAD_SIZE=20480
-export MAX_IMAGE_UPLOAD_SIZE=20480
+export MAX_MEDIA_UPLOAD_SIZE=20480
 export MAX_BODY_LIMIT=800

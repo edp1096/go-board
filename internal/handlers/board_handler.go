@@ -528,7 +528,7 @@ func (h *BoardHandler) CreatePostScreen(c *fiber.Ctx) error {
 		"title":                "게시물 작성",
 		"board":                board,
 		"maxUploadSizeMB":      h.config.MaxUploadSize / config.BytesPerMB,
-		"maxImageUploadSizeMB": h.config.MaxImageUploadSize / config.BytesPerMB,
+		"maxMediaUploadSizeMB": h.config.MaxMediaUploadSize / config.BytesPerMB,
 	})
 }
 
@@ -718,7 +718,7 @@ func (h *BoardHandler) CreatePost(c *fiber.Ctx) error {
 		// 게시판 타입에 따라 다른 업로드 함수 사용
 		if board.BoardType == models.BoardTypeGallery {
 			// 갤러리 게시판은 이미지 타입도 허용
-			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize, h.config.UploadDir)
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxMediaUploadSize, h.config.UploadDir)
 		} else {
 			// 일반 게시판은 기존대로 처리
 			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize, h.config.UploadDir)
@@ -856,7 +856,7 @@ func (h *BoardHandler) EditPostPage(c *fiber.Ctx) error {
 		"board":                board,
 		"post":                 post,
 		"maxUploadSizeMB":      h.config.MaxUploadSize / config.BytesPerMB,
-		"maxImageUploadSizeMB": h.config.MaxImageUploadSize / config.BytesPerMB,
+		"maxMediaUploadSizeMB": h.config.MaxMediaUploadSize / config.BytesPerMB,
 	})
 }
 
@@ -1155,7 +1155,7 @@ func (h *BoardHandler) UpdatePost(c *fiber.Ctx) error {
 		// 게시판 타입에 따라 다른 업로드 함수 사용
 		if board.BoardType == models.BoardTypeGallery {
 			// 갤러리 게시판은 이미지 타입도 허용
-			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxImageUploadSize, h.config.UploadDir)
+			uploadedFiles, err = utils.UploadGalleryFiles(files, uploadPath, h.config.MaxMediaUploadSize, h.config.UploadDir)
 		} else {
 			// 일반 게시판은 기존대로 처리
 			uploadedFiles, err = utils.UploadAttachments(files, uploadPath, h.config.MaxUploadSize, h.config.UploadDir)

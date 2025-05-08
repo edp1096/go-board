@@ -39,7 +39,7 @@ func BodyLimitMiddleware(cfg *config.Config) fiber.Handler {
 	regularLimit := int64(cfg.MaxBodyLimit)
 
 	// 업로드 제한은 일반 파일과 이미지 중 더 큰 값
-	uploadLimit := max(cfg.MaxImageUploadSize, cfg.MaxUploadSize)
+	uploadLimit := max(cfg.MaxMediaUploadSize, cfg.MaxUploadSize)
 
 	return func(c *fiber.Ctx) error {
 		path := c.Path()
@@ -73,7 +73,7 @@ func BodyLimitMiddleware(cfg *config.Config) fiber.Handler {
 		// 파일 크기 제한 정보를 컨텍스트에 저장 (핸들러에서 사용)
 		if isUpload {
 			c.Locals("maxUploadSize", cfg.MaxUploadSize)
-			c.Locals("maxImageUploadSize", cfg.MaxImageUploadSize)
+			c.Locals("MaxMediaUploadSize", cfg.MaxMediaUploadSize)
 		}
 
 		return c.Next()

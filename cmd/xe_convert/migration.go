@@ -845,6 +845,11 @@ func getMimeType(fileName string) string {
 		".xls":  "application/vnd.ms-excel",
 		".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 		".zip":  "application/zip",
+
+		// video - mp4, webm, ogg
+		".mp4":  "video/mp4",
+		".webm": "video/webm",
+		".ogg":  "video/ogg",
 	}
 
 	if mime, ok := mimeTypes[ext]; ok {

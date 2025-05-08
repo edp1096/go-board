@@ -33,7 +33,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.33"
+const APP_VERSION = "v0.0.34"
 
 func main() {
 	// // 시작 시간 기록
@@ -83,7 +83,7 @@ func main() {
 	sanitizer.AllowElements(
 		"p", "br", "h1", "h2", "h3", "h4", "h5", "h6",
 		"blockquote", "pre", "code", "em", "strong", "del",
-		"ul", "ol", "li", "a", "img", "table", "thead", "tbody",
+		"ul", "ol", "li", "a", "img", "video", "table", "thead", "tbody",
 		"tr", "th", "td", "hr", "div", "span", "iframe",
 	)
 	sanitizer.AllowAttrs("style").OnElements("p")
@@ -100,6 +100,13 @@ func main() {
 	sanitizer.AllowAttrs("frameborder").Matching(bluemonday.Number).OnElements("iframe")
 	sanitizer.AllowAttrs("allow").Matching(regexp.MustCompile(`[a-z; -]*`)).OnElements("iframe")
 	sanitizer.AllowAttrs("allowfullscreen").OnElements("iframe")
+
+	sanitizer.AllowElements("video")
+	// sanitizer.AllowAttrs("class").Matching(bluemonday.Number).OnElements("video")
+	// sanitizer.AllowAttrs("width").Matching(bluemonday.Number).OnElements("video")
+	// sanitizer.AllowAttrs("height").Matching(bluemonday.Number).OnElements("video")
+	sanitizer.AllowAttrs("controls").OnElements("video")
+	sanitizer.AllowAttrs("src").OnElements("video")
 
 	engine.AddFunc("unescape", func(s any) template.HTML {
 		sanitizedString := sanitizer.Sanitize(s.(string))
@@ -666,11 +673,14 @@ func setupRoutes(
 	api.Get("/whois", whoisHandler.GetWhoisInfo)
 
 	// 페이지 이미지 업로드 라우트
-	api.Post("/pages/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageImages)
-	api.Post("/pages/:pageID/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageImages)
+	// api.Post("/pages/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageImages)
+	// api.Post("/pages/:pageID/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageImages)
+	api.Post("/pages/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageMedias)
+	api.Post("/pages/:pageID/upload", authMiddleware.RequireAuth, adminMiddleware.RequireAdmin, uploadHandler.UploadPageMedias)
 
 	// 업로드, 다운로드 관련 라우트
-	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
+	// api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadImages)
+	api.Post("/boards/:boardID/upload", authMiddleware.RequireAuth, uploadHandler.UploadMedias)
 	api.Post("/boards/:boardID/posts/:postID/attachments", authMiddleware.RequireAuth, uploadHandler.UploadAttachments)
 	api.Get("/boards/:boardID/posts/:postID/attachments", uploadHandler.GetAttachments)
 	app.Get("/attachments/:attachmentID/download", uploadHandler.DownloadAttachment)

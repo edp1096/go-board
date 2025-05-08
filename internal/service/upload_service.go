@@ -216,8 +216,8 @@ func (s *uploadService) DeleteAttachmentsByPostID(ctx context.Context, boardID, 
 		thumbsDir := filepath.Join(attachmentsDir, "thumbs")
 		dirs = append(dirs, thumbsDir, attachmentsDir)
 
-		// 추가적인 게시판 특성에 따른 디렉토리 정리 (예: 갤러리 게시판의 images 디렉토리)
-		imagesDir := filepath.Join(postDir, "images")
+		// 추가적인 게시판 특성에 따른 디렉토리 정리 (예: 갤러리 게시판의 medias(image, video) 디렉토리)
+		imagesDir := filepath.Join(postDir, "medias")
 		imagesThumbsDir := filepath.Join(imagesDir, "thumbs")
 		dirs = append(dirs, imagesThumbsDir, imagesDir)
 

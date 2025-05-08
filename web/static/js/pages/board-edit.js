@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const editorOptions = {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/boards/${boardId}/upload`,
-        uploadAccessURI: `/uploads/boards/${boardId}/images`,
+        uploadAccessURI: `/uploads/boards/${boardId}/medias`,
         uploadCallback: function (response) {
             // console.log("업로드 완료:", response);
         },
