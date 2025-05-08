@@ -1,15 +1,15 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('editUserForm');
     const errorMessage = document.getElementById('error-message');
     const successMessage = document.getElementById('success-message');
     const deleteBtn = document.getElementById('deleteUserBtn');
 
-    form.addEventListener('submit', async function(e) {
+    form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        
+
         errorMessage.classList.add('hidden');
         successMessage.classList.add('hidden');
-        
+
         const password = document.getElementById('password').value;
         const passwordConfirm = document.getElementById('password_confirm').value;
         if (password && password !== passwordConfirm) {
@@ -17,11 +17,11 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessage.classList.remove('hidden');
             return;
         }
-        
+
         const formData = new FormData(form);
         const active = document.getElementById('active').checked;
         const userId = formData.get('id');
-        
+
         const data = {
             id: parseInt(userId),
             username: formData.get('username'),
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // CSRF 토큰 가져오기
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-        
+
         try {
             const response = await fetch(`/admin/users/${userId}`, {
                 method: 'PUT',
@@ -63,15 +63,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    deleteBtn.addEventListener('click', async function() {
+    deleteBtn.addEventListener('click', async function () {
         if (!confirm('정말로 이 사용자를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
         const formData = new FormData(form);
         const userId = formData.get('id');
+
+        // CSRF 토큰 가져오기
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
         try {
             const response = await fetch(`/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
-                    'X-CSRF-Token': formData.get('csrf'),
+                    'X-CSRF-Token': csrfToken,
                 }
             });
             const result = await response.json();
