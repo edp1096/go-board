@@ -32,7 +32,7 @@ var AllowedVideoTypes = map[string]bool{
 }
 
 // 허용된 파일 MIME 타입 목록 (필요에 따라 확장)
-var AllowedFileTypes = map[string]bool{
+var AllowedMimeTypes = map[string]bool{
 	"application/pdf":    true,
 	"application/msword": true,
 	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
@@ -43,6 +43,34 @@ var AllowedFileTypes = map[string]bool{
 	"text/csv":                     true,
 	"application/zip":              true,
 	"application/x-zip-compressed": true,
+}
+
+var AllowedImageExtensions = map[string]bool{
+	"jpg":  true,
+	"jpeg": true,
+	"png":  true,
+	"gif":  true,
+	"webp": true,
+	"svg":  true,
+}
+
+var AllowedVideoExtensions = map[string]bool{
+	"mp4":  true,
+	"webm": true,
+	"ogg":  true,
+}
+
+var AllowedFileExtensions = map[string]bool{
+	"pdf":  true,
+	"doc":  true,
+	"docx": true,
+	"xls":  true,
+	"xlsx": true,
+	"ppt":  true,
+	"pptx": true,
+	"txt":  true,
+	"csv":  true,
+	"zip":  true,
 }
 
 // 미디어 타입 (이미지 + 비디오)
@@ -294,7 +322,7 @@ func UploadAttachments(files []*multipart.FileHeader, basePath string, maxSize i
 	config := UploadConfig{
 		BasePath:       normalizedPath,
 		MaxSize:        maxSize,
-		AllowedTypes:   AllowedFileTypes,
+		AllowedTypes:   AllowedMimeTypes,
 		UniqueFilename: true,
 	}
 
@@ -338,7 +366,7 @@ func UploadGalleryFiles(files []*multipart.FileHeader, basePath string, maxSize 
 	maps.Copy(combinedTypes, AllowedImageTypes)
 
 	// 파일 타입 복사
-	maps.Copy(combinedTypes, AllowedFileTypes)
+	maps.Copy(combinedTypes, AllowedMimeTypes)
 
 	config := UploadConfig{
 		BasePath:       normalizedPath,

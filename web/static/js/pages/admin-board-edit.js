@@ -3,7 +3,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('boardEditForm', (board) => ({
         board: board,
         submitting: false,
-        fields: [],
+        fields: board.fields || [],
         fieldCount: 0,
         nextId: -1,
         isQnaBoard: false,
@@ -43,46 +43,46 @@ document.addEventListener('alpine:init', () => {
                 }
             }
 
-            // 스크립트 태그에서 필드 데이터 초기화
-            try {
-                const initialFieldsScript = document.getElementById('initial-field-data');
-                if (initialFieldsScript && initialFieldsScript.textContent) {
-                    // initialFieldsScript.textContent가 이미 문자열이므로 직접 확인
-                    let parsedFields;
-                    const content = initialFieldsScript.textContent.trim();
+            // // 스크립트 태그에서 필드 데이터 초기화
+            // try {
+            //     const initialFieldsScript = document.getElementById('initial-field-data');
+            //     if (initialFieldsScript && initialFieldsScript.textContent) {
+            //         // initialFieldsScript.textContent가 이미 문자열이므로 직접 확인
+            //         let parsedFields;
+            //         const content = initialFieldsScript.textContent.trim();
 
-                    // 이미 JSON 문자열인지 확인 (따옴표로 시작하는지)
-                    if (content.startsWith('"') && content.endsWith('"')) {
-                        // 이미 문자열화된 JSON인 경우 이스케이프된 따옴표 처리
-                        const unescapedContent = content.slice(1, -1).replace(/\\"/g, '"');
-                        parsedFields = JSON.parse(unescapedContent);
-                    } else {
-                        // 일반 JSON인 경우
-                        parsedFields = JSON.parse(content);
-                    }
+            //         // 이미 JSON 문자열인지 확인 (따옴표로 시작하는지)
+            //         if (content.startsWith('"') && content.endsWith('"')) {
+            //             // 이미 문자열화된 JSON인 경우 이스케이프된 따옴표 처리
+            //             const unescapedContent = content.slice(1, -1).replace(/\\"/g, '"');
+            //             parsedFields = JSON.parse(unescapedContent);
+            //         } else {
+            //             // 일반 JSON인 경우
+            //             parsedFields = JSON.parse(content);
+            //         }
 
-                    // 배열이 아닌 경우 배열로 변환
-                    if (!Array.isArray(parsedFields)) {
-                        if (typeof parsedFields === 'object' && parsedFields !== null) {
-                            parsedFields = [parsedFields]; // 객체인 경우 배열로 변환
-                        } else {
-                            parsedFields = []; // 그 외의 경우 빈 배열로
-                        }
-                    }
+            //         // 배열이 아닌 경우 배열로 변환
+            //         if (!Array.isArray(parsedFields)) {
+            //             if (typeof parsedFields === 'object' && parsedFields !== null) {
+            //                 parsedFields = [parsedFields]; // 객체인 경우 배열로 변환
+            //             } else {
+            //                 parsedFields = []; // 그 외의 경우 빈 배열로
+            //             }
+            //         }
 
-                    // 기존 필드에 isNew 속성 추가
-                    this.fields = parsedFields.map(field => ({
-                        ...field,
-                        isNew: false,
-                        // columnName이 없는 경우 name으로 설정
-                        columnName: field.columnName || field.name
-                    }));
-                } else {
-                    this.fields = [];
-                }
-            } catch (e) {
-                this.fields = [];
-            }
+            //         // 기존 필드에 isNew 속성 추가
+            //         this.fields = parsedFields.map(field => ({
+            //             ...field,
+            //             isNew: false,
+            //             // columnName이 없는 경우 name으로 설정
+            //             columnName: field.columnName || field.name
+            //         }));
+            //     } else {
+            //         this.fields = [];
+            //     }
+            // } catch (e) {
+            //     this.fields = [];
+            // }
 
             // 매니저 데이터 초기화
             try {

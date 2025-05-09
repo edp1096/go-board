@@ -4,11 +4,6 @@
 
     <div class="px-4 py-4 bg-white shadow rounded-lg overflow-hidden">
         <form id="board-edit-form" action="/admin/boards/{{.board.ID}}" method="POST" x-data="boardEditForm({{json .board}})">
-            <!-- 초기 필드 데이터 설정을 위한 스크립트 -->
-            <script id="initial-field-data" type="application/json">
-                {{.board.Fields | json}}
-            </script>
-
             <div class="p-6">
                 <div class="mb-6">
                     <h2 class="text-lg font-medium mb-4">기본 정보</h2>
@@ -167,12 +162,12 @@
                 <!-- board_edit.html - 매니저 관리 섹션 다음에 추가 -->
                 <div class="mb-6" x-show="board_type === 'group'">
                     <h2 class="text-lg font-medium mb-4">참여자 관리</h2>
-                
+
                     <!-- 초기 참여자 데이터 -->
                     <script id="initial-participants-data" type="application/json">
                         {{.participants | json}}
                     </script>
-                
+
                     <div class="space-y-4">
                         <div>
                             <label for="participant_search" class="block text-sm font-medium">사용자 검색</label>
@@ -183,7 +178,7 @@
                                 </button>
                             </div>
                         </div>
-                
+
                         <div class="border border-current/25 rounded-md p-4" x-show="showParticipantResults">
                             <h3 class="font-medium mb-2">검색 결과</h3>
                             <ul class="divide-y divide-current/25 max-h-40 overflow-y-auto">
@@ -203,7 +198,7 @@
                                 검색 결과가 없습니다
                             </div>
                         </div>
-                
+
                         <div>
                             <h3 class="font-medium mb-2">현재 참여자</h3>
                             <ul class="divide-y divide-current/25 border border-current/25 rounded-md p-4">

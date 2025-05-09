@@ -41,3 +41,8 @@ func TruncateText(text string, maxLength int) string {
 	}
 	return plainText[:maxLength] + "..."
 }
+
+// TrimSpace
+func TrimSpace(textContent string) string {
+	return strings.TrimSpace(textContent)
+}

@@ -33,7 +33,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-const APP_VERSION = "v0.0.34"
+const APP_VERSION = "v0.0.35"
 
 func main() {
 	// // 시작 시간 기록
@@ -113,8 +113,8 @@ func main() {
 		return template.HTML(sanitizedString)
 	})
 
-	// Extract plain text to HTML
-	engine.AddFunc("plaintext", utils.PlainText)
+	engine.AddFunc("plaintext", utils.PlainText) // Extract plain text to HTML
+	engine.AddFunc("trimspace", utils.TrimSpace) // Trim spaces
 
 	// json
 	engine.AddFunc("json", func(v any) string {
