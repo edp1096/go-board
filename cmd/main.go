@@ -82,6 +82,7 @@ func main() {
 	sanitizer := bluemonday.NewPolicy()
 	sanitizer.AllowElements(
 		"p", "br", "h1", "h2", "h3", "h4", "h5", "h6",
+		"s", "u", "b", "i",
 		"blockquote", "pre", "code", "em", "strong", "del",
 		"ul", "ol", "li", "a", "img", "video", "table", "thead", "tbody",
 		"tr", "th", "td", "hr", "div", "span", "iframe",
