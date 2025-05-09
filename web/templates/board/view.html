@@ -154,6 +154,8 @@
                                 </template>
                             </ul>
                         </div>
+                        {{else if eq $boardField.FieldType "date"}}
+                        {{with .Value}}{{slice (print .) 0 10 | trimspace}}{{end}}
                         {{else}}
                         {{$nullStringValue := getNullString .Value}}
                         <!-- {{.Value}} -->
