@@ -156,6 +156,16 @@
                         </div>
                         {{else if eq $boardField.FieldType "date"}}
                         {{with .Value}}{{slice (print .) 0 10 | trimspace}}{{end}}
+
+                        {{else if eq $boardField.FieldType "select"}}
+                        {{$options := parseJSON $boardField.Options}}
+                        {{$selectedValue := getNullString .Value}}
+                        {{range $option := $options}}
+                        {{if eq (print $option.value) $selectedValue}}
+                        {{$option.label}}
+                        {{end}}
+                        {{end}}
+
                         {{else}}
                         {{$nullStringValue := getNullString .Value}}
                         <!-- {{.Value}} -->
