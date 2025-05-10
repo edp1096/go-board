@@ -16,17 +16,10 @@
     <div class="bg-white shadow-md rounded-lg p-2 mb-6">
         <form action="/admin/users" method="GET" class="flex items-center gap-4">
             <div class="flex-1">
-                <input 
-                    type="text" 
-                    name="search" 
-                    value="{{.search}}" 
-                    placeholder="사용자명 또는 이메일로 검색" 
-                    class="px-4 py-2 w-full border border-current/25 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="search" value="{{.search}}" placeholder="사용자명 또는 이메일로 검색" class="px-4 py-2 w-full border border-current/25 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-                <button 
-                    type="submit" 
-                    class="btn-primary text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="btn-primary text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     검색
                 </button>
             </div>
@@ -88,22 +81,14 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm">{{.CreatedAt.Format "2006-01-02"}}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <div class="flex items-center gap-2">
-                            <a href="/admin/users/{{.ID}}/edit"
-                              class="text-white px-2 py-1 rounded-md text-xs"
-                               title="사용자 정보 수정">
-                               수정
+                            <a href="/admin/users/{{.ID}}/edit" class="text-white px-2 py-1 rounded-md text-xs" title="사용자 정보 수정">
+                                수정
                             </a>
                             {{$admin := eq .Role "admin"}}
-                            <button
-                                onclick="toggleUserRole('{{.ID}}', '{{.Role}}')"
-                                class="{{if $admin}}bg-yellow-500{{else}}btn-primary{{end}} text-white px-2 py-1 rounded-md text-xs"
-                                title="{{if $admin}}관리자 권한 해제{{else}}관리자 권한 부여{{end}}">
+                            <button onclick="toggleUserRole('{{.ID}}', '{{.Role}}')" class="{{if $admin}}bg-yellow-500{{else}}btn-primary{{end}} text-white px-2 py-1 rounded-md text-xs" title="{{if $admin}}관리자 권한 해제{{else}}관리자 권한 부여{{end}}">
                                 {{if eq .Role "admin"}}해제{{else}}승급{{end}}
                             </button>
-                            <button
-                                onclick="toggleUserStatus('{{.ID}}', '{{.Active}}')"
-                                class="{{if .Active}}bg-red-500{{else}}btn-success{{end}} text-white px-2 py-1 rounded-md text-xs"
-                                title="{{if .Active}}계정 비활성화{{else}}계정 활성화{{end}}">
+                            <button onclick="toggleUserStatus('{{.ID}}', '{{.Active}}')" class="{{if .Active}}bg-red-500{{else}}btn-success{{end}} text-white px-2 py-1 rounded-md text-xs" title="{{if .Active}}계정 비활성화{{else}}계정 활성화{{end}}">
                                 {{if .Active}}정지{{else}}복구{{end}}
                             </button>
                         </div>
@@ -125,10 +110,7 @@
     <div class="flex justify-center mt-6">
         <div class="flex space-x-1">
             {{range $i := iterate 1 .totalPages}}
-            <a 
-                href="/admin/users?page={{$i}}{{if $.search}}&search={{$.search}}{{end}}" 
-                class="px-3 py-1 rounded-md {{if eq $i $.currentPage}}btn-primary text-white{{else}}bg-gray-200 hover:bg-gray-300{{end}}"
-            >
+            <a href="/admin/users?page={{$i}}{{if $.search}}&search={{$.search}}{{end}}" class="px-3 py-1 rounded-md {{if eq $i $.currentPage}}btn-primary text-white{{else}}bg-gray-200 hover:bg-gray-300{{end}}">
                 {{$i}}
             </a>
             {{end}}
