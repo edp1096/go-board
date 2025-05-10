@@ -195,15 +195,15 @@ async function createOrSelectBoard(page) {
     // 게시판이 존재하지 않는 경우 새로 생성
     console.log('일반 게시판이 존재하지 않습니다. 새 게시판을 생성합니다...');
 
-    // 새 게시판 만들기 버튼 확인 및 클릭
-    const newBoardButton = page.locator('text=새 게시판 만들기');
+    // 새 게시판 버튼 확인 및 클릭
+    const newBoardButton = page.locator('text=새 게시판');
 
     if (await newBoardButton.count() === 0) {
-        console.error('새 게시판 만들기 버튼을 찾을 수 없습니다.');
-        throw new Error('새 게시판 만들기 버튼을 찾을 수 없습니다.');
+        console.error('새 게시판 버튼을 찾을 수 없습니다.');
+        throw new Error('새 게시판 버튼을 찾을 수 없습니다.');
     }
 
-    console.log('새 게시판 만들기 버튼을 클릭합니다...');
+    console.log('새 게시판 버튼을 클릭합니다...');
     await newBoardButton.click();
     await page.waitForLoadState('networkidle');
 
@@ -239,11 +239,11 @@ async function createOrSelectBoard(page) {
         console.log('익명 접근 허용 체크박스를 찾을 수 없습니다.');
     }
 
-    if (await allowPrivate.count() > 0) {
-        await allowPrivate.check();
-    } else {
-        console.log('비밀글 허용 체크박스를 찾을 수 없습니다.');
-    }
+    // if (await allowPrivate.count() > 0) {
+    //     await allowPrivate.check();
+    // } else {
+    //     console.log('비밀글 허용 체크박스를 찾을 수 없습니다.');
+    // }
 
     // 페이지의 모든 버튼 텍스트 로깅 (디버깅용)
     const buttons = await page.locator('button').all();
