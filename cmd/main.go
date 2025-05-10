@@ -87,11 +87,12 @@ func main() {
 		"ul", "ol", "li", "a", "img", "video", "table", "thead", "tbody",
 		"tr", "th", "td", "hr", "div", "span", "iframe",
 	)
+
+	sanitizer.AllowAttrs("class").Globally()
+
 	sanitizer.AllowAttrs("style").OnElements("p")
 	sanitizer.AllowAttrs("href").OnElements("a")
-	sanitizer.AllowAttrs("src", "alt", "title").OnElements("img")
-	sanitizer.AllowAttrs("class").Globally()
-	sanitizer.AllowAttrs("animate").OnElements("img")
+	sanitizer.AllowAttrs("src", "alt", "title", "animate").OnElements("img")
 
 	sanitizer.AllowElements("iframe")
 	sanitizer.AllowAttrs("class").Matching(bluemonday.Number).OnElements("iframe")
