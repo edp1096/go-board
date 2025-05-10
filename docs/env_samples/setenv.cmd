@@ -12,9 +12,9 @@ set DB_HOST=localhost
 set DB_PORT=13306
 set DB_USER=root
 set DB_PASSWORD=
-set DB_NAME=go_board
+set DB_NAME=toy_board
 
-set DB_PATH=./data/go_board.db
+set DB_PATH=./data/toy_board.db
 
 set JWT_SECRET=your-jwt-secret-key
 set SESSION_SECRET=your-session-secret

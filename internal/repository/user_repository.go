@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/edp1096/go-board/internal/models"
+	"github.com/edp1096/toy-board/internal/models"
 
 	"github.com/uptrace/bun"
 )

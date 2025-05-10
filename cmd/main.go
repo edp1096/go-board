@@ -16,13 +16,13 @@ import (
 	"syscall"
 	"time"
 
-	goboard "github.com/edp1096/go-board"
-	"github.com/edp1096/go-board/config"
-	"github.com/edp1096/go-board/internal/handlers"
-	"github.com/edp1096/go-board/internal/middleware"
-	"github.com/edp1096/go-board/internal/repository"
-	"github.com/edp1096/go-board/internal/service"
-	"github.com/edp1096/go-board/internal/utils"
+	toyboard "github.com/edp1096/toy-board"
+	"github.com/edp1096/toy-board/config"
+	"github.com/edp1096/toy-board/internal/handlers"
+	"github.com/edp1096/toy-board/internal/middleware"
+	"github.com/edp1096/toy-board/internal/repository"
+	"github.com/edp1096/toy-board/internal/service"
+	"github.com/edp1096/toy-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -71,7 +71,7 @@ func main() {
 		engine = html.New("./web/templates", ".html")
 	} else {
 		// 임베디드 파일 시스템 사용
-		engine = html.NewFileSystem(goboard.GetTemplatesFS(), ".html")
+		engine = html.NewFileSystem(toyboard.GetTemplatesFS(), ".html")
 	}
 
 	// 공통 설정
@@ -343,13 +343,13 @@ func main() {
 		// log.Println("실제 정적 파일 디렉토리 사용: ./web/static")
 	} else {
 		// 임베디드 파일 시스템 사용
-		staticFS = goboard.GetStaticFS()
+		staticFS = toyboard.GetStaticFS()
 		// log.Println("임베디드 정적 파일 시스템 사용 (실제 디렉토리 없음)")
 	}
 
 	// 정적 파일 제공 - 하이브리드 파일시스템 사용
 	app.Use("/static", filesystem.New(filesystem.Config{
-		// Root:         goboard.GetStaticFS(),
+		// Root:         toyboard.GetStaticFS(),
 		Root:         staticFS,
 		Browse:       true,
 		Index:        "index.html",
@@ -424,7 +424,7 @@ func handleCommandLineArgs() (bool, error) {
 
 	case "export-web":
 		exportWebCmd.Parse(os.Args[2:])
-		if err := goboard.ExportWebContent(*exportPath); err != nil {
+		if err := toyboard.ExportWebContent(*exportPath); err != nil {
 			fmt.Fprintf(os.Stderr, "오류: %s\n", err)
 			return true, err
 		}
@@ -433,7 +433,7 @@ func handleCommandLineArgs() (bool, error) {
 
 	case "export-env":
 		exportEnvCmd.Parse(os.Args[2:])
-		if err := goboard.ExportEnvExample(*exportEnvPath); err != nil {
+		if err := toyboard.ExportEnvExample(*exportEnvPath); err != nil {
 			fmt.Fprintf(os.Stderr, "오류: %s\n", err)
 			return true, err
 		}

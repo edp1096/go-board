@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/edp1096/go-board/config"
+	"github.com/edp1096/toy-board/config"
 )
 
 // loadConfig는 환경 파일에서 설정을 로드하고 드라이버를 오버라이드합니다

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	goboard "github.com/edp1096/go-board"
+	toyboard "github.com/edp1096/toy-board"
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
 )
@@ -58,7 +58,7 @@ func CreateOGImage(opts OGImageOptions) (string, error) {
 	}
 
 	// 폰트 로드
-	fontData, err := goboard.GetFontContent("NotoSansKR-Bold.ttf")
+	fontData, err := toyboard.GetFontContent("NotoSansKR-Bold.ttf")
 	if err != nil {
 		return "", fmt.Errorf("폰트 파일을 읽을 수 없습니다: %w", err)
 	}

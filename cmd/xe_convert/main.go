@@ -27,7 +27,7 @@ func main() {
 	}
 	defer sourceDB.Close()
 
-	// 3. 대상 데이터베이스 연결 (Go-Board)
+	// 3. 대상 데이터베이스 연결 (Toy-Board)
 	targetDB, err := connectDatabase(config.TargetDriver, config.GetTargetDSN())
 	if err != nil {
 		log.Fatalf("대상 데이터베이스 연결 실패: %v", err)

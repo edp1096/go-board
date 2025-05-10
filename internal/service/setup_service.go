@@ -5,8 +5,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/repository"
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/repository"
 
 	"golang.org/x/crypto/bcrypt"
 )

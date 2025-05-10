@@ -14,9 +14,9 @@ export DB_HOST=localhost
 export DB_PORT=13306
 export DB_USER=root
 export DB_PASSWORD=
-export DB_NAME=go_board
+export DB_NAME=toy_board
 
-export DB_PATH=./data/go_board.db
+export DB_PATH=./data/toy_board.db
 
 export JWT_SECRET=your-jwt-secret-key
 export SESSION_SECRET=your-session-secret

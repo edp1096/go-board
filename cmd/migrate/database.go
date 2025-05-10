@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edp1096/go-board/config"
+	"github.com/edp1096/toy-board/config"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/mysqldialect"
 	"github.com/uptrace/bun/dialect/pgdialect"

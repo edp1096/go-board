@@ -1,5 +1,5 @@
 {
-    "name": "goboard-tests",
+    "name": "toyboard-tests",
     "version": "1.0.0",
     "description": "프론트엔드 테스트",
     "main": "setup.js",

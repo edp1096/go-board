@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/utils"
 
 	"github.com/uptrace/bun"
 )

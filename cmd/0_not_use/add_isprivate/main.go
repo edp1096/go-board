@@ -7,8 +7,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/edp1096/go-board/config"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/config"
+	"github.com/edp1096/toy-board/internal/utils"
 )
 
 func main() {

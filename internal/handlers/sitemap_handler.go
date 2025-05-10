@@ -4,8 +4,8 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/edp1096/go-board/internal/service"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/internal/service"
+	"github.com/edp1096/toy-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 )

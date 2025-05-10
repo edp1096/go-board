@@ -19,7 +19,7 @@ type Config struct {
 	SourcePass   string
 	SourcePath   string // SQLite 사용시
 
-	// 대상 데이터베이스 (Go-Board) 설정
+	// 대상 데이터베이스 (toy-board) 설정
 	TargetDriver string
 	TargetHost   string
 	TargetPort   int
@@ -54,7 +54,7 @@ func LoadConfig() (*Config, error) {
 
 	flag.StringVar(&config.XEPrefix, "prefix", "xe_", "XE 테이블 접두사")
 	flag.StringVar(&config.XEUploadPath, "upload-path", "./files", "XE 업로드 파일 경로")
-	flag.StringVar(&config.TargetUploadPath, "target-upload-path", "./uploads", "Go-Board 업로드 파일 경로")
+	flag.StringVar(&config.TargetUploadPath, "target-upload-path", "./uploads", "Toy-Board 업로드 파일 경로")
 
 	envPath := flag.String("env", ".env", "환경 설정 파일 경로")
 	flag.IntVar(&config.BatchSize, "batch-size", 500, "데이터 처리 배치 크기")

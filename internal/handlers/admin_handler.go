@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/service"
-	"github.com/edp1096/go-board/internal/utils" // utils 패키지 임포트 추가
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/service"
+	"github.com/edp1096/toy-board/internal/utils" // utils 패키지 임포트 추가
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/edp1096/go-board/config"
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/service"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/config"
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/service"
+	"github.com/edp1096/toy-board/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 )

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edp1096/go-board/config"
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/repository"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/config"
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/repository"
+	"github.com/edp1096/toy-board/internal/utils"
 )
 
 // UploadService는 파일 업로드 관련 기능을 제공합니다

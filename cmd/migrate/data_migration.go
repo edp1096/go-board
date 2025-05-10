@@ -12,9 +12,9 @@ import (
 
 	"slices"
 
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/repository"
-	"github.com/edp1096/go-board/internal/service"
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/repository"
+	"github.com/edp1096/toy-board/internal/service"
 	"github.com/uptrace/bun"
 )
 

@@ -5,7 +5,7 @@ package middleware
 import (
 	"strings"
 
-	"github.com/edp1096/go-board/internal/service"
+	"github.com/edp1096/toy-board/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 )

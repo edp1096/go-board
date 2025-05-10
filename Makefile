@@ -1,7 +1,7 @@
 .PHONY: build run dev clean migrate-up migrate-down migrate-status migrate-create setup test
 
 
-APP_NAME=go-board
+APP_NAME=toy-board
 MIGRATE_NAME=migrate
 
 ORIGINAL_CGO_USAGE_SET := $(shell go env CGO_ENABLED)
@@ -9,14 +9,14 @@ ORIGINAL_OS := $(shell go env GOOS)
 ORIGINAL_ARCH := $(shell go env GOARCH)
 
 ifeq ($(OS),Windows_NT)
-    APP_NAME=go-board
+    APP_NAME=toy-board
     MIGRATE_NAME=migrate
     RM_CMD=del /q /f
     APP_RUN=.\bin\$(APP_NAME)
     MIGRATE_RUN=.\bin\$(MIGRATE_NAME)
     DETECTED_OS=windows
 else
-    APP_NAME=go-board
+    APP_NAME=toy-board
     MIGRATE_NAME=migrate
     RM_CMD=rm -rf
     APP_RUN=./bin/$(APP_NAME)

@@ -104,7 +104,7 @@ func Load() (*Config, error) {
 	dbPath := os.Getenv("DB_PATH")
 	if dbDriver == "sqlite" && dbPath == "" {
 		// 기본 파일 위치 - data 디렉토리 만들기
-		dbPath = "./data/go_board.db"
+		dbPath = "./data/toy_board.db"
 		os.MkdirAll("./data", 0755)
 	}
 
@@ -220,7 +220,7 @@ func Load() (*Config, error) {
 		DBPort:              getEnvWithDefault("DB_PORT", "5432"),
 		DBUser:              getEnvWithDefault("DB_USER", "postgres"),
 		DBPassword:          os.Getenv("DB_PASSWORD"),
-		DBName:              getEnvWithDefault("DB_NAME", "go_board"),
+		DBName:              getEnvWithDefault("DB_NAME", "toy_board"),
 		DBPath:              dbPath,
 		JWTSecret:           jwtSecret,
 		SessionSecret:       sessionSecret,

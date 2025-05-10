@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	goboard "github.com/edp1096/go-board"
+	toyboard "github.com/edp1096/toy-board"
 	"github.com/pressly/goose/v3"
 )
 
@@ -204,21 +204,21 @@ func migrateSchema(config *DataMigrationConfig) error {
 
 	switch config.TargetDBConfig.DBDriver {
 	case "postgres":
-		subFS, err := fs.Sub(goboard.PostgresMigrationsFS, "migrations/postgres")
+		subFS, err := fs.Sub(toyboard.PostgresMigrationsFS, "migrations/postgres")
 		if err != nil {
 			return fmt.Errorf("PostgreSQL 마이그레이션 파일 접근 실패: %w", err)
 		}
 		migrationFS = subFS
 		migrationsDir = "."
 	case "sqlite":
-		subFS, err := fs.Sub(goboard.SQLiteMigrationsFS, "migrations/sqlite")
+		subFS, err := fs.Sub(toyboard.SQLiteMigrationsFS, "migrations/sqlite")
 		if err != nil {
 			return fmt.Errorf("SQLite 마이그레이션 파일 접근 실패: %w", err)
 		}
 		migrationFS = subFS
 		migrationsDir = "."
 	default:
-		subFS, err := fs.Sub(goboard.MysqlMigrationsFS, "migrations/mysql")
+		subFS, err := fs.Sub(toyboard.MysqlMigrationsFS, "migrations/mysql")
 		if err != nil {
 			return fmt.Errorf("MySQL 마이그레이션 파일 접근 실패: %w", err)
 		}

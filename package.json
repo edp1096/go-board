@@ -1,7 +1,7 @@
 {
-  "name": "go-board",
+  "name": "toy-board",
   "version": "0.0.1",
-  "repository": "https://github.com/edp1096/go-board.git",
+  "repository": "https://github.com/edp1096/toy-board.git",
   "author": "edp1096 <edp1096@naver.com>",
   "license": "MIT",
   "scripts": {

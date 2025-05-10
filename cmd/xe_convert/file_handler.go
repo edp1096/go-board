@@ -20,7 +20,7 @@ func NewFileHandler(config *Config) *FileHandler {
 	}
 }
 
-// ProcessFile XE 파일을 Go-Board 형식으로 변환하여 복사
+// ProcessFile XE 파일을 Toy-Board 형식으로 변환하여 복사
 func (h *FileHandler) ProcessFile(xeFile XEFile, boardID, postID int64) (string, error) {
 	// 가능한 파일 경로 목록 생성 (XE의 여러 가능한 저장 방식 대응)
 	possiblePaths := []string{

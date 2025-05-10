@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edp1096/go-board/internal/service"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/internal/service"
+	"github.com/edp1096/toy-board/internal/utils"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -90,7 +90,7 @@ func (h *BlindAuthHandler) BlindAuth(c *fiber.Ctx) error {
 		}
 	}
 
-	// go-board 내부 토큰 발급
+	// toy-board 내부 토큰 발급
 	internalToken, err := h.authService.GenerateTokenForUser(c.Context(), user.ID)
 	if err != nil {
 		fmt.Printf("토큰 생성 실패: %v\n", err)

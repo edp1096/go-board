@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 
-	"github.com/edp1096/go-board/config"
+	"github.com/edp1096/toy-board/config"
 	"github.com/uptrace/bun"
 )
 

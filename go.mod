@@ -1,4 +1,4 @@
-module github.com/edp1096/go-board
+module github.com/edp1096/toy-board
 
 go 1.24
 

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	goboard "github.com/edp1096/go-board"
-	"github.com/edp1096/go-board/config"
+	toyboard "github.com/edp1096/toy-board"
+	"github.com/edp1096/toy-board/config"
 	"github.com/pressly/goose/v3"
 )
 
@@ -139,7 +139,7 @@ func main() {
 	switch sourceConfig.DBDriver {
 	case "postgres":
 		// PostgreSQL 마이그레이션 설정
-		subFS, err := fs.Sub(goboard.PostgresMigrationsFS, "migrations/postgres")
+		subFS, err := fs.Sub(toyboard.PostgresMigrationsFS, "migrations/postgres")
 		if err != nil {
 			log.Fatalf("PostgreSQL 마이그레이션 파일 접근 실패: %v", err)
 		}
@@ -147,7 +147,7 @@ func main() {
 		migrationsDir = "."
 	case "sqlite":
 		// SQLite 마이그레이션 설정
-		subFS, err := fs.Sub(goboard.SQLiteMigrationsFS, "migrations/sqlite")
+		subFS, err := fs.Sub(toyboard.SQLiteMigrationsFS, "migrations/sqlite")
 		if err != nil {
 			log.Fatalf("SQLite 마이그레이션 파일 접근 실패: %v", err)
 		}
@@ -155,7 +155,7 @@ func main() {
 		migrationsDir = "."
 	default:
 		// MySQL 마이그레이션 설정
-		subFS, err := fs.Sub(goboard.MysqlMigrationsFS, "migrations/mysql")
+		subFS, err := fs.Sub(toyboard.MysqlMigrationsFS, "migrations/mysql")
 		if err != nil {
 			log.Fatalf("MySQL 마이그레이션 파일 접근 실패: %v", err)
 		}

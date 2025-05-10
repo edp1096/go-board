@@ -3,6 +3,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -10,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/repository"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/repository"
+	"github.com/edp1096/toy-board/internal/utils"
 
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -201,8 +202,57 @@ func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*m
 
 	// 토큰 클레임 검증
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		userID := int64(claims["user_id"].(float64))
-		iat := int64(claims["iat"].(float64)) // 토큰 발급 시간
+		// 안전한 방식으로 userID 값 가져오기
+		userIDVal, ok := claims["user_id"]
+		if !ok || userIDVal == nil {
+			return nil, errors.New("토큰에 user_id가 없음")
+		}
+
+		// 안전한 타입 변환
+		var userID int64
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = int64(v)
+		case int:
+			userID = int64(v)
+		case int64:
+			userID = v
+		case json.Number:
+			userIDFloat, err := v.Float64()
+			if err != nil {
+				return nil, fmt.Errorf("유효하지 않은 user_id 형식: %w", err)
+			}
+			userID = int64(userIDFloat)
+		default:
+			return nil, fmt.Errorf("유효하지 않은 user_id 타입: %T", userIDVal)
+		}
+
+		// 안전한 방식으로 iat 값 가져오기
+		var iat int64
+		if iatVal, ok := claims["iat"]; ok && iatVal != nil {
+			switch v := iatVal.(type) {
+			case float64:
+				iat = int64(v)
+			case int:
+				iat = int64(v)
+			case int64:
+				iat = v
+			case json.Number:
+				iatFloat, err := v.Float64()
+				if err != nil {
+					// iat가 필수는 아니므로 오류를 반환하지 않고 현재 시간을 기본값으로 사용
+					iat = time.Now().Unix()
+				} else {
+					iat = int64(iatFloat)
+				}
+			default:
+				// iat가 필수는 아니므로 오류를 반환하지 않고 현재 시간을 기본값으로 사용
+				iat = time.Now().Unix()
+			}
+		} else {
+			// iat가 없으면 현재 시간을 기본값으로 사용
+			iat = time.Now().Unix()
+		}
 
 		// 사용자 조회
 		user, err := s.userRepo.GetByID(ctx, userID)

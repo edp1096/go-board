@@ -6,7 +6,7 @@ const path = require('path');
 /**
  * Go 게시판 애플리케이션의 초기 설정 및 게시물 생성 자동화
  */
-async function setupGoBoardApplication() {
+async function setupToyBoardApplication() {
     // 로그 디렉토리 생성
     const logDir = path.join(__dirname, 'log');
     if (!fs.existsSync(logDir)) {
@@ -818,4 +818,4 @@ async function logout(page) {
 }
 
 // 스크립트 실행
-setupGoBoardApplication().catch(console.error);
+setupToyBoardApplication().catch(console.error);

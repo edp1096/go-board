@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/edp1096/go-board/internal/models"
-	"github.com/edp1096/go-board/internal/repository"
-	"github.com/edp1096/go-board/internal/utils"
+	"github.com/edp1096/toy-board/internal/models"
+	"github.com/edp1096/toy-board/internal/repository"
+	"github.com/edp1096/toy-board/internal/utils"
 )
 
 // 사이트맵 생성 서비스 인터페이스

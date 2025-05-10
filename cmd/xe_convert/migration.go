@@ -599,7 +599,7 @@ func (m *Migration) migrateComments(tx *sql.Tx, boardID, postID int64, xeDoc XED
 		return nil
 	}
 
-	// 댓글 ID 매핑 테이블 (XE 댓글 ID -> Go-Board 댓글 ID)
+	// 댓글 ID 매핑 테이블 (XE 댓글 ID -> Toy-Board 댓글 ID)
 	commentIDMap := make(map[int64]int64)
 
 	// 먼저 최상위 댓글부터 처리
