@@ -43,7 +43,7 @@
                         </label>
 
                         {{if eq .FieldType "text"}}
-                        <input type="text" name="{{.Name}}" id="{{.Name}}" {{if .Required}}required{{end}} value="{{if $field}}{{$field.Value}}{{end}}" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
+                        <input type="text" name="{{.Name}}" id="{{.Name}}" {{if .Required}}required{{end}} value="{{if $field}} {{getNullString $field.Value}} {{end}}" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">
                         {{else if eq .FieldType "textarea"}}
                         <textarea name="{{.Name}}" id="{{.Name}}" rows="3" {{if .Required}}required{{end}} class="mt-1 block w-full rounded-md shadow-sm sm:text-sm">{{if $field}}{{$field.Value}}{{end}}</textarea>
                         {{else if eq .FieldType "number"}}
