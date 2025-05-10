@@ -11,9 +11,16 @@ CREATE TABLE IF NOT EXISTS users (
     active TINYINT NOT NULL DEFAULT 1, -- SQLite는 BOOLEAN이 없음 (1=true, 0=false)
     approval_status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected
     approval_due TIMESTAMP NULL,
+    external_id TEXT DEFAULT NULL,
+    external_system TEXT DEFAULT NULL,
+    token_invalidated_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE INDEX idx_users_external ON users (external_id, external_system);
 -- +goose StatementEnd
 
 -- +goose StatementBegin

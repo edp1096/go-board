@@ -11,9 +11,16 @@ CREATE TABLE IF NOT EXISTS users (
     active BOOLEAN NOT NULL DEFAULT TRUE,
     approval_status VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending, approved, rejected
     approval_due TIMESTAMP NULL,
+    external_id VARCHAR(255) DEFAULT NULL,
+    external_system VARCHAR(100) DEFAULT NULL,
+    token_invalidated_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE INDEX idx_users_external ON users (external_id, external_system);
 -- +goose StatementEnd
 
 -- +goose StatementBegin

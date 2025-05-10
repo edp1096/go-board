@@ -12,6 +12,7 @@ import (
 
 	"github.com/edp1096/go-board/internal/models"
 	"github.com/edp1096/go-board/internal/repository"
+	"github.com/edp1096/go-board/internal/utils"
 
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -43,6 +44,11 @@ type AuthService interface {
 	SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error)
 	GetPendingApprovalUsers(ctx context.Context) ([]*models.User, error)
 	CheckAndUpdateUserApproval(ctx context.Context, user *models.User) error
+
+	GetUserByExternalID(ctx context.Context, externalID, externalSystem string) (*models.User, error)
+	RegisterExternal(ctx context.Context, username, email, fullName, externalID, externalSystem string) (*models.User, error)
+	GenerateTokenForUser(ctx context.Context, userID int64) (string, error)
+	InvalidateUserTokens(ctx context.Context, userID int64) error
 }
 
 type authService struct {
@@ -196,6 +202,7 @@ func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*m
 	// 토큰 클레임 검증
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		userID := int64(claims["user_id"].(float64))
+		iat := int64(claims["iat"].(float64)) // 토큰 발급 시간
 
 		// 사용자 조회
 		user, err := s.userRepo.GetByID(ctx, userID)
@@ -206,6 +213,11 @@ func (s *authService) ValidateToken(ctx context.Context, tokenString string) (*m
 		// 비활성 사용자 확인
 		if !user.Active {
 			return nil, ErrUserInactive
+		}
+
+		// 토큰 무효화 시간 확인
+		if user.TokenInvalidatedAt != nil && user.TokenInvalidatedAt.After(time.Unix(iat, 0)) {
+			return nil, errors.New("무효화된 토큰")
 		}
 
 		// 승인 상태 확인 및 업데이트
@@ -392,4 +404,57 @@ func (s *authService) generateToken(user *models.User) (string, error) {
 
 	// 토큰 서명
 	return token.SignedString([]byte(s.jwtSecret))
+}
+
+// 구현 추가
+func (s *authService) GetUserByExternalID(ctx context.Context, externalID, externalSystem string) (*models.User, error) {
+	return s.userRepo.GetByExternalID(ctx, externalID, externalSystem)
+}
+
+// RegisterExternal 구현 - 외부 시스템에서 온 사용자 자동 등록
+func (s *authService) RegisterExternal(ctx context.Context, username, email, fullName, externalID, externalSystem string) (*models.User, error) {
+	// 랜덤 비밀번호 생성 (실제로는 사용되지 않음)
+	randomPassword := utils.GenerateRandomString(16)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(randomPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("비밀번호 해싱 오류: %w", err)
+	}
+
+	// 사용자 객체 생성
+	user := &models.User{
+		Username:       username,
+		Email:          email,
+		Password:       string(hashedPassword),
+		FullName:       fullName,
+		Role:           models.RoleUser,
+		Active:         true,
+		ApprovalStatus: models.ApprovalApproved, // 외부 시스템 사용자는 자동 승인
+		ExternalID:     externalID,
+		ExternalSystem: externalSystem,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	// 데이터베이스에 저장
+	err = s.userRepo.Create(ctx, user)
+	if err != nil {
+		return nil, fmt.Errorf("외부 사용자 등록 오류: %w", err)
+	}
+
+	return user, nil
+}
+
+// GenerateTokenForUser - 특정 사용자의 토큰 생성
+func (s *authService) GenerateTokenForUser(ctx context.Context, userID int64) (string, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("사용자 조회 실패: %w", err)
+	}
+
+	return s.generateToken(user)
+}
+
+// InvalidateUserTokens - 사용자의 모든 토큰 무효화
+func (s *authService) InvalidateUserTokens(ctx context.Context, userID int64) error {
+	return s.userRepo.InvalidateTokens(ctx, userID)
 }

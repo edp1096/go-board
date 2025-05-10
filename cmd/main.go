@@ -296,10 +296,20 @@ func main() {
 	sitemapService := service.NewSitemapService(boardRepo, boardService)
 	referrerService := service.NewReferrerService(referrerRepo)
 
+	// BlindAuth 핸들러 설정
+	externalAuthSecret := os.Getenv("EXTERNAL_AUTH_SECRET")
+	if externalAuthSecret == "" {
+		externalAuthSecret = "shared_secret_key_change_this_in_production"
+		if cfg.IsProduction() {
+			log.Println("경고: 운영 환경에서 EXTERNAL_AUTH_SECRET을 설정하지 않았습니다.")
+		}
+	}
+
 	// 핸들러 초기화
 	setupHandler := handlers.NewSetupHandler(authService, setupService)
 	systemSettingsHandler := handlers.NewSystemSettingsHandler(systemSettingsService)
 	authHandler := handlers.NewAuthHandler(authService)
+	blindAuthHandler := handlers.NewBlindAuthHandler(authService, externalAuthSecret)
 	boardHandler := handlers.NewBoardHandler(boardService, commentService, uploadService, cfg)
 	commentHandler := handlers.NewCommentHandler(commentService, boardService)
 	voteHandler := handlers.NewVoteHandler(postVoteService, commentVoteService)
@@ -353,6 +363,7 @@ func main() {
 		setupHandler,
 		systemSettingsHandler,
 		authHandler,
+		blindAuthHandler,
 		boardHandler,
 		commentHandler,
 		voteHandler,
@@ -558,6 +569,7 @@ func setupRoutes(
 	setupHandler *handlers.SetupHandler,
 	systemSettingsHandler *handlers.SystemSettingsHandler,
 	authHandler *handlers.AuthHandler,
+	blindAuthHandler *handlers.BlindAuthHandler,
 	boardHandler *handlers.BoardHandler,
 	commentHandler *handlers.CommentHandler,
 	voteHandler *handlers.VoteHandler,
@@ -595,6 +607,10 @@ func setupRoutes(
 	auth.Get("/register", authHandler.RegisterPage)
 	auth.Post("/register", authHandler.Register)
 	auth.Get("/logout", authHandler.Logout)
+
+	// BlindAuth 관련 라우트
+	app.Get("/blind-auth", blindAuthHandler.BlindAuth)
+	app.Post("/api/external-logout", blindAuthHandler.ExternalLogout)
 
 	// 사용자 프로필 라우트 (인증 필요)
 	user := app.Group("/user", authMiddleware.RequireAuth)

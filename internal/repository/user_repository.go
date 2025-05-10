@@ -22,6 +22,9 @@ type UserRepository interface {
 	List(ctx context.Context, offset, limit int) ([]*models.User, int, error)
 	SearchUsers(ctx context.Context, query string, offset, limit int) ([]*models.User, error)
 	GetPendingApprovalUsers(ctx context.Context) ([]*models.User, error)
+
+	GetByExternalID(ctx context.Context, externalID, externalSystem string) (*models.User, error)
+	InvalidateTokens(ctx context.Context, userID int64) error
 }
 
 type userRepository struct {
@@ -140,4 +143,29 @@ func (r *userRepository) GetPendingApprovalUsers(ctx context.Context) ([]*models
 	}
 
 	return users, nil
+}
+
+// GetByExternalID 구현
+func (r *userRepository) GetByExternalID(ctx context.Context, externalID, externalSystem string) (*models.User, error) {
+	user := new(models.User)
+	err := r.db.NewSelect().
+		Model(user).
+		Where("external_id = ? AND external_system = ?", externalID, externalSystem).
+		Scan(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// InvalidateTokens 구현
+func (r *userRepository) InvalidateTokens(ctx context.Context, userID int64) error {
+	_, err := r.db.NewUpdate().
+		Table("users").
+		Set("token_invalidated_at = ?", time.Now()).
+		Where("id = ?", userID).
+		Exec(ctx)
+
+	return err
 }
