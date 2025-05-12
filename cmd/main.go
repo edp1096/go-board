@@ -611,7 +611,7 @@ func setupRoutes(
 
 	// BlindAuth 관련 라우트
 	app.Get("/blind-auth", blindAuthHandler.BlindAuth)
-	app.Post("/api/external-logout", blindAuthHandler.ExternalLogout)
+	// app.Post("/api/external-logout", blindAuthHandler.ExternalLogout) // 안씀
 
 	// 사용자 프로필 라우트 (인증 필요)
 	user := app.Group("/user", authMiddleware.RequireAuth)
