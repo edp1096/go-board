@@ -25,7 +25,6 @@ function initCommentEditor() {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/boards/${boardId}/upload`,
         uploadAccessURI: `/uploads/boards/${boardId}/medias`,
-        placeholder: '댓글을 입력하세요...',
         uploadCallback: function (response) {
             // console.log("댓글 이미지 업로드 완료:", response);
         }
@@ -37,15 +36,8 @@ function initCommentEditor() {
 
 // 인라인 답글 에디터 초기화 함수
 function initInlineReplyEditor(containerId) {
-    // 이전 인라인 에디터 제거 (메모리 누수 방지)
-    if (inlineReplyEditor) {
-        try {
-            inlineReplyEditor.destroy();
-        } catch (e) {
-            console.warn('인라인 에디터 제거 중 오류:', e);
-        }
-        inlineReplyEditor = null;
-    }
+    // 이전 인라인 에디터 참조 제거 (destroy 메소드 사용하지 않음)
+    inlineReplyEditor = null;
 
     // 새 에디터 컨테이너 찾기
     const editorContainer = document.querySelector(`editor-inline-reply#inline-reply-editor-${containerId}`);
@@ -62,7 +54,6 @@ function initInlineReplyEditor(containerId) {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/boards/${boardId}/upload`,
         uploadAccessURI: `/uploads/boards/${boardId}/medias`,
-        placeholder: '답글을 입력하세요...',
         uploadCallback: function (response) {
             // console.log("이미지 업로드 완료:", response);
         }
@@ -74,7 +65,7 @@ function initInlineReplyEditor(containerId) {
 }
 
 // 인라인 답글 에디터에 초기 내용 설정
-function setInlineReplyEditorContent(username) {
+function setInlineReplyEditorContent(username, editorId) {
     if (inlineReplyEditor && typeof inlineReplyEditor.setHTML === 'function') {
         const replyText = `<span>@${username}</span>&nbsp;`;
         inlineReplyEditor.setHTML(replyText);
@@ -83,6 +74,25 @@ function setInlineReplyEditorContent(username) {
         setTimeout(() => {
             if (inlineReplyEditor && typeof inlineReplyEditor.focus === 'function') {
                 inlineReplyEditor.focus();
+                return;
+            }
+
+            // ProseMirror 편집 가능 영역 포커스 시도
+            const editorContainer = document.querySelector(`editor-inline-reply#inline-reply-editor-${editorId}`);
+            if (!editorContainer) return;
+
+            const shadowRoot = editorContainer.shadowRoot;
+            const editableDiv = shadowRoot.querySelector('[contenteditable="true"]');
+            if (editableDiv) {
+                editableDiv.focus();
+
+                // 커서를 끝으로 이동
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(editableDiv);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
             }
         }, 50);
     }
@@ -110,7 +120,6 @@ function initEditCommentEditor() {
         uploadInputName: "upload-files[]",
         uploadActionURI: `/api/boards/${boardId}/upload`,
         uploadAccessURI: `/uploads/boards/${boardId}/medias`,
-        placeholder: '댓글을 수정하세요...',
         uploadCallback: function (response) {
             // console.log("댓글 이미지 업로드 완료:", response);
         }
@@ -412,23 +421,27 @@ document.addEventListener('alpine:init', () => {
             },
 
             // 인라인 답글 토글 함수
+            // 인라인 답글 토글 함수 수정
             toggleInlineReply(id, username, isReply, parentCommentId) {
-                // 이미 같은 답글 폼이 열려있으면 닫기
-                if (this.inlineReplyToId === id && this.inlineEditorId) {
-                    this.closeInlineReply();
+                // 에디터 ID 결정 (댓글이면 comment-{id}, 답글이면 reply-{id})
+                const newEditorId = isReply ? `reply-${id}` : `comment-${id}`;
+
+                // 현재 작업 상황 저장
+                const currentEditorId = this.inlineEditorId;
+                const currentReplyToId = this.inlineReplyToId;
+
+                // 일단 현재 에디터 정리
+                this.closeInlineReply();
+
+                // 같은 에디터를 다시 열려고 하는 경우는 여기서 종료 (토글 효과)
+                if (currentEditorId === newEditorId && currentReplyToId === id) {
                     return;
                 }
 
-                // 에디터 ID 결정 (댓글이면 comment-{id}, 답글이면 reply-{id})
-                const editorId = isReply ? `reply-${id}` : `comment-${id}`;
-
-                // 이전 인라인 폼 닫기
-                this.closeInlineReply();
-
-                // 새 인라인 폼 설정
+                // 여기까지 오면 항상 새 에디터를 열어야 함
                 this.inlineReplyToId = id;
                 this.inlineReplyToUser = username || '알 수 없음';
-                this.inlineEditorId = editorId;
+                this.inlineEditorId = newEditorId;
 
                 // 인라인 답글 대상 설정 (부모 댓글 ID가 있으면 그것 사용, 아니면 현재 ID 사용)
                 if (isReply && parentCommentId) {
@@ -438,14 +451,15 @@ document.addEventListener('alpine:init', () => {
 
                 // 에디터 초기화 (DOM 업데이트 후)
                 setTimeout(() => {
-                    const editor = initInlineReplyEditor(editorId);
+                    const editor = initInlineReplyEditor(newEditorId);
                     if (editor) {
-                        setInlineReplyEditorContent(this.inlineReplyToUser);
+                        setInlineReplyEditorContent(this.inlineReplyToUser, this.inlineEditorId);
                     }
                 }, 10);
             },
 
             // 인라인 답글 폼 닫기
+            // 인라인 답글 폼 닫기 함수 수정
             closeInlineReply() {
                 if (!this.inlineEditorId) return;
 
@@ -454,13 +468,9 @@ document.addEventListener('alpine:init', () => {
                 this.inlineReplyContent = '';
                 this.inlineEditorId = null;
 
-                // 인라인 에디터 정리
+                // 인라인 에디터 정리 - destroy 메소드가 없으므로 단순히 null 처리만 합니다
                 if (inlineReplyEditor) {
-                    try {
-                        inlineReplyEditor.destroy();
-                    } catch (e) {
-                        console.warn('인라인 에디터 제거 중 오류:', e);
-                    }
+                    // MyEditor 클래스에 destroy 메소드가 없으므로 참조만 제거
                     inlineReplyEditor = null;
                 }
             },
