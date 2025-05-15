@@ -421,7 +421,6 @@ document.addEventListener('alpine:init', () => {
             },
 
             // 인라인 답글 토글 함수
-            // 인라인 답글 토글 함수 수정
             toggleInlineReply(id, username, isReply, parentCommentId) {
                 // 에디터 ID 결정 (댓글이면 comment-{id}, 답글이면 reply-{id})
                 const newEditorId = isReply ? `reply-${id}` : `comment-${id}`;
@@ -433,7 +432,7 @@ document.addEventListener('alpine:init', () => {
                 // 일단 현재 에디터 정리
                 this.closeInlineReply();
 
-                // 같은 에디터를 다시 열려고 하는 경우는 여기서 종료 (토글 효과)
+                // 같은 에디터를 다시 열려고 하는 경우는 여기서 종료 (토글)
                 if (currentEditorId === newEditorId && currentReplyToId === id) {
                     return;
                 }
