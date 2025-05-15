@@ -258,6 +258,7 @@
         </div>
 
         <!-- 댓글 표시 -->
+        <!-- 댓글 표시 부분 수정 -->
         <template x-for="comment in comments" :key="comment.id">
             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                 <!-- 기본 댓글 -->
@@ -269,12 +270,11 @@
                             </div>
                         </div>
                         <div class="min-w-0 flex-1">
-                            {{$isAdmin := eq .user.Role "admin"}}
                             <div class="text-sm font-medium" x-text="comment.user ? comment.user.fullName {{if $isAdmin}} + '('+comment.ipAddress+')' {{end}} : '알 수 없음'"></div>
                             <div class="mt-1 text-sm" x-html="comment.content.replace(/\n/g, '<br>')"></div>
                             <div class="mt-2 text-xs flex items-center space-x-2">
                                 <span x-text="new Date(comment.createdAt).toLocaleString()"></span>
-
+        
                                 {{if .board.VotesEnabled}}
                                 <div class="flex items-center space-x-2">
                                     <button @click="voteComment(comment.id, 1)" class="flex items-center space-x-1" :class="{ 'text-blue-600': comment.userVote === 1 }">
@@ -283,7 +283,7 @@
                                         </svg>
                                         <span x-text="comment.likeCount || 0"></span>
                                     </button>
-
+        
                                     <button @click="voteComment(comment.id, -1)" class="flex items-center space-x-1" :class="{ 'text-red-600': comment.userVote === -1 }">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.017c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2M17 4h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
@@ -292,12 +292,12 @@
                                     </button>
                                 </div>
                                 {{end}}
-
+        
                                 {{if .user}}
-                                <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.fullName : '알 수 없음')">
+                                <button class="text-blue-600 hover:text-blue-800" @click="toggleInlineReply(comment.id, comment.user ? comment.user.fullName : '알 수 없음', false)">
                                     답글
                                 </button>
-
+        
                                 <template x-if="{{.user.ID}} == comment.userId || {{$admin}}">
                                     <div class="flex items-center space-x-2">
                                         <button class="hover:text-secondary" @click="editComment(comment.id, comment.content)">
@@ -313,7 +313,42 @@
                         </div>
                     </div>
                 </div>
-
+        
+                <!-- 인라인 답글 폼 (댓글에 대한 답글) -->
+                <template x-if="inlineEditorId === `comment-${comment.id}`">
+                    <div class="px-4 py-2 border-t border-gray-100">
+                        <div class="flex space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="bg-accent h-8 w-8 rounded-full flex items-center justify-center">
+                                    <span class="text-xs font-medium">{{firstChar .user.FullName}}</span>
+                                </div>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <form @submit.prevent="submitInlineReply()">
+                                    <div class="bg-white p-1 rounded-md shadow-sm">
+                                        <editor-inline-reply :id="`inline-reply-editor-${inlineEditorId}`"></editor-inline-reply>
+                                    </div>
+                                    <div class="mt-2 flex justify-end space-x-2">
+                                        <button type="button" @click="closeInlineReply()" class="inline-flex items-center px-3 py-1.5 border border-current/25 rounded-md text-sm font-medium bg-white">
+                                            취소
+                                        </button>
+                                        <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-current/25 btn-primary rounded-md text-sm font-medium text-white" :disabled="inlineSubmitting">
+                                            <span x-show="!inlineSubmitting">등록</span>
+                                            <span x-show="inlineSubmitting" class="flex items-center">
+                                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                등록 중...
+                                            </span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+        
                 <!-- 답글 -->
                 <template x-if="comment.children && comment.children.length > 0">
                     <div class="px-4 py-2 border-t border-gray-100">
@@ -327,11 +362,10 @@
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-sm font-medium" x-text="reply.user ? reply.user.fullName {{if $isAdmin}} + '('+comment.ipAddress+')' {{end}} : '알 수 없음'"></div>
-                                        <!-- <div class="mt-1 text-sm" x-html="reply.content.replace(/\n/g, '<br>')"></div> -->
                                         <div class="mt-1 text-sm prose prose-sm max-w-none" x-html="reply.content.replace(/\n/g, '<br>')"></div>
                                         <div class="mt-2 text-xs flex items-center space-x-2">
                                             <span x-text="new Date(reply.createdAt).toLocaleString()"></span>
-
+        
                                             {{if .board.VotesEnabled}}
                                             <div class="flex items-center space-x-2">
                                                 <button @click="voteComment(reply.id, 1)" class="flex items-center space-x-1" :class="{ 'text-blue-600': reply.userVote === 1 }">
@@ -340,7 +374,7 @@
                                                     </svg>
                                                     <span x-text="reply.likeCount || 0"></span>
                                                 </button>
-
+        
                                                 <button @click="voteComment(reply.id, -1)" class="flex items-center space-x-1" :class="{ 'text-red-600': reply.userVote === -1 }">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.017c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2M17 4h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
@@ -349,13 +383,13 @@
                                                 </button>
                                             </div>
                                             {{end}}
-
+        
                                             <!-- 수정/삭제 버튼 (답변 작성자 또는 관리자만) -->
                                             {{if .user}}
-                                            <button class="text-blue-600 hover:text-blue-800" @click="setReplyInfo(comment.id, comment.user ? comment.user.fullName : '알 수 없음')">
+                                            <button class="text-blue-600 hover:text-blue-800" @click="toggleInlineReply(reply.id, reply.user ? reply.user.fullName : '알 수 없음', true, comment.id)">
                                                 답글
                                             </button>
-
+        
                                             <template x-if="{{.user.ID}} == reply.userId || {{$admin}}">
                                                 <div class="flex items-center space-x-2">
                                                     <button class="hover:text-secondary" @click="editComment(reply.id, reply.content)">
@@ -370,6 +404,41 @@
                                         </div>
                                     </div>
                                 </div>
+        
+                                <!-- 인라인 답글 폼 (대댓글에 대한 답글) -->
+                                <template x-if="inlineEditorId === `reply-${reply.id}`">
+                                    <div class="ml-11 mt-2 rounded-md">
+                                        <div class="flex space-x-3 p-2">
+                                            <div class="flex-shrink-0">
+                                                <div class="bg-accent h-7 w-7 rounded-full flex items-center justify-center">
+                                                    <span class="text-xs font-medium">{{firstChar .user.FullName}}</span>
+                                                </div>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <form @submit.prevent="submitInlineReply()">
+                                                    <div class="bg-white p-1 rounded-md shadow-sm">
+                                                        <editor-inline-reply :id="`inline-reply-editor-${inlineEditorId}`"></editor-inline-reply>
+                                                    </div>
+                                                    <div class="mt-2 flex justify-end space-x-2">
+                                                        <button type="button" @click="closeInlineReply()" class="inline-flex items-center px-3 py-1.5 border border-current/25 rounded-md text-xs font-medium bg-white">
+                                                            취소
+                                                        </button>
+                                                        <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-current/25 btn-primary rounded-md text-xs font-medium text-white" :disabled="inlineSubmitting">
+                                                            <span x-show="!inlineSubmitting">등록</span>
+                                                            <span x-show="inlineSubmitting" class="flex items-center">
+                                                                <svg class="animate-spin -ml-1 mr-2 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                </svg>
+                                                                등록 중...
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                     </div>
@@ -377,6 +446,27 @@
             </div>
         </template>
     </div>
+
+    <!-- 인라인 답글 에디터 템플릿 -->
+    <template id="inline-reply-editor-template">
+        <link rel="stylesheet" href="/static/vendor/myeditor/myeditor.css">
+    
+        <style>
+            #inline-reply-editor-container {
+                resize: vertical;
+                overflow: hidden;
+                height: 100px;
+                min-height: 80px;
+                max-height: 300px;
+                border: 1px solid #d1d5db;
+                border-radius: 0.375rem;
+            }
+        </style>
+    
+        <div class="inline-reply-editor-container">
+            <div id="inline-reply-editor-container"></div>
+        </div>
+    </template>
 
     <!-- 댓글 작성 폼 -->
     {{if .user}}

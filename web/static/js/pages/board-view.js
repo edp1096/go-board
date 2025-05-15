@@ -3,6 +3,7 @@
 let commentEditor;
 let editCommentEditor; // 댓글 수정용 에디터
 let isEditEditorInitialized = false; // 수정 에디터 초기화 여부 플래그
+let inlineReplyEditor = null; // 인라인 답글 에디터
 
 document.addEventListener('DOMContentLoaded', function () {
     initCommentEditor(); // 댓글 에디터 초기화
@@ -32,6 +33,59 @@ function initCommentEditor() {
 
     // 에디터 초기화
     commentEditor = new MyEditor("", editorEl, editorOptions);
+}
+
+// 인라인 답글 에디터 초기화 함수
+function initInlineReplyEditor(containerId) {
+    // 이전 인라인 에디터 제거 (메모리 누수 방지)
+    if (inlineReplyEditor) {
+        try {
+            inlineReplyEditor.destroy();
+        } catch (e) {
+            console.warn('인라인 에디터 제거 중 오류:', e);
+        }
+        inlineReplyEditor = null;
+    }
+
+    // 새 에디터 컨테이너 찾기
+    const editorContainer = document.querySelector(`editor-inline-reply#inline-reply-editor-${containerId}`);
+    if (!editorContainer) return null;
+
+    const shadowRoot = editorContainer.shadowRoot;
+    const editorEl = shadowRoot.querySelector("#inline-reply-editor-container");
+    if (!editorEl) return null;
+
+    const boardId = document.getElementById('boardId').value;
+
+    // 에디터 옵션 설정
+    const editorOptions = {
+        uploadInputName: "upload-files[]",
+        uploadActionURI: `/api/boards/${boardId}/upload`,
+        uploadAccessURI: `/uploads/boards/${boardId}/medias`,
+        placeholder: '답글을 입력하세요...',
+        uploadCallback: function (response) {
+            // console.log("이미지 업로드 완료:", response);
+        }
+    };
+
+    // 에디터 초기화
+    inlineReplyEditor = new MyEditor("", editorEl, editorOptions);
+    return inlineReplyEditor;
+}
+
+// 인라인 답글 에디터에 초기 내용 설정
+function setInlineReplyEditorContent(username) {
+    if (inlineReplyEditor && typeof inlineReplyEditor.setHTML === 'function') {
+        const replyText = `<span>@${username}</span>&nbsp;`;
+        inlineReplyEditor.setHTML(replyText);
+
+        // 에디터 포커스 설정
+        setTimeout(() => {
+            if (inlineReplyEditor && typeof inlineReplyEditor.focus === 'function') {
+                inlineReplyEditor.focus();
+            }
+        }, 50);
+    }
 }
 
 // 댓글 수정 에디터 초기화 함수 - 최초 한 번만 실행
@@ -84,8 +138,13 @@ document.addEventListener('alpine:init', () => {
             editCommentContent: '',
             replyToId: null,
             replyToUser: '',
+            inlineReplyToId: null,  // 인라인 답글 대상 ID
+            inlineReplyToUser: '',  // 인라인 답글 대상 사용자명
+            inlineReplyContent: '', // 인라인 답글 내용
+            inlineEditorId: null,   // 현재 활성화된 인라인 에디터 ID
             loading: true,
             submitting: false,
+            inlineSubmitting: false, // 인라인 폼 제출 중 상태
             commentsEnabled: commentsEnabled,
             error: null,
             editingCommentId: null,
@@ -104,6 +163,26 @@ document.addEventListener('alpine:init', () => {
                         initEditCommentEditor();
                     }
                 }, 250);
+
+                // 인라인 에디터 요소 등록
+                this.registerInlineEditorElement();
+            },
+
+            // 인라인 에디터용 커스텀 엘리먼트 등록
+            registerInlineEditorElement() {
+                if (!customElements.get('editor-inline-reply')) {
+                    class InlineReplyEditorElement extends HTMLElement {
+                        constructor() {
+                            super();
+                            const templateContent = document.querySelector("#inline-reply-editor-template")?.content;
+                            if (templateContent) {
+                                const shadowRoot = this.attachShadow({ mode: "open" });
+                                shadowRoot.appendChild(templateContent.cloneNode(true));
+                            }
+                        }
+                    }
+                    customElements.define("editor-inline-reply", InlineReplyEditorElement);
+                }
             },
 
             // 댓글 좋아요/싫어요 처리
@@ -259,6 +338,7 @@ document.addEventListener('alpine:init', () => {
                 }
             },
 
+            // 기존 에디터 포커스 함수들
             focusCommentEditor() {
                 try {
                     // 1. 먼저 직접 에디터 메서드로 시도
@@ -331,6 +411,129 @@ document.addEventListener('alpine:init', () => {
                 }
             },
 
+            // 인라인 답글 토글 함수
+            toggleInlineReply(id, username, isReply, parentCommentId) {
+                // 이미 같은 답글 폼이 열려있으면 닫기
+                if (this.inlineReplyToId === id && this.inlineEditorId) {
+                    this.closeInlineReply();
+                    return;
+                }
+
+                // 에디터 ID 결정 (댓글이면 comment-{id}, 답글이면 reply-{id})
+                const editorId = isReply ? `reply-${id}` : `comment-${id}`;
+
+                // 이전 인라인 폼 닫기
+                this.closeInlineReply();
+
+                // 새 인라인 폼 설정
+                this.inlineReplyToId = id;
+                this.inlineReplyToUser = username || '알 수 없음';
+                this.inlineEditorId = editorId;
+
+                // 인라인 답글 대상 설정 (부모 댓글 ID가 있으면 그것 사용, 아니면 현재 ID 사용)
+                if (isReply && parentCommentId) {
+                    // 이 경우 답글에 답글을 다는 것이지만, API는 부모 댓글 ID에 달아야 함
+                    this.inlineReplyToId = parentCommentId;
+                }
+
+                // 에디터 초기화 (DOM 업데이트 후)
+                setTimeout(() => {
+                    const editor = initInlineReplyEditor(editorId);
+                    if (editor) {
+                        setInlineReplyEditorContent(this.inlineReplyToUser);
+                    }
+                }, 10);
+            },
+
+            // 인라인 답글 폼 닫기
+            closeInlineReply() {
+                if (!this.inlineEditorId) return;
+
+                this.inlineReplyToId = null;
+                this.inlineReplyToUser = '';
+                this.inlineReplyContent = '';
+                this.inlineEditorId = null;
+
+                // 인라인 에디터 정리
+                if (inlineReplyEditor) {
+                    try {
+                        inlineReplyEditor.destroy();
+                    } catch (e) {
+                        console.warn('인라인 에디터 제거 중 오류:', e);
+                    }
+                    inlineReplyEditor = null;
+                }
+            },
+
+            // 인라인 답글 제출
+            async submitInlineReply() {
+                const boardId = document.getElementById('boardId').value;
+                const postId = document.getElementById('postId').value;
+
+                // 에디터에서 HTML 내용 가져오기
+                if (inlineReplyEditor) {
+                    this.inlineReplyContent = inlineReplyEditor.getHTML();
+
+                    // 빈 댓글 체크
+                    if (!this.inlineReplyContent || this.inlineReplyContent === '<p></p>' || this.inlineReplyContent === '<p><br></p>') {
+                        alert('답글 내용을 입력해주세요.');
+                        return;
+                    }
+                }
+
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+                this.inlineSubmitting = true;
+
+                try {
+                    const response = await fetch(`/api/boards/${boardId}/posts/${postId}/comments`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
+                        body: JSON.stringify({
+                            content: this.inlineReplyContent,
+                            parentId: this.inlineReplyToId
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const newCommentId = data.comment.id; // 새 댓글 ID
+
+                        // 부모 댓글 찾아서 답글 추가
+                        const parentIndex = this.comments.findIndex(c => c.id === this.inlineReplyToId);
+                        if (parentIndex !== -1) {
+                            if (!this.comments[parentIndex].children) {
+                                this.comments[parentIndex].children = [];
+                            }
+                            this.comments[parentIndex].children.push(data.comment);
+                        }
+
+                        // 인라인 답글 폼 닫기
+                        this.closeInlineReply();
+
+                        // DOM 업데이트 후 새 댓글의 이미지 처리
+                        setTimeout(() => {
+                            if (typeof processNewCommentImages === 'function') {
+                                processNewCommentImages(newCommentId);
+                            }
+                        }, 200);
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (err) {
+                    console.error('답글 등록 중 오류:', err);
+                    alert('답글 등록 중 오류가 발생했습니다.');
+                } finally {
+                    this.inlineSubmitting = false;
+                }
+            },
+
+            // 기존 페이지 하단 댓글 폼용 메소드들 (유지)
             setReplyInfo(id, username) {
                 this.replyToId = id;
                 this.replyToUser = username || '알 수 없음';
@@ -417,7 +620,6 @@ document.addEventListener('alpine:init', () => {
                         }
 
                         // DOM 업데이트 후 새 댓글의 이미지 처리
-                        // Alpine.js의 반응성으로 인해 DOM이 업데이트된 후 처리해야 함
                         setTimeout(() => {
                             if (typeof processNewCommentImages === 'function') {
                                 processNewCommentImages(newCommentId);
